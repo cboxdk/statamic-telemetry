@@ -63,7 +63,9 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 | `enduser.roles` / `enduser.groups` | root span | sorted, comma-joined handles |
 | `enduser.super` | root span | `true` (only when super) |
 | `cache.key.group` | cache spans (core) | `stache.index`, `stache.item`, … |
+| `statamic.blink.hits` / `statamic.blink.misses` | root span (tallies) | per-request Blink memoization effectiveness |
 | `view.path` / `view.engine` | `view.render` detail spans (opt-in) | relative path, `antlers` |
+| `antlers.tag` | `antlers:{tag}` detail spans (opt-in) | `collection:blog`, `partial:hero`, … |
 
 ### Metrics
 
@@ -75,6 +77,7 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 | `statamic.glide.generations` | counter | `preset` (ad-hoc params → `custom`) |
 | `statamic.forms.submissions` | counter | `form` |
 | `statamic.content.changes` | counter | `type`, `action` |
+| `statamic.search.index_updates` | counter | `index` |
 | `statamic.entries.count` | gauge (opt-in) | `collection` |
 | `statamic.assets.count` | gauge (opt-in) | `container` |
 | `statamic.users.count` | gauge (opt-in) | — |
@@ -147,6 +150,15 @@ Telemetry::classifyCacheKeysUsing(fn (string $store, string $key) =>
   headers regardless, so the addon removes the header just before the
   snapshot — first visitors keep their header on file-measure, dynamic
   responses always keep it.
+- **Augmentation is observed indirectly.** Statamic fires no events around
+  field augmentation, so there is no direct per-field instrumentation.
+  Its cost shows up in three places instead: the Blink tallies (augmentation
+  memoization lives in Blink), the opt-in `antlers:{tag}` spans (tags are
+  where augmentation work runs), and the opt-in `view.render` spans.
+  Per-field visibility would need an upstream hook in statamic/cms.
+- **Search queries are not counted.** Statamic fires `SearchIndexUpdated`
+  for index writes (counted) but no event for queries — query latency is
+  visible on the request span.
 - **Everything is guarded.** Resolvers run inside laravel-telemetry's
   FailSafe; listeners check their config toggles at event time, so toggles
   work at runtime and in tests.

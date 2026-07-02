@@ -19,7 +19,10 @@ Initial release. Statamic 6 only.
 - Stache cache-key classification into bounded groups, warm/clear
   counters and warm duration histogram.
 - Glide, form submission and content change counters.
-- Opt-in Antlers render detail spans.
+- Opt-in Antlers render detail spans (per view) and per-tag spans via
+  Statamic's runtime tracing hook.
+- Blink memoization tallies (hits/misses) on the trace root span.
+- Search index update counter.
 - Opt-in observable gauges: entries per collection, assets per
   container, user count.
 - Bundled Grafana dashboard (`statamic-telemetry:dashboards`) joining

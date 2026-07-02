@@ -7,11 +7,13 @@ use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Routing\Route;
 use Statamic\Events\EntrySaved;
 use Statamic\Events\GlideImageGenerated;
+use Statamic\Events\SearchIndexUpdated;
 use Statamic\Events\StacheCleared;
 use Statamic\Events\SubmissionCreated;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Form;
+use Statamic\Facades\Search;
 
 test('glide generations are counted per preset', function () {
     $fake = $this->fakeTelemetry();
@@ -44,6 +46,14 @@ test('content changes are counted by type and action', function () {
 
     // CollectionSaved from the fixture setup above also flows through.
     $fake->assertCounterIncremented('statamic.content.changes', ['type' => 'collection', 'action' => 'saved']);
+});
+
+test('search index updates are counted per index', function () {
+    $fake = $this->fakeTelemetry();
+
+    event(new SearchIndexUpdated(Search::index()));
+
+    $fake->assertCounterIncremented('statamic.search.index_updates', ['index' => 'default']);
 });
 
 test('stache clears are counted', function () {

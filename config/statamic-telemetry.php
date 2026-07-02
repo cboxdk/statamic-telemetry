@@ -37,8 +37,17 @@ return [
     | forms           Counter per created submission, labelled by form.
     | content_events  Counter for content changes (entry/term/asset/… saved,
     |                 deleted, uploaded).
+    | search          Counter per search index update, labelled by index.
+    | blink           statamic.blink.hits / statamic.blink.misses tallies on
+    |                 the trace root span — the request's memoization
+    |                 effectiveness (augmentation caching lives in Blink).
     | views           A detail span per rendered Antlers view. Off by
     |                 default: verbose, and it wraps the view engine.
+    | antlers         A detail span per Antlers *tag* invocation
+    |                 (collection, nav, form, partial) via Statamic's
+    |                 runtime tracing hook. Off by default: forces
+    |                 statamic.antlers.tracing on, which has a per-node
+    |                 cost across all rendering.
     |
     */
 
@@ -51,7 +60,10 @@ return [
         'glide' => env('STATAMIC_TELEMETRY_GLIDE', true),
         'forms' => env('STATAMIC_TELEMETRY_FORMS', true),
         'content_events' => env('STATAMIC_TELEMETRY_CONTENT_EVENTS', true),
+        'search' => env('STATAMIC_TELEMETRY_SEARCH', true),
+        'blink' => env('STATAMIC_TELEMETRY_BLINK', true),
         'views' => env('STATAMIC_TELEMETRY_VIEWS', false),
+        'antlers' => env('STATAMIC_TELEMETRY_ANTLERS', false),
     ],
 
     /*

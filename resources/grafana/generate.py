@@ -223,14 +223,17 @@ statamic = dashboard("cbox-tel-statamic", "Statamic", [
     timeseries("Content changes", [
         target(f'sum by (type, action) (rate(statamic_content_changes_total{{{SVC}}}[$__rate_interval])) * 60',
                '{{type}} {{action}}'),
-    ], 0, 23, w=8, unit="opm", stacked=True, legend="table"),
+    ], 0, 23, w=6, unit="opm", stacked=True, legend="table"),
     timeseries("Form submissions", [
         target(f'sum by (form) (rate(statamic_forms_submissions_total{{{SVC}}}[$__rate_interval])) * 60', '{{form}}'),
-    ], 8, 23, w=8, unit="opm"),
+    ], 6, 23, w=6, unit="opm"),
     timeseries("Glide generations", [
         target(f'sum by (preset) (rate(statamic_glide_generations_total{{{SVC}}}[$__rate_interval])) * 60', '{{preset}}'),
-    ], 16, 23, w=8, unit="opm",
+    ], 12, 23, w=6, unit="opm",
         description="Sustained generation traffic means the Glide cache is being missed — presets bound the label; ad-hoc params group under 'custom'."),
+    timeseries("Search index updates", [
+        target(f'sum by (index) (rate(statamic_search_index_updates_total{{{SVC}}}[$__rate_interval])) * 60', '{{index}}'),
+    ], 18, 23, w=6, unit="opm"),
 
     row("Inventory (opt-in gauges)", 31),
     table("Entries by collection",

@@ -9,11 +9,14 @@ use Cbox\StatamicTelemetry\Listeners\CaptureResponseData;
 use Cbox\StatamicTelemetry\Listeners\RecordContentChange;
 use Cbox\StatamicTelemetry\Listeners\RecordFormSubmission;
 use Cbox\StatamicTelemetry\Listeners\RecordGlideGeneration;
+use Cbox\StatamicTelemetry\Listeners\RecordSearchIndexUpdate;
 use Cbox\StatamicTelemetry\Listeners\RecordStacheChange;
 use Cbox\StatamicTelemetry\Listeners\StripTraceHeader;
 use Cbox\StatamicTelemetry\Metrics\StatamicMetricsProvider;
 use Cbox\StatamicTelemetry\StaticCaching\TracingApplicationCacher;
 use Cbox\StatamicTelemetry\StaticCaching\TracingFileCacher;
+use Cbox\StatamicTelemetry\Support\TracingBlink;
+use Cbox\StatamicTelemetry\View\AntlersNodeTracer;
 use Cbox\StatamicTelemetry\View\TracingEngine;
 use Cbox\Telemetry\Facades\Telemetry;
 use Illuminate\Cache\Repository;
@@ -24,6 +27,7 @@ use Statamic\Events;
 use Statamic\Providers\AddonServiceProvider;
 use Statamic\StaticCaching\Cachers\Writer;
 use Statamic\StaticCaching\StaticCacheManager;
+use Statamic\Support\Blink;
 
 class ServiceProvider extends AddonServiceProvider
 {
@@ -38,6 +42,7 @@ class ServiceProvider extends AddonServiceProvider
         Events\StacheWarmed::class => [RecordStacheChange::class],
         Events\StacheCleared::class => [RecordStacheChange::class],
         Events\GlideImageGenerated::class => [RecordGlideGeneration::class],
+        Events\SearchIndexUpdated::class => [RecordSearchIndexUpdate::class],
         Events\SubmissionCreated::class => [RecordFormSubmission::class],
         Events\EntrySaved::class => [RecordContentChange::class],
         Events\EntryDeleted::class => [RecordContentChange::class],
@@ -69,6 +74,22 @@ class ServiceProvider extends AddonServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/statamic-telemetry.php', 'statamic-telemetry');
 
         $this->registerStaticCacheDrivers();
+        $this->registerTracingBlink();
+    }
+
+    /**
+     * Blink is resolved through the container by its facade; binding the
+     * tallying subclass makes every store count once() hits/misses onto
+     * the trace root span. Register phase — before anything memoizes.
+     */
+    private function registerTracingBlink(): void
+    {
+        if (! config('statamic-telemetry.enabled', true)
+            || ! config('statamic-telemetry.instrument.blink', true)) {
+            return;
+        }
+
+        $this->app->singleton(Blink::class, TracingBlink::class);
     }
 
     public function bootAddon()
@@ -80,7 +101,28 @@ class ServiceProvider extends AddonServiceProvider
         Hooks::register();
 
         $this->bootViewEngine();
+        $this->bootAntlersTracer();
         $this->bootGauges();
+    }
+
+    /**
+     * Tag-level render spans via Statamic's official Antlers runtime
+     * tracing hook. Opt-in: the runtime only consults tracers when
+     * statamic.antlers.tracing is on, and per-node tracing has a cost.
+     * The parser binding reads this config at resolve time (per render),
+     * so setting it in boot is early enough.
+     */
+    private function bootAntlersTracer(): void
+    {
+        if (! config('statamic-telemetry.instrument.antlers', false)) {
+            return;
+        }
+
+        config()->set('statamic.antlers.tracing', true);
+        config()->set('statamic.antlers.tracers', array_merge(
+            config('statamic.antlers.tracers', []) ?? [],
+            [AntlersNodeTracer::class],
+        ));
     }
 
     /**
