@@ -32,7 +32,10 @@ jobs:
 
     steps:
       # laravel-telemetry is a path repository at ../laravel-telemetry, so
-      # both repos are checked out as siblings inside the workspace.
+      # both repos are checked out as siblings inside the workspace. The
+      # sibling repo is private: CBOX_REPO_TOKEN must be a (fine-grained)
+      # PAT with read access to cboxdk/laravel-telemetry — the default
+      # workflow token cannot see it.
       - name: Checkout statamic-telemetry
         uses: actions/checkout@v6
         with:
@@ -43,6 +46,7 @@ jobs:
         with:
           repository: cboxdk/laravel-telemetry
           path: laravel-telemetry
+          token: ${{ secrets.CBOX_REPO_TOKEN || github.token }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

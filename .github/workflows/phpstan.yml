@@ -28,11 +28,14 @@ jobs:
         with:
           path: statamic-telemetry
 
+      # Private sibling repo — needs CBOX_REPO_TOKEN (PAT with read access
+      # to cboxdk/laravel-telemetry); see run-tests.yml.
       - name: Checkout laravel-telemetry
         uses: actions/checkout@v6
         with:
           repository: cboxdk/laravel-telemetry
           path: laravel-telemetry
+          token: ${{ secrets.CBOX_REPO_TOKEN || github.token }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
