@@ -137,6 +137,10 @@ Telemetry::classifyCacheKeysUsing(fn (string $store, string $key) =>
 - **Full-measure hits are invisible.** With the `full` strategy, cached hits
   are served by the web server and never reach PHP — those requests produce
   no telemetry at all. Only PHP-served hits, misses and writes are recorded.
+- **Cache hits keep the generic span name.** A static cache hit never
+  reaches the frontend controller, so there is no entry to name the span
+  by — hit traces are `GET /{pattern}` with `statamic.static_cache: hit`
+  (and are fast). Content-named spans are the renders.
 - **Trace header stripping.** The core package already skips the trace id
   header on `Cache-Control: public` responses (CDN caches). Statamic's
   half-measure cacher decides cacheability by its own rules and snapshots

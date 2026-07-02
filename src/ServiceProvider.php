@@ -21,9 +21,9 @@ use Illuminate\Routing\Events\ResponsePrepared;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Cache;
 use Statamic\Events;
-use Statamic\Facades\StaticCache;
 use Statamic\Providers\AddonServiceProvider;
 use Statamic\StaticCaching\Cachers\Writer;
+use Statamic\StaticCaching\StaticCacheManager;
 
 class ServiceProvider extends AddonServiceProvider
 {
@@ -62,6 +62,15 @@ class ServiceProvider extends AddonServiceProvider
         Events\BlueprintDeleted::class => [RecordContentChange::class],
     ];
 
+    public function register()
+    {
+        // The addon convention merges config in boot, but the static cache
+        // driver swap below needs the toggles during register already.
+        $this->mergeConfigFrom(__DIR__.'/../config/statamic-telemetry.php', 'statamic-telemetry');
+
+        $this->registerStaticCacheDrivers();
+    }
+
     public function bootAddon()
     {
         if (! config('statamic-telemetry.enabled', true)) {
@@ -70,7 +79,6 @@ class ServiceProvider extends AddonServiceProvider
 
         Hooks::register();
 
-        $this->bootStaticCacheDrivers();
         $this->bootViewEngine();
         $this->bootGauges();
     }
@@ -81,24 +89,39 @@ class ServiceProvider extends AddonServiceProvider
      * Subclasses — not a decorator — because Statamic's middleware and
      * replacers make instanceof checks against the concrete cachers
      * (FileCacher, ApplicationCacher) to pick code paths.
+     *
+     * Registered via afterResolving on the manager, not in bootAddon:
+     * with static caching enabled, Statamic's own boot subscribes the
+     * invalidator, which resolves (and caches) the driver before any
+     * booted() callback runs. Extending as soon as the manager exists
+     * always beats the first driver() call.
      */
-    private function bootStaticCacheDrivers(): void
+    private function registerStaticCacheDrivers(): void
     {
-        if (! config('statamic-telemetry.instrument.static_cache', true)) {
-            return;
+        $extend = function (StaticCacheManager $manager): void {
+            if (! config('statamic-telemetry.enabled', true)
+                || ! config('statamic-telemetry.instrument.static_cache', true)) {
+                return;
+            }
+
+            $manager->extend('file', function ($app, $config) {
+                return new TracingFileCacher(
+                    new Writer($config['permissions'] ?? []),
+                    Cache::store(config()->has('cache.stores.static_cache') ? 'static_cache' : null),
+                    $config,
+                );
+            });
+
+            $manager->extend('application', function ($app, $config) {
+                return new TracingApplicationCacher($app[Repository::class], $config);
+            });
+        };
+
+        $this->app->afterResolving(StaticCacheManager::class, $extend);
+
+        if ($this->app->resolved(StaticCacheManager::class)) {
+            $extend($this->app->make(StaticCacheManager::class));
         }
-
-        StaticCache::extend('file', function ($app, $config) {
-            return new TracingFileCacher(
-                new Writer($config['permissions'] ?? []),
-                Cache::store(config()->has('cache.stores.static_cache') ? 'static_cache' : null),
-                $config,
-            );
-        });
-
-        StaticCache::extend('application', function ($app, $config) {
-            return new TracingApplicationCacher($app[Repository::class], $config);
-        });
     }
 
     /**
