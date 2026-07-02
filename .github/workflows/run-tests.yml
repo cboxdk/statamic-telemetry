@@ -1,0 +1,69 @@
+name: run-tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.php'
+      - '.github/workflows/run-tests.yml'
+      - 'phpunit.xml'
+      - 'composer.json'
+  pull_request:
+    paths:
+      - '**.php'
+      - '.github/workflows/run-tests.yml'
+      - 'phpunit.xml'
+      - 'composer.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: true
+      matrix:
+        php: [8.5, 8.4, 8.3]
+
+    name: P${{ matrix.php }}
+
+    steps:
+      # laravel-telemetry is a path repository at ../laravel-telemetry, so
+      # both repos are checked out as siblings inside the workspace.
+      - name: Checkout statamic-telemetry
+        uses: actions/checkout@v6
+        with:
+          path: statamic-telemetry
+
+      - name: Checkout laravel-telemetry
+        uses: actions/checkout@v6
+        with:
+          repository: cboxdk/laravel-telemetry
+          path: laravel-telemetry
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, intl, iconv, fileinfo, exif, gd
+          coverage: none
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Install dependencies
+        working-directory: statamic-telemetry
+        run: composer update --prefer-stable --prefer-dist --no-interaction
+
+      - name: List Installed Dependencies
+        working-directory: statamic-telemetry
+        run: composer show -D
+
+      - name: Execute tests
+        working-directory: statamic-telemetry
+        run: vendor/bin/pest --ci

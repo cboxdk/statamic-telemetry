@@ -27,6 +27,10 @@ use Statamic\StaticCaching\Cachers\Writer;
 
 class ServiceProvider extends AddonServiceProvider
 {
+    protected $commands = [
+        Console\DashboardsCommand::class,
+    ];
+
     protected $listen = [
         Events\ResponseCreated::class => [CaptureResponseData::class],
         RouteMatched::class => [AddSiteContext::class],

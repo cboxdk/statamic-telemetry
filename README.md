@@ -82,6 +82,25 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 Core cache counters additionally carry the `key_group` label from the
 classifier.
 
+## Grafana dashboard
+
+The addon bundles a **Statamic** dashboard for the Grafana suite that
+ships with laravel-telemetry (`telemetry:dashboards`): static cache hit
+ratio and operations, Stache traffic by key group and warm duration,
+content changes, form submissions, Glide generations, the opt-in
+inventory gauges, and Tempo panels for content traces and slow uncached
+pages.
+
+```bash
+php artisan statamic-telemetry:dashboards            # import into http://localhost:3000
+php artisan statamic-telemetry:dashboards --grafana=https://grafana.example.com --token=...
+php artisan statamic-telemetry:dashboards --export=./grafana-provisioning
+```
+
+It carries the same `telemetry` tag as the core suite, so it appears as
+a tab alongside Overview, Requests, Jobs, etc. Panels are regenerated
+with `python3 resources/grafana/generate.py`.
+
 ## Composing with your own hooks
 
 laravel-telemetry's resolver hooks are single-slot — the last registration
