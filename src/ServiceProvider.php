@@ -6,8 +6,10 @@ namespace Cbox\StatamicTelemetry;
 
 use Cbox\StatamicTelemetry\Listeners\AddSiteContext;
 use Cbox\StatamicTelemetry\Listeners\CaptureResponseData;
+use Cbox\StatamicTelemetry\Listeners\RecordAuthEvent;
 use Cbox\StatamicTelemetry\Listeners\RecordContentChange;
 use Cbox\StatamicTelemetry\Listeners\RecordFormSubmission;
+use Cbox\StatamicTelemetry\Listeners\RecordGlideCacheClear;
 use Cbox\StatamicTelemetry\Listeners\RecordGlideGeneration;
 use Cbox\StatamicTelemetry\Listeners\RecordSearchIndexUpdate;
 use Cbox\StatamicTelemetry\Listeners\RecordStacheChange;
@@ -42,7 +44,19 @@ class ServiceProvider extends AddonServiceProvider
         Events\StacheWarmed::class => [RecordStacheChange::class],
         Events\StacheCleared::class => [RecordStacheChange::class],
         Events\GlideImageGenerated::class => [RecordGlideGeneration::class],
+        Events\GlideCacheCleared::class => [RecordGlideCacheClear::class],
+        Events\GlideAssetCacheCleared::class => [RecordGlideCacheClear::class],
         Events\SearchIndexUpdated::class => [RecordSearchIndexUpdate::class],
+        Events\ImpersonationStarted::class => [RecordAuthEvent::class],
+        Events\ImpersonationEnded::class => [RecordAuthEvent::class],
+        Events\UserRegistered::class => [RecordAuthEvent::class],
+        Events\UserPasswordChanged::class => [RecordAuthEvent::class],
+        Events\TwoFactorAuthenticationEnabled::class => [RecordAuthEvent::class],
+        Events\TwoFactorAuthenticationDisabled::class => [RecordAuthEvent::class],
+        Events\TwoFactorAuthenticationChallenged::class => [RecordAuthEvent::class],
+        Events\TwoFactorAuthenticationFailed::class => [RecordAuthEvent::class],
+        Events\ValidTwoFactorAuthenticationCodeProvided::class => [RecordAuthEvent::class],
+        Events\TwoFactorRecoveryCodeReplaced::class => [RecordAuthEvent::class],
         Events\SubmissionCreated::class => [RecordFormSubmission::class],
         Events\EntrySaved::class => [RecordContentChange::class],
         Events\EntryDeleted::class => [RecordContentChange::class],
@@ -65,6 +79,35 @@ class ServiceProvider extends AddonServiceProvider
         Events\UserDeleted::class => [RecordContentChange::class],
         Events\BlueprintSaved::class => [RecordContentChange::class],
         Events\BlueprintDeleted::class => [RecordContentChange::class],
+        Events\RevisionSaved::class => [RecordContentChange::class],
+        Events\RevisionDeleted::class => [RecordContentChange::class],
+        Events\LocalizedTermSaved::class => [RecordContentChange::class],
+        Events\LocalizedTermDeleted::class => [RecordContentChange::class],
+        Events\GlobalVariablesSaved::class => [RecordContentChange::class],
+        Events\GlobalVariablesDeleted::class => [RecordContentChange::class],
+        Events\NavTreeSaved::class => [RecordContentChange::class],
+        Events\NavTreeDeleted::class => [RecordContentChange::class],
+        Events\CollectionTreeSaved::class => [RecordContentChange::class],
+        Events\CollectionTreeDeleted::class => [RecordContentChange::class],
+        Events\AssetReplaced::class => [RecordContentChange::class],
+        Events\AssetReuploaded::class => [RecordContentChange::class],
+        Events\AssetReferencesUpdated::class => [RecordContentChange::class],
+        Events\TermReferencesUpdated::class => [RecordContentChange::class],
+        Events\AssetFolderSaved::class => [RecordContentChange::class],
+        Events\AssetFolderDeleted::class => [RecordContentChange::class],
+        Events\AssetContainerSaved::class => [RecordContentChange::class],
+        Events\AssetContainerDeleted::class => [RecordContentChange::class],
+        Events\SiteSaved::class => [RecordContentChange::class],
+        Events\SiteDeleted::class => [RecordContentChange::class],
+        Events\RoleSaved::class => [RecordContentChange::class],
+        Events\RoleDeleted::class => [RecordContentChange::class],
+        Events\UserGroupSaved::class => [RecordContentChange::class],
+        Events\UserGroupDeleted::class => [RecordContentChange::class],
+        Events\FieldsetSaved::class => [RecordContentChange::class],
+        Events\FieldsetDeleted::class => [RecordContentChange::class],
+        Events\SubmissionDeleted::class => [RecordContentChange::class],
+        Events\EntryScheduleReached::class => [RecordContentChange::class],
+        Events\DuplicateIdRegenerated::class => [RecordContentChange::class],
     ];
 
     public function register()

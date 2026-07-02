@@ -1102,7 +1102,99 @@
       }
     },
     {
-      "id": 36,
+      "id": 37,
+      "type": "timeseries",
+      "title": "Auth & security events",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "targets": [
+        {
+          "refId": "Q36",
+          "expr": "sum by (event) (rate(statamic_auth_events_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
+          "legendFormat": "{{event}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "opm",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*failed.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*impersonation.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Impersonation, 2FA (a failed spike is a brute-force signal), registrations and password changes. User identity lives on the traces, not the metric."
+    },
+    {
+      "id": 38,
       "type": "row",
       "title": "Inventory (opt-in gauges)",
       "collapsed": false,
@@ -1110,12 +1202,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 37
       },
       "panels": []
     },
     {
-      "id": 37,
+      "id": 39,
       "type": "table",
       "title": "Entries by collection",
       "datasource": {
@@ -1126,11 +1218,11 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 32
+        "y": 38
       },
       "targets": [
         {
-          "refId": "Q38",
+          "refId": "Q40",
           "expr": "sum by (collection) (statamic_entries_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1178,7 +1270,7 @@
       "description": "Requires statamic-telemetry.gauges.enabled \u2014 evaluated at scrape time."
     },
     {
-      "id": 39,
+      "id": 41,
       "type": "table",
       "title": "Assets by container",
       "datasource": {
@@ -1189,11 +1281,11 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 32
+        "y": 38
       },
       "targets": [
         {
-          "refId": "Q40",
+          "refId": "Q42",
           "expr": "sum by (container) (statamic_assets_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1240,7 +1332,7 @@
       }
     },
     {
-      "id": 41,
+      "id": 43,
       "type": "stat",
       "title": "Users",
       "datasource": {
@@ -1251,11 +1343,11 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 32
+        "y": 38
       },
       "targets": [
         {
-          "refId": "Q42",
+          "refId": "Q44",
           "expr": "sum(statamic_users_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1293,7 +1385,7 @@
       }
     },
     {
-      "id": 43,
+      "id": 45,
       "type": "row",
       "title": "Traces",
       "collapsed": false,
@@ -1301,12 +1393,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 46
       },
       "panels": []
     },
     {
-      "id": 44,
+      "id": 46,
       "type": "table",
       "title": "Recent content requests",
       "datasource": {
@@ -1317,7 +1409,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 47
       },
       "targets": [
         {
@@ -1347,7 +1439,7 @@
       "description": "Root spans named by this addon \u2014 entry:{collection}.{blueprint} / term:{taxonomy}."
     },
     {
-      "id": 45,
+      "id": 47,
       "type": "table",
       "title": "Slow uncached pages",
       "datasource": {
@@ -1358,7 +1450,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 56
       },
       "targets": [
         {

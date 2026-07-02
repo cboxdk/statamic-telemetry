@@ -23,6 +23,12 @@ Initial release. Statamic 6 only.
   Statamic's runtime tracing hook.
 - Blink memoization tallies (hits/misses) on the trace root span.
 - Search index update counter.
+- Auth/security event counter (impersonation, 2FA, registrations,
+  password changes) and Glide cache-clear counter.
+- Content-change coverage extended to revisions, trees, global
+  variables, localized terms, roles/groups, fieldsets, asset
+  replace/reupload/references, sites, submissions deleted, scheduled
+  entries and duplicate-id regeneration.
 - Opt-in observable gauges: entries per collection, assets per
   container, user count.
 - Bundled Grafana dashboard (`statamic-telemetry:dashboards`) joining

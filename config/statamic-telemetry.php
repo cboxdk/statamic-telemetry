@@ -38,6 +38,9 @@ return [
     | content_events  Counter for content changes (entry/term/asset/… saved,
     |                 deleted, uploaded).
     | search          Counter per search index update, labelled by index.
+    | auth            Counter for auth/security events: impersonation,
+    |                 2FA (enabled/failed/passed/…), registrations and
+    |                 password changes. No user ids on the metric.
     | blink           statamic.blink.hits / statamic.blink.misses tallies on
     |                 the trace root span — the request's memoization
     |                 effectiveness (augmentation caching lives in Blink).
@@ -61,6 +64,7 @@ return [
         'forms' => env('STATAMIC_TELEMETRY_FORMS', true),
         'content_events' => env('STATAMIC_TELEMETRY_CONTENT_EVENTS', true),
         'search' => env('STATAMIC_TELEMETRY_SEARCH', true),
+        'auth' => env('STATAMIC_TELEMETRY_AUTH', true),
         'blink' => env('STATAMIC_TELEMETRY_BLINK', true),
         'views' => env('STATAMIC_TELEMETRY_VIEWS', false),
         'antlers' => env('STATAMIC_TELEMETRY_ANTLERS', false),

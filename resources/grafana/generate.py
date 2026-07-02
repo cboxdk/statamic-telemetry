@@ -234,25 +234,30 @@ statamic = dashboard("cbox-tel-statamic", "Statamic", [
     timeseries("Search index updates", [
         target(f'sum by (index) (rate(statamic_search_index_updates_total{{{SVC}}}[$__rate_interval])) * 60', '{{index}}'),
     ], 18, 23, w=6, unit="opm"),
+    timeseries("Auth & security events", [
+        target(f'sum by (event) (rate(statamic_auth_events_total{{{SVC}}}[$__rate_interval])) * 60', '{{event}}'),
+    ], 0, 31, w=24, h=6, unit="opm", legend="table",
+        regex_colors={".*failed.*": "red", ".*impersonation.*": "orange"},
+        description="Impersonation, 2FA (a failed spike is a brute-force signal), registrations and password changes. User identity lives on the traces, not the metric."),
 
-    row("Inventory (opt-in gauges)", 31),
+    row("Inventory (opt-in gauges)", 37),
     table("Entries by collection",
           f'sum by (collection) (statamic_entries_count{{{SVC}}})',
-          0, 32, w=8,
+          0, 38, w=8,
           description="Requires statamic-telemetry.gauges.enabled — evaluated at scrape time."),
     table("Assets by container",
           f'sum by (container) (statamic_assets_count{{{SVC}}})',
-          8, 32, w=8),
-    stat("Users", f'sum(statamic_users_count{{{SVC}}})', 16, 32, w=8, decimals=0),
+          8, 38, w=8),
+    stat("Users", f'sum(statamic_users_count{{{SVC}}})', 16, 38, w=8, decimals=0),
 
-    row("Traces", 40),
+    row("Traces", 46),
     traces("Recent content requests",
            '{resource.service.name=~"$service" && name=~"GET (entry|term):.*"}',
-           0, 41, h=9,
+           0, 47, h=9,
            description="Root spans named by this addon — entry:{collection}.{blueprint} / term:{taxonomy}."),
     traces("Slow uncached pages",
            '{resource.service.name=~"$service" && span.statamic.static_cache="miss" && duration > 500ms}',
-           0, 50, h=9,
+           0, 56, h=9,
            description="Static cache misses that took over 500ms to render — the pages that hurt when the cache is cold."),
 ])
 

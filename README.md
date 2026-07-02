@@ -78,6 +78,8 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 | `statamic.forms.submissions` | counter | `form` |
 | `statamic.content.changes` | counter | `type`, `action` |
 | `statamic.search.index_updates` | counter | `index` |
+| `statamic.auth.events` | counter | `event`: impersonation, 2FA, registrations, password changes |
+| `statamic.glide.cache_clears` | counter | `scope`: all, asset |
 | `statamic.entries.count` | gauge (opt-in) | `collection` |
 | `statamic.assets.count` | gauge (opt-in) | `container` |
 | `statamic.users.count` | gauge (opt-in) | — |
