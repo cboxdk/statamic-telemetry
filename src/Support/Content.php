@@ -7,6 +7,7 @@ namespace Cbox\StatamicTelemetry\Support;
 use Illuminate\Http\Request;
 use Statamic\Entries\Entry;
 use Statamic\Facades\Site;
+use Statamic\Structures\Page;
 use Statamic\Taxonomies\LocalizedTerm;
 use Throwable;
 
@@ -58,6 +59,12 @@ final class Content
     {
         $data = $request->attributes->get(self::REQUEST_ATTRIBUTE);
 
+        // Structured collections (and nav-mounted URLs) resolve to a Page
+        // wrapper around the entry, not the entry itself.
+        if ($data instanceof Page) {
+            $data = self::pageEntry($data);
+        }
+
         if ($data instanceof Entry) {
             $collection = $data->collectionHandle();
             $blueprint = self::blueprintHandle($data);
@@ -95,6 +102,15 @@ final class Content
     {
         try {
             return $entry->blueprint()?->handle();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private static function pageEntry(Page $page): mixed
+    {
+        try {
+            return $page->entry();
         } catch (Throwable) {
             return null;
         }
