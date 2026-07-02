@@ -41,7 +41,7 @@ more. This addon teaches those traces Statamic's vocabulary:
 composer require cboxdk/statamic-telemetry
 ```
 
-Requires PHP 8.3+, Statamic 5.46+ and cboxdk/laravel-telemetry. Everything is
+Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry. Everything is
 on by default except Antlers view spans and the gauges. Publish the config to
 change toggles:
 

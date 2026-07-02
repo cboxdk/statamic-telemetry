@@ -4,7 +4,7 @@ All notable changes to `cboxdk/statamic-telemetry` are documented here.
 
 ## Unreleased
 
-Initial release.
+Initial release. Statamic 6 only.
 
 - Content-aware request span names behind Statamic's catch-all route
   (`GET entry:{collection}.{blueprint}`, `GET term:{taxonomy}`) with

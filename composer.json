@@ -15,7 +15,7 @@
     "require": {
         "php": "^8.3|^8.4|^8.5",
         "cboxdk/laravel-telemetry": "dev-main",
-        "statamic/cms": "^5.46"
+        "statamic/cms": "^6.0"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",
