@@ -1,0 +1,102 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Cbox\StatamicTelemetry\Support;
+
+use Illuminate\Http\Request;
+use Statamic\Entries\Entry;
+use Statamic\Facades\Site;
+use Statamic\Taxonomies\LocalizedTerm;
+use Throwable;
+
+/**
+ * Derives the root span name and attributes from the content object
+ * Statamic bound to the response.
+ *
+ * All frontend requests share one catch-all route, so the default
+ * "METHOD /route/{pattern}" name collapses to a single value. The
+ * ResponseCreated listener stashes the resolved data on the request;
+ * the nameRequestsUsing/enrichRequestsUsing resolvers read it back at
+ * terminate. Names stay bounded: collection and blueprint handles,
+ * never ids or slugs.
+ */
+final class Content
+{
+    public const REQUEST_ATTRIBUTE = 'statamic_telemetry_data';
+
+    public static function capture(Request $request, mixed $data): void
+    {
+        $request->attributes->set(self::REQUEST_ATTRIBUTE, $data);
+    }
+
+    public static function spanName(Request $request): ?string
+    {
+        $label = self::descriptor($request)['label'] ?? null;
+
+        return $label === null ? null : $request->method().' '.$label;
+    }
+
+    /**
+     * @return array<string, scalar|null>
+     */
+    public static function attributes(Request $request): array
+    {
+        $attributes = self::descriptor($request)['attributes'] ?? [];
+
+        if (config('statamic-telemetry.instrument.site_context', true)) {
+            $attributes['statamic.site'] ??= Site::current()->handle();
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @return array{label: string, attributes: array<string, scalar|null>}|null
+     */
+    private static function descriptor(Request $request): ?array
+    {
+        $data = $request->attributes->get(self::REQUEST_ATTRIBUTE);
+
+        if ($data instanceof Entry) {
+            $collection = $data->collectionHandle();
+            $blueprint = self::blueprintHandle($data);
+
+            return [
+                'label' => 'entry:'.$collection.($blueprint !== null ? '.'.$blueprint : ''),
+                'attributes' => array_filter([
+                    'statamic.type' => 'entry',
+                    'statamic.entry.id' => (string) $data->id(),
+                    'statamic.collection' => $collection,
+                    'statamic.blueprint' => $blueprint,
+                    'statamic.site' => $data->locale(),
+                ], fn ($value) => $value !== null),
+            ];
+        }
+
+        if ($data instanceof LocalizedTerm) {
+            $taxonomy = $data->taxonomy()->handle();
+
+            return [
+                'label' => 'term:'.$taxonomy,
+                'attributes' => array_filter([
+                    'statamic.type' => 'term',
+                    'statamic.term.id' => (string) $data->id(),
+                    'statamic.taxonomy' => $taxonomy,
+                    'statamic.site' => $data->locale(),
+                ], fn ($value) => $value !== null),
+            ];
+        }
+
+        return null;
+    }
+
+    private static function blueprintHandle(Entry $entry): ?string
+    {
+        try {
+            return $entry->blueprint()?->handle();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+}

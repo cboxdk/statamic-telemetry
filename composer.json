@@ -1,0 +1,78 @@
+{
+    "name": "cboxdk/statamic-telemetry",
+    "description": "Statamic overlay for cboxdk/laravel-telemetry: content-aware trace names, Stache and static-cache instrumentation, site context and user attribution.",
+    "license": "MIT",
+    "keywords": [
+        "statamic",
+        "addon",
+        "telemetry",
+        "opentelemetry",
+        "otlp",
+        "prometheus",
+        "traces",
+        "metrics"
+    ],
+    "require": {
+        "php": "^8.3|^8.4|^8.5",
+        "cboxdk/laravel-telemetry": "dev-main",
+        "statamic/cms": "^5.46"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.14",
+        "nunomaduro/collision": "^8.8",
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Cbox\\StatamicTelemetry\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Cbox\\StatamicTelemetry\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../laravel-telemetry",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "scripts": {
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
+        "format": "vendor/bin/pint",
+        "format:check": "vendor/bin/pint --test",
+        "test": "vendor/bin/pest",
+        "check": [
+            "@format:check",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "extra": {
+        "statamic": {
+            "name": "Telemetry",
+            "description": "Statamic-aware traces and metrics on top of cboxdk/laravel-telemetry"
+        },
+        "laravel": {
+            "providers": [
+                "Cbox\\StatamicTelemetry\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "pixelfear/composer-dist-plugin": true
+        }
+    }
+}
