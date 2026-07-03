@@ -4,9 +4,7 @@ Thanks for considering a contribution!
 
 ## Local setup
 
-The package depends on `cboxdk/laravel-telemetry`, resolved from its public
-GitHub repo via a `vcs` repository entry in `composer.json` (until both
-packages are on Packagist).
+The package depends on `cboxdk/laravel-telemetry`, resolved from Packagist.
 
 ```bash
 composer install

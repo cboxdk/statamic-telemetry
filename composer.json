@@ -46,12 +46,6 @@
             "Cbox\\StatamicTelemetry\\Tests\\": "tests/"
         }
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/cboxdk/laravel-telemetry"
-        }
-    ],
     "scripts": {
         "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
         "format": "vendor/bin/pint",
