@@ -65,7 +65,7 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 | `cache.key.group` | cache spans (core) | `stache.index`, `stache.item`, … |
 | `statamic.blink.hits` / `statamic.blink.misses` | root span (tallies) | per-request Blink memoization effectiveness |
 | `view.path` / `view.engine` | `view.render` detail spans (opt-in) | relative path, `antlers` |
-| `antlers.tag` | `antlers:{tag}` detail spans (opt-in) | `collection:blog`, `partial:hero`, … |
+| `antlers.tag` / `antlers.method` | `antlers:{tag}` detail spans (opt-in) | bounded tag name (`collection`, `partial`) + unbounded method (`blog`, `components/hero`) |
 
 ### Metrics
 
@@ -161,9 +161,15 @@ Telemetry::classifyCacheKeysUsing(fn (string $store, string $key) =>
 - **Search queries are not counted.** Statamic fires `SearchIndexUpdated`
   for index writes (counted) but no event for queries — query latency is
   visible on the request span.
-- **Everything is guarded.** Resolvers run inside laravel-telemetry's
-  FailSafe; listeners check their config toggles at event time, so toggles
-  work at runtime and in tests.
+- **Telemetry never throws into the app.** The resolver hooks run inside
+  laravel-telemetry's FailSafe; every event listener extends a
+  `GuardedListener` base that wraps its body in the same guard. A broken
+  listener can never break the entry save, upload or login it observes.
+  Listeners also check their config toggle at event time, so toggles work
+  at runtime and in tests.
+
+More detail — the full metric/attribute/config catalog and the rationale
+behind each design decision — lives in [docs/](docs/index.md).
 
 ## UI
 

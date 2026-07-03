@@ -33,3 +33,9 @@ Initial release. Statamic 6 only.
   container, user count.
 - Bundled Grafana dashboard (`statamic-telemetry:dashboards`) joining
   the core suite's tab bar.
+- Every event listener extends a `GuardedListener` base wrapping its body
+  in FailSafe, so a listener can never throw into the Statamic operation
+  it observes.
+- Full docs: reference catalog (attributes, metrics, config, source
+  events) and design notes.
+

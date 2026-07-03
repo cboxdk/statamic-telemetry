@@ -1,0 +1,42 @@
+# cboxdk/statamic-telemetry
+
+> A Statamic 6 addon overlaying cboxdk/laravel-telemetry. It teaches the
+> base package's traces and metrics Statamic's vocabulary: content-named
+> request spans, Stache and static-cache instrumentation, site and user
+> context, and Statamic-specific counters. A thin overlay built entirely
+> on the base package's public extension points — no exporter or store of
+> its own. Facade for the base package: Cbox\Telemetry\Facades\Telemetry.
+
+Key facts: Statamic 6 only (statamic/cms ^6.0). Everything on by default
+except Antlers view/tag spans and inventory gauges. Metric names are
+lowercase dot-namespaced (statamic.static_cache.operations →
+statamic_static_cache_operations_total in Prometheus). Span attributes may
+be high-cardinality (ids, slugs); metric labels are always bounded.
+Telemetry never throws into the app — resolvers run in the base package's
+FailSafe, listeners extend a GuardedListener base that does the same.
+
+## Documentation
+
+- [Overview](docs/index.md): what the addon does and how it plugs in
+- [Reference](docs/reference.md): every span attribute, metric, config toggle, and source event — read this first
+- [Design notes](docs/design-notes.md): why it is built this way — catch-all naming, subclassed cachers, header stripping, Blink, Antlers, the never-throw invariant
+- [README](README.md): quick start, composition examples, Grafana dashboard
+
+## Extension points used (in cboxdk/laravel-telemetry)
+
+- nameRequestsUsing / enrichRequestsUsing: content-derived root span name and attributes
+- resolveUserUsing: Statamic user roles/groups/super
+- classifyCacheKeysUsing: Stache cache-key grouping
+- Telemetry::context: site as an ambient dimension
+- TelemetryProvider contract: opt-in inventory gauges
+- Tracer::bumpStat / rootSpan: Blink tallies, static-cache outcome attribute
+
+## Key source
+
+- src/ServiceProvider.php: registration — driver swap, Blink binding, listeners, Antlers tracer, gauges
+- src/Support/Content.php: request span naming from ResponseCreated data (unwraps Structures\Page)
+- src/Support/CacheKeys.php: Stache cache-key classifier
+- src/StaticCaching/: tracing cacher subclasses, outcome recording, trace-header stripping
+- src/Listeners/GuardedListener.php: the never-throw base for all listeners
+- src/View/: Antlers view-engine wrap and runtime tag tracer
+- resources/grafana/generate.py: the bundled Statamic dashboard generator
