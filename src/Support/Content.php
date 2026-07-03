@@ -9,6 +9,7 @@ use Statamic\Entries\Entry;
 use Statamic\Facades\Site;
 use Statamic\Structures\Page;
 use Statamic\Taxonomies\LocalizedTerm;
+use Statamic\Taxonomies\Taxonomy;
 use Throwable;
 
 /**
@@ -108,6 +109,21 @@ final class Content
                     'statamic.taxonomy' => $taxonomy,
                     'statamic.site' => $data->locale(),
                 ], fn ($value) => $value !== null),
+            ];
+        }
+
+        // A taxonomy index/listing page (e.g. /topics) — distinct from a
+        // single term page above. Not localized, so the site comes from
+        // Content::attributes()'s Site::current() fallback.
+        if ($data instanceof Taxonomy) {
+            $handle = $data->handle();
+
+            return [
+                'label' => 'taxonomy:'.$handle,
+                'attributes' => [
+                    'statamic.type' => 'taxonomy',
+                    'statamic.taxonomy' => $handle,
+                ],
             ];
         }
 

@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Role;
+use Statamic\Facades\Taxonomy;
+use Statamic\Facades\Term;
 use Statamic\Facades\User;
 
 test('statamic users contribute roles, groups and the super flag', function () {
@@ -49,6 +51,36 @@ test('entry requests are named by collection and blueprint', function () {
     expect($attributes['statamic.type'])->toBe('entry')
         ->and($attributes['statamic.collection'])->toBe('pages')
         ->and($attributes['statamic.entry.id'])->toBe((string) $entry->id());
+});
+
+test('a taxonomy index page is named by its handle', function () {
+    Taxonomy::make('topics')->save();
+
+    $request = Request::create('/topics');
+    Content::capture($request, Taxonomy::find('topics'));
+
+    expect(Content::spanName($request))->toBe('GET taxonomy:topics')
+        ->and(Content::routeLabel($request))->toBe('taxonomy:topics');
+
+    $attributes = Content::attributes($request);
+
+    expect($attributes['statamic.type'])->toBe('taxonomy')
+        ->and($attributes['statamic.taxonomy'])->toBe('topics')
+        ->and($attributes)->toHaveKey('statamic.site');
+});
+
+test('a taxonomy index is distinct from a single term page', function () {
+    Taxonomy::make('topics')->save();
+    $term = tap(Term::make('performance')->taxonomy('topics')->dataForLocale('default', []))->save();
+
+    $indexRequest = Request::create('/topics');
+    Content::capture($indexRequest, Taxonomy::find('topics'));
+
+    $termRequest = Request::create('/topics/performance');
+    Content::capture($termRequest, $term->in('default'));
+
+    expect(Content::spanName($indexRequest))->toBe('GET taxonomy:topics')
+        ->and(Content::spanName($termRequest))->toBe('GET term:topics');
 });
 
 test('requests without statamic data keep the default name', function () {

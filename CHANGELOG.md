@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Taxonomy index/listing pages are now content-named (`GET taxonomy:{taxonomy}`)
+  with `statamic.type=taxonomy` and a `statamic.route` metric label —
+  distinct from a single term page (`term:{taxonomy}`). Completes the set
+  of frontend-routable data types (entry, term, taxonomy index); assets,
+  globals and navigations aren't frontend pages and stay counter-only.
+
 ## [0.1.0-alpha.2] - 2026-07-03
 
 ### Added

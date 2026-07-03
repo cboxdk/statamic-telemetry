@@ -18,7 +18,7 @@ metric labels).
 
 | Attribute | Where | Example |
 |---|---|---|
-| `statamic.type` | root | `entry`, `term` |
+| `statamic.type` | root | `entry`, `term`, `taxonomy` |
 | `statamic.entry.id` / `statamic.term.id` | root | the id |
 | `statamic.collection` | root | `blog` |
 | `statamic.blueprint` | root | `article` |
@@ -29,7 +29,7 @@ metric labels).
 | `enduser.groups` | root | `staff` |
 | `enduser.super` | root | `true` (present only when super) |
 | `statamic.blink.hits` / `statamic.blink.misses` | root (tally) | `53` / `21` |
-| `statamic.route` | request metrics label (bounded) | `entry:blog.article`, `term:topics` — content requests only |
+| `statamic.route` | request metrics label (bounded) | `entry:blog.article`, `term:topics`, `taxonomy:topics` — content requests only |
 | `cache.key.group` | base cache spans | `stache.index`, `stache.item`, `stache.meta`, `static_cache`, `app` |
 | `view.path` / `view.engine` | `view.render` spans (opt-in) | `resources/views/blog/show.antlers.html`, `antlers` |
 | `antlers.tag` | `antlers:{tag}` spans (opt-in) | `collection`, `partial` (bounded) |
@@ -48,7 +48,16 @@ single value. The addon renames the root span from the resolved content:
 |---|---|
 | Entry | `GET entry:{collection}.{blueprint}` |
 | Term | `GET term:{taxonomy}` |
+| Taxonomy index/listing | `GET taxonomy:{taxonomy}` |
 | Anything else (or no content) | base package default |
+
+These are exactly the data types Statamic serves as frontend pages
+(everything that reaches `ResponseCreated` via a `DataResponse`: entries,
+structured-collection pages, taxonomy terms, taxonomy index pages).
+Assets, globals and navigations are **not** frontend-routable — they are
+files and template data, injected into views rather than served as their
+own pages — so they never get a span name. Their edits are still counted
+by `statamic.content.changes`.
 
 Names are **bounded** — collection/blueprint/taxonomy handles, never ids
 or slugs. `http.route` keeps the raw catch-all pattern regardless, so
@@ -62,8 +71,9 @@ Every frontend request shares the same `http.route` template
 (`/{segments?}`), so the base package's `http.server.request.duration`
 histogram collapses every page into one series — you can't see latency
 per collection. The addon adds a **bounded `statamic.route` label** to the
-request metrics (`entry:{collection}.{blueprint}` / `term:{taxonomy}`),
-present only on content requests. Break latency down by it:
+request metrics (`entry:{collection}.{blueprint}` / `term:{taxonomy}` /
+`taxonomy:{taxonomy}`), present only on content requests. Break latency
+down by it:
 
 ```promql
 histogram_quantile(0.95, sum by (le, statamic_route) (
