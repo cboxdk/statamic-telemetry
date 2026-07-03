@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `statamic.route` metric label on the request-duration histogram — a
+  bounded per-collection/taxonomy dimension (`entry:{collection}.{blueprint}`
+  / `term:{taxonomy}`), so latency no longer collapses into the single
+  `http.route` catch-all template. New dashboard row "Frontend latency by
+  content route".
+
 ## [0.1.0-alpha.1] - 2026-07-03
 
 First public release. **Alpha** — tracks `cboxdk/laravel-telemetry`'s alpha

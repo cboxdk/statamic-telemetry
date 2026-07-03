@@ -94,6 +94,36 @@ Octane a `cachePage` with no following `ResponsePrepared` can't leak the
 strip into the next request. Full-measure (`FileCacher`) keeps the header
 for the first, PHP-served visitor; dynamic responses always keep it.
 
+## Per-content latency metrics (`statamic.route`)
+
+The content-aware span name fixes traces, but not metrics. The base
+package labels its `http.server.request.duration` histogram with
+`http.route` — the literal route template — which for Statamic's single
+catch-all route is `/{segments?}` on every frontend page. So the latency
+histogram has one bucket for the whole front end; you can't tell a slow
+collection from a fast one.
+
+The base package deliberately can't fix this: metric labels must be
+bounded, and it can't know that a `nameRequestsUsing` resolver returns
+bounded values (an app's resolver might return per-id names). The addon
+*does* know its names are bounded — collections and taxonomies are a
+fixed, small set — so it takes responsibility for the label. Via
+`labelRequestsUsing` it adds a `statamic.route` dimension
+(`entry:{collection}.{blueprint}` / `term:{taxonomy}`), present only on
+content requests. `http.route` stays the OTel-correct route template;
+`statamic.route` is the parallel dimension you group latency by.
+
+Because `labelRequestsUsing` is single-slot (like the other resolver
+hooks) and apps commonly use it for their own metric labels, an app that
+needs both must compose — delegate to `Content::routeLabel`:
+
+```php
+Telemetry::labelRequestsUsing(fn ($request) => array_filter([
+    'statamic.route' => Content::routeLabel($request),
+    'plan' => $request->user()?->plan,
+], fn ($v) => $v !== null));
+```
+
 ## Stache
 
 The Stache fires no per-operation events but runs on the Laravel cache

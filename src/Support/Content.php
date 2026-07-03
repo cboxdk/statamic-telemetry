@@ -39,6 +39,22 @@ final class Content
     }
 
     /**
+     * A bounded route dimension for metric labels — `entry:{collection}.
+     * {blueprint}` / `term:{taxonomy}`, or null for non-content requests.
+     *
+     * The base package's `http.route` metric label is the literal route
+     * template (`/{segments?}`), which collapses every frontend page into
+     * one series. This is the per-content dimension to group by instead;
+     * it is bounded (a fixed set of collections and taxonomies), which is
+     * why the addon — not the base package — is the right place to emit
+     * it: only the addon knows these names are bounded.
+     */
+    public static function routeLabel(Request $request): ?string
+    {
+        return self::descriptor($request)['label'] ?? null;
+    }
+
+    /**
      * @return array<string, scalar|null>
      */
     public static function attributes(Request $request): array

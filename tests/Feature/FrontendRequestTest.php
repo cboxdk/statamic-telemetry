@@ -30,6 +30,47 @@ test('a frontend entry request gets a bounded span name and entry attributes', f
         ->and($span->attributes()['http.route'])->not->toBeNull();
 });
 
+test('the request duration metric carries a bounded per-content route label', function () {
+    Collection::make('pages')->routes('{slug}')->save();
+    tap(Entry::make()->collection('pages')->slug('about')->data(['title' => 'About']))->save();
+
+    $fake = $this->fakeTelemetry();
+
+    $this->get('/about')->assertOk();
+
+    // The base http.route label stays the catch-all template; statamic.route
+    // is the dimension to break latency down by, per collection/blueprint.
+    $labels = [];
+    foreach ($fake->collect() as $family) {
+        if ($family->name() === 'http.server.request.duration') {
+            foreach ($family->samples as $sample) {
+                $labels[] = $sample->labels;
+            }
+        }
+    }
+
+    expect($labels)->not->toBeEmpty();
+
+    $routes = array_column($labels, 'statamic.route');
+
+    expect($routes)->toContain('entry:pages.page')
+        ->and(array_column($labels, 'http.route'))->toContain('/{segments?}');
+});
+
+test('non-content requests carry no statamic.route label', function () {
+    $fake = $this->fakeTelemetry();
+
+    $this->get('/definitely-missing')->assertNotFound();
+
+    foreach ($fake->collect() as $family) {
+        if ($family->name() === 'http.server.request.duration') {
+            foreach ($family->samples as $sample) {
+                expect($sample->labels)->not->toHaveKey('statamic.route');
+            }
+        }
+    }
+});
+
 test('entries in structured collections are unwrapped from their page object', function () {
     // The default statamic/statamic skeleton's pages collection: structured
     // with a tree — ResponseCreated then carries a Structures\Page wrapper,

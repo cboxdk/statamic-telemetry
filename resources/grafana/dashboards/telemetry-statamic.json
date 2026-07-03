@@ -695,7 +695,7 @@
     {
       "id": 21,
       "type": "row",
-      "title": "Stache",
+      "title": "Frontend latency by content route",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -708,7 +708,7 @@
     {
       "id": 23,
       "type": "timeseries",
-      "title": "Stache cache traffic by key group",
+      "title": "p95 request duration by content route",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -722,6 +722,140 @@
       "targets": [
         {
           "refId": "Q22",
+          "expr": "histogram_quantile(0.95, sum by (le, statamic_route) (rate(http_server_request_duration_milliseconds_bucket{service_name=~\"$service\",statamic_route!=\"\"}[$__rate_interval])))",
+          "legendFormat": "{{statamic_route}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "The base http.route label is the catch-all template (/{segments?}) \u2014 the same bucket for every frontend page. statamic.route is the bounded per-collection/taxonomy dimension the addon adds, so latency breaks down by content type. Requires instrument.content."
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Request rate by content route",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "targets": [
+        {
+          "refId": "Q24",
+          "expr": "sum by (statamic_route) (rate(http_server_request_duration_milliseconds_count{service_name=~\"$service\",statamic_route!=\"\"}[$__rate_interval])) * 60",
+          "legendFormat": "{{statamic_route}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "type": "row",
+      "title": "Stache",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "panels": []
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Stache cache traffic by key group",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "targets": [
+        {
+          "refId": "Q27",
           "expr": "sum by (key_group) (rate(cache_operations_total{service_name=~\"$service\",key_group=~\"stache.*\"}[$__rate_interval])) * 60",
           "legendFormat": "{{key_group}}",
           "datasource": {
@@ -763,7 +897,7 @@
       "description": "Requires the core cache instrumentation (telemetry.instrument.cache). Key groups come from this addon's classifier: stache.index, stache.item, stache.meta."
     },
     {
-      "id": 26,
+      "id": 31,
       "type": "timeseries",
       "title": "Stache warm duration",
       "datasource": {
@@ -774,11 +908,11 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 23
       },
       "targets": [
         {
-          "refId": "Q24",
+          "refId": "Q29",
           "expr": "histogram_quantile(0.95, sum by (le) (rate(statamic_stache_warm_duration_milliseconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
           "legendFormat": "p95",
           "datasource": {
@@ -787,7 +921,7 @@
           }
         },
         {
-          "refId": "Q25",
+          "refId": "Q30",
           "expr": "sum(rate(statamic_stache_warm_duration_milliseconds_sum{service_name=~\"$service\"}[$__rate_interval])) / sum(rate(statamic_stache_warm_duration_milliseconds_count{service_name=~\"$service\"}[$__rate_interval]))",
           "legendFormat": "avg",
           "datasource": {
@@ -860,7 +994,7 @@
       "description": "Full warms only (stache:warm / warm after clear). A growing warm time tracks content volume."
     },
     {
-      "id": 27,
+      "id": 32,
       "type": "row",
       "title": "Content & editors",
       "collapsed": false,
@@ -868,12 +1002,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 31
       },
       "panels": []
     },
     {
-      "id": 29,
+      "id": 34,
       "type": "timeseries",
       "title": "Content changes",
       "datasource": {
@@ -884,11 +1018,11 @@
         "h": 8,
         "w": 6,
         "x": 0,
-        "y": 23
+        "y": 32
       },
       "targets": [
         {
-          "refId": "Q28",
+          "refId": "Q33",
           "expr": "sum by (type, action) (rate(statamic_content_changes_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
           "legendFormat": "{{type}} {{action}}",
           "datasource": {
@@ -933,7 +1067,7 @@
       }
     },
     {
-      "id": 31,
+      "id": 36,
       "type": "timeseries",
       "title": "Form submissions",
       "datasource": {
@@ -944,11 +1078,11 @@
         "h": 8,
         "w": 6,
         "x": 6,
-        "y": 23
+        "y": 32
       },
       "targets": [
         {
-          "refId": "Q30",
+          "refId": "Q35",
           "expr": "sum by (form) (rate(statamic_forms_submissions_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
           "legendFormat": "{{form}}",
           "datasource": {
@@ -989,7 +1123,7 @@
       }
     },
     {
-      "id": 33,
+      "id": 38,
       "type": "timeseries",
       "title": "Glide generations",
       "datasource": {
@@ -1000,11 +1134,11 @@
         "h": 8,
         "w": 6,
         "x": 12,
-        "y": 23
+        "y": 32
       },
       "targets": [
         {
-          "refId": "Q32",
+          "refId": "Q37",
           "expr": "sum by (preset) (rate(statamic_glide_generations_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
           "legendFormat": "{{preset}}",
           "datasource": {
@@ -1046,7 +1180,7 @@
       "description": "Sustained generation traffic means the Glide cache is being missed \u2014 presets bound the label; ad-hoc params group under 'custom'."
     },
     {
-      "id": 35,
+      "id": 40,
       "type": "timeseries",
       "title": "Search index updates",
       "datasource": {
@@ -1057,11 +1191,11 @@
         "h": 8,
         "w": 6,
         "x": 18,
-        "y": 23
+        "y": 32
       },
       "targets": [
         {
-          "refId": "Q34",
+          "refId": "Q39",
           "expr": "sum by (index) (rate(statamic_search_index_updates_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
           "legendFormat": "{{index}}",
           "datasource": {
@@ -1102,7 +1236,7 @@
       }
     },
     {
-      "id": 37,
+      "id": 42,
       "type": "timeseries",
       "title": "Auth & security events",
       "datasource": {
@@ -1113,11 +1247,11 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 40
       },
       "targets": [
         {
-          "refId": "Q36",
+          "refId": "Q41",
           "expr": "sum by (event) (rate(statamic_auth_events_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
           "legendFormat": "{{event}}",
           "datasource": {
@@ -1194,7 +1328,7 @@
       "description": "Impersonation, 2FA (a failed spike is a brute-force signal), registrations and password changes. User identity lives on the traces, not the metric."
     },
     {
-      "id": 38,
+      "id": 43,
       "type": "row",
       "title": "Inventory (opt-in gauges)",
       "collapsed": false,
@@ -1202,12 +1336,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 46
       },
       "panels": []
     },
     {
-      "id": 39,
+      "id": 44,
       "type": "table",
       "title": "Entries by collection",
       "datasource": {
@@ -1218,11 +1352,11 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 38
+        "y": 47
       },
       "targets": [
         {
-          "refId": "Q40",
+          "refId": "Q45",
           "expr": "sum by (collection) (statamic_entries_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1270,7 +1404,7 @@
       "description": "Requires statamic-telemetry.gauges.enabled \u2014 evaluated at scrape time."
     },
     {
-      "id": 41,
+      "id": 46,
       "type": "table",
       "title": "Assets by container",
       "datasource": {
@@ -1281,11 +1415,11 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 38
+        "y": 47
       },
       "targets": [
         {
-          "refId": "Q42",
+          "refId": "Q47",
           "expr": "sum by (container) (statamic_assets_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1332,7 +1466,7 @@
       }
     },
     {
-      "id": 43,
+      "id": 48,
       "type": "stat",
       "title": "Users",
       "datasource": {
@@ -1343,11 +1477,11 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 38
+        "y": 47
       },
       "targets": [
         {
-          "refId": "Q44",
+          "refId": "Q49",
           "expr": "sum(statamic_users_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1385,7 +1519,7 @@
       }
     },
     {
-      "id": 45,
+      "id": 50,
       "type": "row",
       "title": "Traces",
       "collapsed": false,
@@ -1393,12 +1527,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 51
       },
       "panels": []
     },
     {
-      "id": 46,
+      "id": 51,
       "type": "table",
       "title": "Recent content requests",
       "datasource": {
@@ -1409,7 +1543,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 52
       },
       "targets": [
         {
@@ -1439,7 +1573,7 @@
       "description": "Root spans named by this addon \u2014 entry:{collection}.{blueprint} / term:{taxonomy}."
     },
     {
-      "id": 47,
+      "id": 52,
       "type": "table",
       "title": "Slow uncached pages",
       "datasource": {
@@ -1450,7 +1584,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 61
       },
       "targets": [
         {

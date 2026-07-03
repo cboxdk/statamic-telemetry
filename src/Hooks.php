@@ -43,6 +43,15 @@ final class Hooks
         if (config('statamic-telemetry.instrument.content', true)) {
             $telemetry->nameRequestsUsing(fn ($request, $response) => Content::spanName($request));
             $telemetry->enrichRequestsUsing(fn ($request, $response) => Content::attributes($request));
+
+            // A bounded per-content route dimension on the request metrics,
+            // so http.server.request.duration can be broken down by
+            // collection/taxonomy instead of collapsing into the single
+            // catch-all http.route. Only present for content requests.
+            $telemetry->labelRequestsUsing(fn ($request) => array_filter(
+                ['statamic.route' => Content::routeLabel($request)],
+                fn ($value) => $value !== null,
+            ));
         }
 
         if (config('statamic-telemetry.instrument.stache', true)) {

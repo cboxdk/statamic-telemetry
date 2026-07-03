@@ -139,6 +139,13 @@ Telemetry::nameRequestsUsing(fn ($request, $response) =>
 Telemetry::classifyCacheKeysUsing(fn (string $store, string $key) =>
     str_starts_with($key, 'tenant:') ? 'tenant' : CacheKeys::classify($store, $key)
 );
+
+// The addon claims labelRequestsUsing too (for the statamic.route metric
+// dimension). If your app needs its own metric labels, compose them:
+Telemetry::labelRequestsUsing(fn ($request) => array_filter([
+    'statamic.route' => Content::routeLabel($request),
+    'plan' => $request->user()?->plan,
+], fn ($v) => $v !== null));
 ```
 
 ## Design notes
@@ -155,6 +162,11 @@ Telemetry::classifyCacheKeysUsing(fn (string $store, string $key) =>
   reaches the frontend controller, so there is no entry to name the span
   by — hit traces are `GET /{pattern}` with `statamic.static_cache: hit`
   (and are fast). Content-named spans are the renders.
+- **Latency metrics break down by content.** The base `http.route` metric
+  label is the catch-all template — one bucket for the whole front end.
+  The addon adds a bounded `statamic.route` label so
+  `http.server.request.duration` splits per collection/taxonomy. See
+  [docs/design-notes](docs/design-notes.md#per-content-latency-metrics-statamicroute).
 - **Trace header stripping.** The core package already skips the trace id
   header on `Cache-Control: public` responses (CDN caches). Statamic's
   half-measure cacher decides cacheability by its own rules and snapshots

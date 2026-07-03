@@ -206,58 +206,69 @@ statamic = dashboard("cbox-tel-statamic", "Statamic", [
     ], 12, 5, unit="opm", colors=OUTCOME_COLORS,
         description="Spikes here explain miss/write spikes on the left — saves fan out invalidations by rule."),
 
-    row("Stache", 13),
+    row("Frontend latency by content route", 13),
+    timeseries("p95 request duration by content route", [
+        target(f'histogram_quantile(0.95, sum by (le, statamic_route) '
+               f'(rate({REQ}_bucket{{{SVC},statamic_route!=""}}[$__rate_interval])))', '{{statamic_route}}'),
+    ], 0, 14, unit="ms", legend="table",
+        description="The base http.route label is the catch-all template (/{segments?}) — the same bucket for every frontend page. statamic.route is the bounded per-collection/taxonomy dimension the addon adds, so latency breaks down by content type. Requires instrument.content."),
+    timeseries("Request rate by content route", [
+        target(f'sum by (statamic_route) (rate({REQ}_count{{{SVC},statamic_route!=""}}[$__rate_interval])) * 60',
+               '{{statamic_route}}'),
+    ], 12, 14, unit="reqpm", legend="table"),
+
+    row("Stache", 22),
     timeseries("Stache cache traffic by key group", [
         target(f'sum by (key_group) (rate(cache_operations_total{{{SVC},key_group=~"stache.*"}}[$__rate_interval])) * 60',
                '{{key_group}}'),
-    ], 0, 14, unit="opm",
+    ], 0, 23, unit="opm",
         description="Requires the core cache instrumentation (telemetry.instrument.cache). Key groups come from this addon's classifier: stache.index, stache.item, stache.meta."),
     timeseries("Stache warm duration", [
         target(f'histogram_quantile(0.95, sum by (le) (rate(statamic_stache_warm_duration_milliseconds_bucket{{{SVC}}}[$__rate_interval])))', 'p95'),
         target(f'sum(rate(statamic_stache_warm_duration_milliseconds_sum{{{SVC}}}[$__rate_interval]))'
                f' / sum(rate(statamic_stache_warm_duration_milliseconds_count{{{SVC}}}[$__rate_interval]))', 'avg'),
-    ], 12, 14, unit="ms", colors={"p95": "orange", "avg": "green"},
+    ], 12, 23, unit="ms", colors={"p95": "orange", "avg": "green"},
         description="Full warms only (stache:warm / warm after clear). A growing warm time tracks content volume."),
 
-    row("Content & editors", 22),
+    row("Content & editors", 31),
     timeseries("Content changes", [
         target(f'sum by (type, action) (rate(statamic_content_changes_total{{{SVC}}}[$__rate_interval])) * 60',
                '{{type}} {{action}}'),
-    ], 0, 23, w=6, unit="opm", stacked=True, legend="table"),
+    ], 0, 32, w=6, unit="opm", stacked=True, legend="table"),
     timeseries("Form submissions", [
         target(f'sum by (form) (rate(statamic_forms_submissions_total{{{SVC}}}[$__rate_interval])) * 60', '{{form}}'),
-    ], 6, 23, w=6, unit="opm"),
+    ], 6, 32, w=6, unit="opm"),
     timeseries("Glide generations", [
         target(f'sum by (preset) (rate(statamic_glide_generations_total{{{SVC}}}[$__rate_interval])) * 60', '{{preset}}'),
-    ], 12, 23, w=6, unit="opm",
+    ], 12, 32, w=6, unit="opm",
         description="Sustained generation traffic means the Glide cache is being missed — presets bound the label; ad-hoc params group under 'custom'."),
     timeseries("Search index updates", [
         target(f'sum by (index) (rate(statamic_search_index_updates_total{{{SVC}}}[$__rate_interval])) * 60', '{{index}}'),
-    ], 18, 23, w=6, unit="opm"),
+    ], 18, 32, w=6, unit="opm"),
     timeseries("Auth & security events", [
         target(f'sum by (event) (rate(statamic_auth_events_total{{{SVC}}}[$__rate_interval])) * 60', '{{event}}'),
-    ], 0, 31, w=24, h=6, unit="opm", legend="table",
+    ], 0, 40, w=24, h=6, unit="opm", legend="table",
         regex_colors={".*failed.*": "red", ".*impersonation.*": "orange"},
         description="Impersonation, 2FA (a failed spike is a brute-force signal), registrations and password changes. User identity lives on the traces, not the metric."),
 
-    row("Inventory (opt-in gauges)", 37),
+    row("Inventory (opt-in gauges)", 46),
     table("Entries by collection",
           f'sum by (collection) (statamic_entries_count{{{SVC}}})',
-          0, 38, w=8,
+          0, 47, w=8,
           description="Requires statamic-telemetry.gauges.enabled — evaluated at scrape time."),
     table("Assets by container",
           f'sum by (container) (statamic_assets_count{{{SVC}}})',
-          8, 38, w=8),
-    stat("Users", f'sum(statamic_users_count{{{SVC}}})', 16, 38, w=8, decimals=0),
+          8, 47, w=8),
+    stat("Users", f'sum(statamic_users_count{{{SVC}}})', 16, 47, w=8, decimals=0),
 
-    row("Traces", 46),
+    row("Traces", 51),
     traces("Recent content requests",
            '{resource.service.name=~"$service" && name=~"GET (entry|term):.*"}',
-           0, 47, h=9,
+           0, 52, h=9,
            description="Root spans named by this addon — entry:{collection}.{blueprint} / term:{taxonomy}."),
     traces("Slow uncached pages",
            '{resource.service.name=~"$service" && span.statamic.static_cache="miss" && duration > 500ms}',
-           0, 56, h=9,
+           0, 61, h=9,
            description="Static cache misses that took over 500ms to render — the pages that hurt when the cache is cold."),
 ])
 
