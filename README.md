@@ -37,13 +37,24 @@ more. This addon teaches those traces Statamic's vocabulary:
 
 ## Installation
 
+> **Beta.** Once both packages are on Packagist this is a plain
+> `composer require cboxdk/statamic-telemetry`. Until then, point Composer
+> at the two public GitHub repos from your app's `composer.json`:
+>
+> ```json
+> "repositories": [
+>     { "type": "vcs", "url": "https://github.com/cboxdk/laravel-telemetry" },
+>     { "type": "vcs", "url": "https://github.com/cboxdk/statamic-telemetry" }
+> ]
+> ```
+
 ```bash
-composer require cboxdk/statamic-telemetry
+composer require cboxdk/statamic-telemetry:@dev
 ```
 
 Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry. Everything is
-on by default except Antlers view spans and the gauges. Publish the config to
-change toggles:
+on by default except Antlers view/tag spans and the gauges. Publish the
+config to change toggles:
 
 ```bash
 php artisan vendor:publish --tag=statamic-telemetry-config

@@ -12,6 +12,17 @@
         "traces",
         "metrics"
     ],
+    "authors": [
+        {
+            "name": "Sylvester Damgaard",
+            "email": "sn@cbox.dk",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/cboxdk/statamic-telemetry/issues",
+        "source": "https://github.com/cboxdk/statamic-telemetry"
+    },
     "require": {
         "php": "^8.3|^8.4|^8.5",
         "cboxdk/laravel-telemetry": "dev-main",
@@ -37,11 +48,8 @@
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "../laravel-telemetry",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/cboxdk/laravel-telemetry"
         }
     ],
     "scripts": {

@@ -23,19 +23,8 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout statamic-telemetry
+      - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          path: statamic-telemetry
-
-      # Private sibling repo — needs CBOX_REPO_TOKEN (PAT with read access
-      # to cboxdk/laravel-telemetry); see run-tests.yml.
-      - name: Checkout laravel-telemetry
-        uses: actions/checkout@v6
-        with:
-          repository: cboxdk/laravel-telemetry
-          path: laravel-telemetry
-          token: ${{ secrets.CBOX_REPO_TOKEN || github.token }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -45,9 +34,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        working-directory: statamic-telemetry
-        run: composer update --prefer-stable --prefer-dist --no-interaction
+        run: composer update --prefer-dist --no-interaction
 
       - name: Run PHPStan
-        working-directory: statamic-telemetry
         run: vendor/bin/phpstan analyse --memory-limit=1G --error-format=github

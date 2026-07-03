@@ -31,22 +31,8 @@ jobs:
     name: P${{ matrix.php }}
 
     steps:
-      # laravel-telemetry is a path repository at ../laravel-telemetry, so
-      # both repos are checked out as siblings inside the workspace. The
-      # sibling repo is private: CBOX_REPO_TOKEN must be a (fine-grained)
-      # PAT with read access to cboxdk/laravel-telemetry — the default
-      # workflow token cannot see it.
-      - name: Checkout statamic-telemetry
+      - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          path: statamic-telemetry
-
-      - name: Checkout laravel-telemetry
-        uses: actions/checkout@v6
-        with:
-          repository: cboxdk/laravel-telemetry
-          path: laravel-telemetry
-          token: ${{ secrets.CBOX_REPO_TOKEN || github.token }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -60,14 +46,13 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
+      # cboxdk/laravel-telemetry resolves from its public GitHub repo (a vcs
+      # repository entry in composer.json) — or from Packagist once published.
       - name: Install dependencies
-        working-directory: statamic-telemetry
-        run: composer update --prefer-stable --prefer-dist --no-interaction
+        run: composer update --prefer-dist --no-interaction
 
-      - name: List Installed Dependencies
-        working-directory: statamic-telemetry
+      - name: List installed dependencies
         run: composer show -D
 
       - name: Execute tests
-        working-directory: statamic-telemetry
         run: vendor/bin/pest --ci
