@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cbox\StatamicTelemetry\Listeners;
 
 use Cbox\StatamicTelemetry\StaticCaching\StaticCacheTelemetry;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Events\ResponsePrepared;
 
 /**
@@ -15,13 +16,17 @@ use Illuminate\Routing\Events\ResponsePrepared;
  * own ResponsePrepared listener, registered at cachePage() time — replay
  * would then serve one stale trace id to every visitor. This listener is
  * registered at boot, so it runs first; TracingApplicationCacher flags
- * the pending write.
+ * the pending write on the request.
  */
-class StripTraceHeader
+class StripTraceHeader extends GuardedListener
 {
-    public function handle(ResponsePrepared $event): void
+    protected function handleEvent(object $event): void
     {
-        if (! StaticCacheTelemetry::consumePendingHeaderStrip()) {
+        if (! $event instanceof ResponsePrepared || ! $event->request instanceof Request) {
+            return;
+        }
+
+        if (! StaticCacheTelemetry::consumePendingHeaderStrip($event->request)) {
             return;
         }
 

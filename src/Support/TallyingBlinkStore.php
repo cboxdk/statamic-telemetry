@@ -16,10 +16,15 @@ class TallyingBlinkStore extends SpatieBlink
 {
     public function once($key, callable $callable)
     {
-        Telemetry::tracer()->bumpStat(
-            $this->has($key) ? 'statamic.blink.hits' : 'statamic.blink.misses',
-            1,
-        );
+        // Only tally inside an active trace — Blink is also used in console
+        // commands and untraced jobs, where the counts would sit in the
+        // tracer's stat buffer until the next context reset, unattached.
+        if (Telemetry::tracer()->rootSpan() !== null) {
+            Telemetry::tracer()->bumpStat(
+                $this->has($key) ? 'statamic.blink.hits' : 'statamic.blink.misses',
+                1,
+            );
+        }
 
         return parent::once($key, $callable);
     }

@@ -20,6 +20,12 @@ final class TracingEngine implements Engine
 
     public function get($path, array $data = [])
     {
+        // Outside a trace (a render in a console command or queued job)
+        // don't mint an orphan root trace per view.
+        if (Telemetry::tracer()->rootSpan() === null) {
+            return $this->inner->get($path, $data);
+        }
+
         $span = Telemetry::span('view.render', null, [
             'view.path' => Str::after((string) $path, base_path().DIRECTORY_SEPARATOR),
             'view.engine' => 'antlers',

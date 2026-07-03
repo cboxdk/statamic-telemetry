@@ -12,14 +12,15 @@ use Throwable;
  * Index updates only — Statamic fires no event for search queries, so
  * query latency is visible through the request span, not a counter.
  */
-class RecordSearchIndexUpdate
+class RecordSearchIndexUpdate extends GuardedListener
 {
-    public function handle(SearchIndexUpdated $event): void
+    protected function handleEvent(object $event): void
     {
-        if (! config('statamic-telemetry.instrument.search', true)) {
+        if (! $event instanceof SearchIndexUpdated || ! config('statamic-telemetry.instrument.search', true)) {
             return;
         }
 
+        // Degrade to 'unknown' rather than dropping the count.
         try {
             $index = (string) $event->index->name();
         } catch (Throwable) {

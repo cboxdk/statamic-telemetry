@@ -17,6 +17,11 @@ trait RecordsStaticCacheTelemetry
     {
         $page = parent::getCachedPage($request);
 
+        // A successful return is a genuine hit: Statamic only calls
+        // getCachedPage after a truthy hasCachedPage, and both cachers
+        // throw (FileCacher's File::get on a missing file) rather than
+        // return on a real miss. Synthetic probe requests are filtered by
+        // isCurrentRequest inside recordHit.
         StaticCacheTelemetry::recordHit($request);
 
         return $page;

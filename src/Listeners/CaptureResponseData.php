@@ -11,11 +11,11 @@ use Statamic\Events\ResponseCreated;
  * Stashes the content object Statamic resolved for this response, so the
  * request-naming and enrichment resolvers can read it at terminate.
  */
-class CaptureResponseData
+class CaptureResponseData extends GuardedListener
 {
-    public function handle(ResponseCreated $event): void
+    protected function handleEvent(object $event): void
     {
-        if (! config('statamic-telemetry.instrument.content', true)) {
+        if (! $event instanceof ResponseCreated || ! config('statamic-telemetry.instrument.content', true)) {
             return;
         }
 

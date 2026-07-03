@@ -16,7 +16,7 @@ final class TracingApplicationCacher extends ApplicationCacher
         // Before parent — its ResponsePrepared listener snapshots response
         // headers into the cache, and the trace id header must be gone by
         // then (see StripTraceHeader).
-        StaticCacheTelemetry::markPendingHeaderStrip();
+        StaticCacheTelemetry::markPendingHeaderStrip($request);
 
         parent::cachePage($request, $content);
 

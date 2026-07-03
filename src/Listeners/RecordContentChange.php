@@ -15,7 +15,7 @@ use Statamic\Events;
  * that way carry an explicit mapping. Both dimensions are bounded by
  * the fixed set of events the service provider subscribes to.
  */
-class RecordContentChange
+class RecordContentChange extends GuardedListener
 {
     private const ACTIONS = 'Saved|Deleted|Uploaded|Replaced|Reuploaded|Updated';
 
@@ -24,7 +24,7 @@ class RecordContentChange
         Events\DuplicateIdRegenerated::class => ['duplicate_id', 'regenerated'],
     ];
 
-    public function handle(object $event): void
+    protected function handleEvent(object $event): void
     {
         if (! config('statamic-telemetry.instrument.content_events', true)) {
             return;

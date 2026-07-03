@@ -13,10 +13,16 @@ use Statamic\View\Antlers\Language\Runtime\Tracing\RuntimeTracerContract;
 /**
  * A span per Antlers *tag* invocation — collection, nav, form, partial —
  * via Statamic's official runtime tracing hook. Tags are where the
- * rendering cost lives (queries, augmentation, nested partials), and
- * tag names are bounded, unlike variable nodes, which are skipped
- * entirely. Spans are detail-marked, so tail-detail mode drops them
- * from uninteresting traces.
+ * rendering cost lives (queries, augmentation, nested partials); variable
+ * nodes are skipped. Spans are detail-marked, so tail-detail mode drops
+ * them from uninteresting traces.
+ *
+ * Span names are the bare tag name only (`antlers:partial`,
+ * `antlers:collection`) — bounded to Statamic's registered tag set. The
+ * method part (`partial:components/hero`, `nav:main`) is unbounded — a
+ * distinct value per partial file or dynamic target — so it goes on the
+ * `antlers.method` span *attribute*, never the span name (which Grafana
+ * groups on) or a metric label.
  *
  * Enabled by statamic-telemetry.instrument.antlers, which turns on
  * statamic.antlers.tracing — the runtime only consults tracers when
@@ -33,9 +39,19 @@ final class AntlersNodeTracer implements RuntimeTracerContract
             return;
         }
 
-        $name = $this->tagName($node);
+        // No ambient trace (a render outside any request — Stache warm in
+        // a console command, a queued render) — don't mint orphan root
+        // traces, one per tag.
+        if (Telemetry::tracer()->rootSpan() === null) {
+            return;
+        }
 
-        $span = Telemetry::span('antlers:'.$name, null, ['antlers.tag' => $name]);
+        [$name, $method] = $this->tagParts($node);
+
+        $span = Telemetry::span('antlers:'.$name, null, array_filter([
+            'antlers.tag' => $name,
+            'antlers.method' => $method,
+        ], fn ($value) => $value !== null));
         $span->markDetail();
 
         $this->open[spl_object_id($node)] = $span;
@@ -53,13 +69,12 @@ final class AntlersNodeTracer implements RuntimeTracerContract
 
     public function onRenderComplete()
     {
-        // Anything still open is an unbalanced enter (runtime bailed) —
-        // close instead of leaking into the next render.
-        foreach (array_reverse($this->open) as $span) {
+        // Anything still open is an unbalanced enter (the runtime bailed on
+        // a node) — close instead of leaking into the next render.
+        foreach (array_reverse($this->open, true) as $id => $span) {
             $span->end();
+            unset($this->open[$id]);
         }
-
-        $this->open = [];
     }
 
     private function isTraceableTag(AntlersNode $node): bool
@@ -69,17 +84,20 @@ final class AntlersNodeTracer implements RuntimeTracerContract
             && ! $node->isComment;
     }
 
-    private function tagName(AntlersNode $node): string
+    /**
+     * @return array{0: string, 1: string|null}
+     */
+    private function tagParts(AntlersNode $node): array
     {
         $identifier = $node->name;
 
         if ($identifier === null) {
-            return 'unknown';
+            return ['unknown', null];
         }
 
         $name = (string) $identifier->name;
         $method = (string) $identifier->methodPart;
 
-        return $method !== '' ? $name.':'.$method : $name;
+        return [$name, $method !== '' ? $method : null];
     }
 }

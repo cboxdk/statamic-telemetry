@@ -12,10 +12,14 @@ use Statamic\Events\GlideCacheCleared;
  * Glide cache clears explain generation spikes: after a full clear,
  * every image regenerates on first request.
  */
-class RecordGlideCacheClear
+class RecordGlideCacheClear extends GuardedListener
 {
-    public function handle(GlideCacheCleared|GlideAssetCacheCleared $event): void
+    protected function handleEvent(object $event): void
     {
+        if (! $event instanceof GlideCacheCleared && ! $event instanceof GlideAssetCacheCleared) {
+            return;
+        }
+
         if (! config('statamic-telemetry.instrument.glide', true)) {
             return;
         }

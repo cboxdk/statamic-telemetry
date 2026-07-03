@@ -13,7 +13,7 @@ use Statamic\Events;
  * registrations and password changes round out the picture. No user ids
  * on the metric — the request trace carries enduser.* for that.
  */
-class RecordAuthEvent
+class RecordAuthEvent extends GuardedListener
 {
     private const EVENTS = [
         Events\ImpersonationStarted::class => 'impersonation_started',
@@ -28,7 +28,7 @@ class RecordAuthEvent
         Events\TwoFactorRecoveryCodeReplaced::class => 'two_factor_recovery_code_replaced',
     ];
 
-    public function handle(object $event): void
+    protected function handleEvent(object $event): void
     {
         if (! config('statamic-telemetry.instrument.auth', true)) {
             return;

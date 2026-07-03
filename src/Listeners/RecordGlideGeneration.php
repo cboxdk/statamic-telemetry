@@ -7,11 +7,11 @@ namespace Cbox\StatamicTelemetry\Listeners;
 use Cbox\Telemetry\Facades\Telemetry;
 use Statamic\Events\GlideImageGenerated;
 
-class RecordGlideGeneration
+class RecordGlideGeneration extends GuardedListener
 {
-    public function handle(GlideImageGenerated $event): void
+    protected function handleEvent(object $event): void
     {
-        if (! config('statamic-telemetry.instrument.glide', true)) {
+        if (! $event instanceof GlideImageGenerated || ! config('statamic-telemetry.instrument.glide', true)) {
             return;
         }
 

@@ -28,6 +28,17 @@ test('blink once hits and misses land as tallies on the root span', function () 
     });
 });
 
+test('blink does not tally outside an active trace', function () {
+    $fake = $this->fakeTelemetry();
+
+    // No span opened — a console command or untraced job using Blink.
+    Blink::once('cold', fn () => 'value');
+    Blink::once('cold', fn () => 'value');
+
+    // No root span exists, so nothing was tallied; the calls still work.
+    expect(Blink::get('cold'))->toBe('value');
+});
+
 test('blink still memoizes correctly through the tallying store', function () {
     $calls = 0;
 

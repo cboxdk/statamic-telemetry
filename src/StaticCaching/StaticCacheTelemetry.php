@@ -12,6 +12,12 @@ use Illuminate\Http\Request;
  * Shared recording logic for the tracing cachers: an operations counter,
  * a hit/miss/write outcome attribute on the request root span, and the
  * pending-write flag the StripTraceHeader listener consumes.
+ *
+ * Outcome recording is gated to the request currently being served
+ * (isCurrentRequest). Statamic checks the cache against freshly built,
+ * synthetic Request objects too — error-page copies, warm jobs — and
+ * those must not inflate the hit/miss counters or overwrite the outcome
+ * on someone else's root span.
  */
 final class StaticCacheTelemetry
 {
@@ -19,12 +25,7 @@ final class StaticCacheTelemetry
 
     private const RECORDED_KEY = 'statamic_telemetry_static_cache_result';
 
-    /**
-     * Set by TracingApplicationCacher::cachePage(), consumed by the
-     * boot-registered ResponsePrepared listener — which therefore runs
-     * before the cacher's own header-snapshotting listener.
-     */
-    private static bool $pendingHeaderStrip = false;
+    private const PENDING_STRIP_KEY = 'statamic_telemetry_strip_trace_header';
 
     public static function recordHit(Request $request): void
     {
@@ -59,22 +60,29 @@ final class StaticCacheTelemetry
         }
     }
 
-    public static function markPendingHeaderStrip(): void
+    /**
+     * Flags the current request's response so the trace id header is
+     * stripped before the half-measure cacher snapshots it. Stored on the
+     * request (not a static) so a request that sets it but never emits a
+     * ResponsePrepared can't leak the flag into the next Octane request.
+     */
+    public static function markPendingHeaderStrip(Request $request): void
     {
-        self::$pendingHeaderStrip = true;
+        $request->attributes->set(self::PENDING_STRIP_KEY, true);
     }
 
-    public static function consumePendingHeaderStrip(): bool
+    public static function consumePendingHeaderStrip(Request $request): bool
     {
-        $pending = self::$pendingHeaderStrip;
-        self::$pendingHeaderStrip = false;
+        $pending = (bool) $request->attributes->get(self::PENDING_STRIP_KEY, false);
+
+        $request->attributes->set(self::PENDING_STRIP_KEY, false);
 
         return $pending;
     }
 
     private static function recordOutcome(string $result, Request $request): void
     {
-        if (! self::enabled()) {
+        if (! self::enabled() || ! self::isCurrentRequest($request)) {
             return;
         }
 
@@ -89,6 +97,15 @@ final class StaticCacheTelemetry
         self::operations()->inc(1, ['operation' => $result]);
 
         Telemetry::tracer()->rootSpan()?->setAttribute(self::RESULT_ATTRIBUTE, $result);
+    }
+
+    /**
+     * Is this the request actually being served, versus a synthetic one
+     * Statamic built to probe the cache (error copies, warm jobs)?
+     */
+    private static function isCurrentRequest(Request $request): bool
+    {
+        return app()->bound('request') && app('request') === $request;
     }
 
     private static function enabled(): bool

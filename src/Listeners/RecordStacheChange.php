@@ -8,12 +8,15 @@ use Cbox\Telemetry\Facades\Telemetry;
 use Statamic\Events\StacheCleared;
 use Statamic\Events\StacheWarmed;
 use Statamic\Facades\Stache;
-use Throwable;
 
-class RecordStacheChange
+class RecordStacheChange extends GuardedListener
 {
-    public function handle(StacheWarmed|StacheCleared $event): void
+    protected function handleEvent(object $event): void
     {
+        if (! $event instanceof StacheWarmed && ! $event instanceof StacheCleared) {
+            return;
+        }
+
         if (! config('statamic-telemetry.instrument.stache', true)) {
             return;
         }
@@ -34,12 +37,10 @@ class RecordStacheChange
 
     private function buildTime(): ?float
     {
-        try {
-            $ms = Stache::buildTime();
+        // A throw here is caught by the guard after the warm counter has
+        // already incremented — the histogram is simply skipped.
+        $ms = Stache::buildTime();
 
-            return $ms === null ? null : (float) $ms;
-        } catch (Throwable) {
-            return null;
-        }
+        return $ms === null ? null : (float) $ms;
     }
 }

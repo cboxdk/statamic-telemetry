@@ -13,14 +13,16 @@ use Throwable;
  * FormSubmitted — the latter is a halting event where any non-null
  * listener return cancels the submission.
  */
-class RecordFormSubmission
+class RecordFormSubmission extends GuardedListener
 {
-    public function handle(SubmissionCreated $event): void
+    protected function handleEvent(object $event): void
     {
-        if (! config('statamic-telemetry.instrument.forms', true)) {
+        if (! $event instanceof SubmissionCreated || ! config('statamic-telemetry.instrument.forms', true)) {
             return;
         }
 
+        // Degrade to 'unknown' rather than dropping the count — a
+        // submission still happened even if the form handle is unreadable.
         try {
             $form = $event->submission->form()->handle();
         } catch (Throwable) {
