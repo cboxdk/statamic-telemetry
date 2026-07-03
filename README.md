@@ -37,19 +37,22 @@ more. This addon teaches those traces Statamic's vocabulary:
 
 ## Installation
 
-> **Beta.** Once both packages are on Packagist this is a plain
-> `composer require cboxdk/statamic-telemetry`. Until then, point Composer
-> at the two public GitHub repos from your app's `composer.json`:
+> **Alpha (`0.1.0-alpha.1`).** Once both packages are on Packagist this is
+> a plain `composer require cboxdk/statamic-telemetry`. Until then, point
+> Composer at the two public GitHub repos and allow alpha stability in your
+> app's `composer.json`:
 >
 > ```json
 > "repositories": [
 >     { "type": "vcs", "url": "https://github.com/cboxdk/laravel-telemetry" },
 >     { "type": "vcs", "url": "https://github.com/cboxdk/statamic-telemetry" }
-> ]
+> ],
+> "minimum-stability": "alpha",
+> "prefer-stable": true
 > ```
 
 ```bash
-composer require cboxdk/statamic-telemetry:@dev
+composer require cboxdk/statamic-telemetry:^0.1.0-alpha.1
 ```
 
 Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry. Everything is

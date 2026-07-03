@@ -2,9 +2,16 @@
 
 All notable changes to `cboxdk/statamic-telemetry` are documented here.
 
-## Unreleased
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Initial release. Statamic 6 only.
+## [Unreleased]
+
+## [0.1.0-alpha.1] - 2026-07-03
+
+First public release. **Alpha** — tracks `cboxdk/laravel-telemetry`'s alpha
+line; the metric and attribute surface may still change before 0.1.0.
+Statamic 6 only.
 
 - Content-aware request span names behind Statamic's catch-all route
   (`GET entry:{collection}.{blueprint}`, `GET term:{taxonomy}`) with

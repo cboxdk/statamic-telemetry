@@ -25,7 +25,7 @@
     },
     "require": {
         "php": "^8.3|^8.4|^8.5",
-        "cboxdk/laravel-telemetry": "dev-main",
+        "cboxdk/laravel-telemetry": "^0.1.0-alpha.1",
         "statamic/cms": "^6.0"
     },
     "require-dev": {
@@ -64,6 +64,9 @@
         ]
     },
     "extra": {
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        },
         "statamic": {
             "name": "Telemetry",
             "description": "Statamic-aware traces and metrics on top of cboxdk/laravel-telemetry"
