@@ -7,13 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`http.route` now carries the logical content route.** Instead of a
+  parallel `statamic.route` metric label (which only helped consumers that
+  knew to group by it), the addon uses laravel-telemetry's new
+  `resolveRouteUsing()` hook to override `http.route` itself with
+  `entry:{collection}.{blueprint}` / `term:{taxonomy}` / `taxonomy:{handle}`.
+  Route tables, Grafana and TraceQL now group by content with no
+  per-consumer change; the raw catch-all is preserved as
+  `http.route.template`. Requires `cboxdk/laravel-telemetry` ^0.1.0-alpha.4.
+  The separate `statamic.route` label is removed, as is the addon's
+  `nameRequestsUsing` registration (the span name derives from the route).
+
 ### Added
 
 - Taxonomy index/listing pages are now content-named (`GET taxonomy:{taxonomy}`)
-  with `statamic.type=taxonomy` and a `statamic.route` metric label —
-  distinct from a single term page (`term:{taxonomy}`). Completes the set
-  of frontend-routable data types (entry, term, taxonomy index); assets,
-  globals and navigations aren't frontend pages and stay counter-only.
+  with `statamic.type=taxonomy` — distinct from a single term page
+  (`term:{taxonomy}`). Completes the set of frontend-routable data types
+  (entry, term, taxonomy index); assets, globals and navigations aren't
+  frontend pages and stay counter-only.
 
 ## [0.1.0-alpha.2] - 2026-07-03
 

@@ -94,34 +94,38 @@ Octane a `cachePage` with no following `ResponsePrepared` can't leak the
 strip into the next request. Full-measure (`FileCacher`) keeps the header
 for the first, PHP-served visitor; dynamic responses always keep it.
 
-## Per-content latency metrics (`statamic.route`)
+## `http.route` is the content route, not the catch-all
 
-The content-aware span name fixes traces, but not metrics. The base
-package labels its `http.server.request.duration` histogram with
-`http.route` — the literal route template — which for Statamic's single
-catch-all route is `/{segments?}` on every frontend page. So the latency
-histogram has one bucket for the whole front end; you can't tell a slow
-collection from a fast one.
+The content-aware span name fixes traces, but the request *metrics* and
+every consumer that groups by them (the UI route table, Grafana) key off
+the `http.route` label — which for Statamic's single catch-all route is
+`/{segments?}` on every frontend page. So route tables and latency
+histograms collapse the whole front end into one bucket.
 
-The base package deliberately can't fix this: metric labels must be
-bounded, and it can't know that a `nameRequestsUsing` resolver returns
-bounded values (an app's resolver might return per-id names). The addon
-*does* know its names are bounded — collections and taxonomies are a
-fixed, small set — so it takes responsibility for the label. Via
-`labelRequestsUsing` it adds a `statamic.route` dimension
-(`entry:{collection}.{blueprint}` / `term:{taxonomy}`), present only on
-content requests. `http.route` stays the OTel-correct route template;
-`statamic.route` is the parallel dimension you group latency by.
+The right fix is in the base package, not a parallel addon label: a
+`resolveRouteUsing()` hook (added in laravel-telemetry v0.1.0-alpha.4)
+lets an instrumentation supply the *logical route*, which replaces
+`http.route` on both the span attribute and the metric label. The addon
+registers it with `Content::routeLabel` — so `http.route` becomes
+`entry:{collection}.{blueprint}` / `term:{taxonomy}` /
+`taxonomy:{taxonomy}`, and everything downstream groups by content with
+no per-consumer change. The literal template is preserved as
+`http.route.template`.
 
-Because `labelRequestsUsing` is single-slot (like the other resolver
-hooks) and apps commonly use it for their own metric labels, an app that
-needs both must compose — delegate to `Content::routeLabel`:
+The base package couldn't do this itself: `http.route` is a metric label
+and must be bounded, and the base can't know a resolved name is bounded
+(an app's resolver might return per-id values). The addon *does* know —
+collections and taxonomies are a fixed, small set — so it takes
+responsibility via the hook. The span *name* still comes from the same
+route (`METHOD ` + route), so no separate `nameRequestsUsing` is needed.
+
+`resolveRouteUsing` is single-slot (like the other resolver hooks); an app
+that needs a different route identity composes with `Content::routeLabel`:
 
 ```php
-Telemetry::labelRequestsUsing(fn ($request) => array_filter([
-    'statamic.route' => Content::routeLabel($request),
-    'plan' => $request->user()?->plan,
-], fn ($v) => $v !== null));
+Telemetry::resolveRouteUsing(fn ($request, $response) =>
+    $request->is('api/*') ? 'api' : Content::routeLabel($request)
+);
 ```
 
 ## Stache

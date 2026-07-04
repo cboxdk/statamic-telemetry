@@ -41,17 +41,15 @@ final class Hooks
         }
 
         if (config('statamic-telemetry.instrument.content', true)) {
-            $telemetry->nameRequestsUsing(fn ($request, $response) => Content::spanName($request));
+            // The logical route (entry:{collection}.{blueprint} /
+            // term:{taxonomy} / taxonomy:{handle}) replaces the useless
+            // /{segments?} catch-all as http.route — on the span and the
+            // request metric — so route tables and latency histograms
+            // group by content. Bounded: collections and taxonomies are a
+            // fixed set. The span name derives from it ("METHOD " + route),
+            // so no separate name resolver is needed.
+            $telemetry->resolveRouteUsing(fn ($request, $response) => Content::routeLabel($request));
             $telemetry->enrichRequestsUsing(fn ($request, $response) => Content::attributes($request));
-
-            // A bounded per-content route dimension on the request metrics,
-            // so http.server.request.duration can be broken down by
-            // collection/taxonomy instead of collapsing into the single
-            // catch-all http.route. Only present for content requests.
-            $telemetry->labelRequestsUsing(fn ($request) => array_filter(
-                ['statamic.route' => Content::routeLabel($request)],
-                fn ($value) => $value !== null,
-            ));
         }
 
         if (config('statamic-telemetry.instrument.stache', true)) {

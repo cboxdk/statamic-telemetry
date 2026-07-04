@@ -29,7 +29,8 @@ metric labels).
 | `enduser.groups` | root | `staff` |
 | `enduser.super` | root | `true` (present only when super) |
 | `statamic.blink.hits` / `statamic.blink.misses` | root (tally) | `53` / `21` |
-| `statamic.route` | request metrics label (bounded) | `entry:blog.article`, `term:topics`, `taxonomy:topics` — content requests only |
+| `http.route` | root + request metric label (overridden) | `entry:blog.article`, `term:topics`, `taxonomy:topics` — the logical content route (see below) |
+| `http.route.template` | root (when overridden) | `/{segments?}` — the raw Laravel template |
 | `cache.key.group` | base cache spans | `stache.index`, `stache.item`, `stache.meta`, `static_cache`, `app` |
 | `view.path` / `view.engine` | `view.render` spans (opt-in) | `resources/views/blog/show.antlers.html`, `antlers` |
 | `antlers.tag` | `antlers:{tag}` spans (opt-in) | `collection`, `partial` (bounded) |
@@ -65,26 +66,28 @@ route-based filtering still works. A static cache **hit** never reaches
 the controller, so hit traces keep the generic route-pattern name (with
 `statamic.static_cache: hit`).
 
-### The `statamic.route` metric label
+### `http.route` is the logical content route
 
-Every frontend request shares the same `http.route` template
-(`/{segments?}`), so the base package's `http.server.request.duration`
-histogram collapses every page into one series — you can't see latency
-per collection. The addon adds a **bounded `statamic.route` label** to the
-request metrics (`entry:{collection}.{blueprint}` / `term:{taxonomy}` /
-`taxonomy:{taxonomy}`), present only on content requests. Break latency
-down by it:
+Every frontend request matches the same catch-all template
+(`/{segments?}`), so left alone the base package's `http.route` label
+collapses every page into one series — route tables and latency
+histograms show a single bucket. The addon uses the base package's
+`resolveRouteUsing()` hook to **override `http.route`** with the logical
+content route (`entry:{collection}.{blueprint}` / `term:{taxonomy}` /
+`taxonomy:{taxonomy}`), so the whole ecosystem — the UI route table,
+Grafana, TraceQL — groups by content with no per-consumer change:
 
 ```promql
-histogram_quantile(0.95, sum by (le, statamic_route) (
-  rate(http_server_request_duration_milliseconds_bucket{statamic_route!=""}[5m])
+histogram_quantile(0.95, sum by (le, http_route) (
+  rate(http_server_request_duration_milliseconds_bucket{http_route=~"(entry|term|taxonomy):.*"}[5m])
 ))
 ```
 
-`http.route` stays the literal route template (per OpenTelemetry
-semantics); `statamic.route` is the parallel, content-aware dimension.
-The base package can't emit this itself — it can't know a resolved name
-is bounded — which is why the addon owns it.
+The value is **bounded** (collections and taxonomies are a fixed set),
+which is why the addon — not the base package — owns it: only the addon
+knows these names are safe as a metric label. The raw Laravel template is
+preserved as `http.route.template` for debugging. Non-content requests
+(real routes, 404s) keep their normal `http.route`.
 
 ## Metrics
 

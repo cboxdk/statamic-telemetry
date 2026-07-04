@@ -24,13 +24,16 @@ test('a frontend entry request gets a bounded span name and entry attributes', f
 
     $span = array_values($spans)[0];
 
-    expect($span->attributes()['statamic.collection'])->toBe('pages')
+    expect($span->name)->toBe('GET entry:pages.page')
+        ->and($span->attributes()['statamic.collection'])->toBe('pages')
         ->and($span->attributes()['statamic.entry.id'])->toBe((string) $entry->id())
         ->and($span->attributes()['statamic.type'])->toBe('entry')
-        ->and($span->attributes()['http.route'])->not->toBeNull();
+        // http.route is the logical route; the raw catch-all is preserved.
+        ->and($span->attributes()['http.route'])->toBe('entry:pages.page')
+        ->and($span->attributes()['http.route.template'])->toBe('/{segments?}');
 });
 
-test('the request duration metric carries a bounded per-content route label', function () {
+test('the request duration metric http.route is the logical content route', function () {
     Collection::make('pages')->routes('{slug}')->save();
     tap(Entry::make()->collection('pages')->slug('about')->data(['title' => 'About']))->save();
 
@@ -38,26 +41,23 @@ test('the request duration metric carries a bounded per-content route label', fu
 
     $this->get('/about')->assertOk();
 
-    // The base http.route label stays the catch-all template; statamic.route
-    // is the dimension to break latency down by, per collection/blueprint.
-    $labels = [];
+    // http.route now carries the logical content route (via the core
+    // resolveRouteUsing hook), so route tables and histograms group by it
+    // instead of the /{segments?} catch-all.
+    $routes = [];
     foreach ($fake->collect() as $family) {
         if ($family->name() === 'http.server.request.duration') {
             foreach ($family->samples as $sample) {
-                $labels[] = $sample->labels;
+                $routes[] = $sample->labels['http.route'] ?? null;
             }
         }
     }
 
-    expect($labels)->not->toBeEmpty();
-
-    $routes = array_column($labels, 'statamic.route');
-
     expect($routes)->toContain('entry:pages.page')
-        ->and(array_column($labels, 'http.route'))->toContain('/{segments?}');
+        ->and($routes)->not->toContain('/{segments?}');
 });
 
-test('non-content requests carry no statamic.route label', function () {
+test('non-content requests keep the literal route template as http.route', function () {
     $fake = $this->fakeTelemetry();
 
     $this->get('/definitely-missing')->assertNotFound();
@@ -65,7 +65,9 @@ test('non-content requests carry no statamic.route label', function () {
     foreach ($fake->collect() as $family) {
         if ($family->name() === 'http.server.request.duration') {
             foreach ($family->samples as $sample) {
-                expect($sample->labels)->not->toHaveKey('statamic.route');
+                // No content resolved → no override; http.route is the
+                // real route (or the fallback pattern), never a Statamic name.
+                expect($sample->labels['http.route'] ?? '')->not->toStartWith('entry:');
             }
         }
     }

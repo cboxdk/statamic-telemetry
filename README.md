@@ -64,7 +64,9 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 
 | Attribute | Where | Values |
 |---|---|---|
-| `statamic.type` | root span | `entry`, `term` |
+| `statamic.type` | root span | `entry`, `term`, `taxonomy` |
+| `http.route` | root span + request metric | logical content route: `entry:blog.article`, `term:topics`, `taxonomy:topics` |
+| `http.route.template` | root span (when overridden) | raw Laravel template: `/{segments?}` |
 | `statamic.entry.id` / `statamic.term.id` | root span | id |
 | `statamic.collection` / `statamic.blueprint` / `statamic.taxonomy` | root span | handles |
 | `statamic.site` | root span + all spans (context) | site handle |
@@ -140,12 +142,11 @@ Telemetry::classifyCacheKeysUsing(fn (string $store, string $key) =>
     str_starts_with($key, 'tenant:') ? 'tenant' : CacheKeys::classify($store, $key)
 );
 
-// The addon claims labelRequestsUsing too (for the statamic.route metric
-// dimension). If your app needs its own metric labels, compose them:
-Telemetry::labelRequestsUsing(fn ($request) => array_filter([
-    'statamic.route' => Content::routeLabel($request),
-    'plan' => $request->user()?->plan,
-], fn ($v) => $v !== null));
+// The addon claims resolveRouteUsing (it overrides http.route with the
+// logical content route). Compose if you want a different route identity:
+Telemetry::resolveRouteUsing(fn ($request, $response) =>
+    $request->is('api/*') ? 'api' : Content::routeLabel($request)
+);
 ```
 
 ## Design notes
@@ -162,11 +163,14 @@ Telemetry::labelRequestsUsing(fn ($request) => array_filter([
   reaches the frontend controller, so there is no entry to name the span
   by — hit traces are `GET /{pattern}` with `statamic.static_cache: hit`
   (and are fast). Content-named spans are the renders.
-- **Latency metrics break down by content.** The base `http.route` metric
-  label is the catch-all template — one bucket for the whole front end.
-  The addon adds a bounded `statamic.route` label so
-  `http.server.request.duration` splits per collection/taxonomy. See
-  [docs/design-notes](docs/design-notes.md#per-content-latency-metrics-statamicroute).
+- **`http.route` is the content route.** Left alone, every frontend page
+  shares the `/{segments?}` catch-all, so route tables and latency
+  histograms collapse into one bucket. The addon uses the base package's
+  `resolveRouteUsing()` hook to override `http.route` with the bounded
+  logical route (`entry:blog.article`, `taxonomy:topics`), so the UI route
+  table, Grafana and TraceQL all group by content — no per-tool change.
+  The raw template is kept as `http.route.template`. See
+  [docs/design-notes](docs/design-notes.md#httproute-is-the-content-route-not-the-catch-all).
 - **Trace header stripping.** The core package already skips the trace id
   header on `Cache-Control: public` responses (CDN caches). Statamic's
   half-measure cacher decides cacheability by its own rules and snapshots

@@ -208,13 +208,13 @@ statamic = dashboard("cbox-tel-statamic", "Statamic", [
 
     row("Frontend latency by content route", 13),
     timeseries("p95 request duration by content route", [
-        target(f'histogram_quantile(0.95, sum by (le, statamic_route) '
-               f'(rate({REQ}_bucket{{{SVC},statamic_route!=""}}[$__rate_interval])))', '{{statamic_route}}'),
+        target(f'histogram_quantile(0.95, sum by (le, http_route) '
+               f'(rate({REQ}_bucket{{{SVC},http_route=~"(entry|term|taxonomy):.*"}}[$__rate_interval])))', '{{http_route}}'),
     ], 0, 14, unit="ms", legend="table",
-        description="The base http.route label is the catch-all template (/{segments?}) — the same bucket for every frontend page. statamic.route is the bounded per-collection/taxonomy dimension the addon adds, so latency breaks down by content type. Requires instrument.content."),
+        description="With instrument.content on, the addon overrides http.route with the logical content route (entry:{collection}.{blueprint} / term:{taxonomy} / taxonomy:{handle}), so latency breaks down per content type instead of collapsing into the /{segments?} catch-all. The raw pattern is kept as http.route.template."),
     timeseries("Request rate by content route", [
-        target(f'sum by (statamic_route) (rate({REQ}_count{{{SVC},statamic_route!=""}}[$__rate_interval])) * 60',
-               '{{statamic_route}}'),
+        target(f'sum by (http_route) (rate({REQ}_count{{{SVC},http_route=~"(entry|term|taxonomy):.*"}}[$__rate_interval])) * 60',
+               '{{http_route}}'),
     ], 12, 14, unit="reqpm", legend="table"),
 
     row("Stache", 22),
