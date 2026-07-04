@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.4] - 2026-07-04
+
 ### Changed
 
 - Entry saves in `statamic.content.changes` are now labelled by the
@@ -21,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the base package's `auth.events` — login/logout/failed/lockout, which
   laravel-telemetry v0.1.0-alpha.4 now emits, so the addon doesn't
   duplicate it).
+
+## [0.1.0-alpha.3] - 2026-07-04
 
 ### Changed
 
