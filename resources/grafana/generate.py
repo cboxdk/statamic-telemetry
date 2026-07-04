@@ -234,7 +234,8 @@ statamic = dashboard("cbox-tel-statamic", "Statamic", [
     timeseries("Content changes", [
         target(f'sum by (type, action) (rate(statamic_content_changes_total{{{SVC}}}[$__rate_interval])) * 60',
                '{{type}} {{action}}'),
-    ], 0, 32, w=6, unit="opm", stacked=True, legend="table"),
+    ], 0, 32, w=6, unit="opm", stacked=True, legend="table",
+        description="type/action from the content event. Entry actions are the publish status at save (published/draft/scheduled/expired) — the publish-state mix of editing, not transitions."),
     timeseries("Form submissions", [
         target(f'sum by (form) (rate(statamic_forms_submissions_total{{{SVC}}}[$__rate_interval])) * 60', '{{form}}'),
     ], 6, 32, w=6, unit="opm"),
@@ -245,11 +246,22 @@ statamic = dashboard("cbox-tel-statamic", "Statamic", [
     timeseries("Search index updates", [
         target(f'sum by (index) (rate(statamic_search_index_updates_total{{{SVC}}}[$__rate_interval])) * 60', '{{index}}'),
     ], 18, 32, w=6, unit="opm"),
-    timeseries("Auth & security events", [
+    timeseries("Entry saves by publish status", [
+        target(f'sum by (action) (rate(statamic_content_changes_total{{{SVC},type="entry"}}[$__rate_interval])) * 60',
+               '{{action}}'),
+    ], 0, 40, w=8, h=6, unit="opm", legend="table",
+        colors={"published": "green", "draft": "yellow", "scheduled": "blue", "expired": "orange", "deleted": "red"},
+        description="Editorial activity split by the entry's publish status at save time. published = a live entry was edited/created; draft = work in progress."),
+    timeseries("Statamic auth & security events", [
         target(f'sum by (event) (rate(statamic_auth_events_total{{{SVC}}}[$__rate_interval])) * 60', '{{event}}'),
-    ], 0, 40, w=24, h=6, unit="opm", legend="table",
+    ], 8, 40, w=8, h=6, unit="opm", legend="table",
         regex_colors={".*failed.*": "red", ".*impersonation.*": "orange"},
-        description="Impersonation, 2FA (a failed spike is a brute-force signal), registrations and password changes. User identity lives on the traces, not the metric."),
+        description="Statamic-specific: impersonation and the 2FA lifecycle (a failed spike is a brute-force signal). User identity lives on the traces, not the metric."),
+    timeseries("Logins & failures", [
+        target(f'sum by (event) (rate(auth_events_total{{{SVC},event=~"login|logout|failed|lockout"}}[$__rate_interval])) * 60', '{{event}}'),
+    ], 16, 40, w=8, h=6, unit="opm", legend="table",
+        colors={"failed": "red", "lockout": "red", "login": "green", "logout": "blue"},
+        description="Laravel auth lifecycle from the base package's auth.events{event,guard} — login/logout volume and, critically, failed/lockout as the credential-attack signal."),
 
     row("Inventory (opt-in gauges)", 46),
     table("Entries by collection",

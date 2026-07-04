@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Routing\Route;
 use Statamic\Events\DuplicateIdRegenerated;
-use Statamic\Events\EntrySaved;
 use Statamic\Events\EntryScheduleReached;
 use Statamic\Events\GlideCacheCleared;
 use Statamic\Events\GlideImageGenerated;
@@ -47,13 +46,10 @@ test('form submissions are counted per form', function () {
 test('content changes are counted by type and action', function () {
     $fake = $this->fakeTelemetry();
 
+    // The generic class-name → type/action mechanism (entry publish-status
+    // actions are covered in PublishStateTest).
     Collection::make('pages')->save();
 
-    event(new EntrySaved(Entry::make()->collection('pages')));
-
-    $fake->assertCounterIncremented('statamic.content.changes', ['type' => 'entry', 'action' => 'saved']);
-
-    // CollectionSaved from the fixture setup above also flows through.
     $fake->assertCounterIncremented('statamic.content.changes', ['type' => 'collection', 'action' => 'saved']);
 });
 

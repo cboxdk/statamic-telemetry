@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0-alpha.3] - 2026-07-04
+### Changed
+
+- Entry saves in `statamic.content.changes` are now labelled by the
+  entry's **publish status** (`published` / `draft` / `scheduled` /
+  `expired`) instead of a flat `saved`, so the counter shows the
+  publish-state mix of editing activity. It's a status snapshot, not a
+  transition — Statamic syncs the pre-save published value away before the
+  event fires, so publish/unpublish can't be detected reliably at the
+  event boundary. `EntryDeleted` stays `deleted`.
+- Dashboard: split the security row into "Entry saves by publish status",
+  "Statamic auth & security events" and "Logins & failures" (the last from
+  the base package's `auth.events` — login/logout/failed/lockout, which
+  laravel-telemetry v0.1.0-alpha.4 now emits, so the addon doesn't
+  duplicate it).
 
 ### Changed
 

@@ -6,14 +6,18 @@ namespace Cbox\StatamicTelemetry\Listeners;
 
 use Cbox\Telemetry\Facades\Telemetry;
 use Illuminate\Support\Str;
+use Statamic\Entries\Entry;
 use Statamic\Events;
 
 /**
  * One counter for all content mutations, labelled by type and action —
  * the event class name carries both (EntrySaved → entry/saved,
  * AssetReplaced → asset/replaced). Events whose names don't decompose
- * that way carry an explicit mapping. Both dimensions are bounded by
- * the fixed set of events the service provider subscribes to.
+ * that way carry an explicit mapping. Entry saves are labelled by the
+ * entry's publish status (published/draft/scheduled/expired) rather than
+ * a flat "saved", so the counter shows the publish-state mix of editing
+ * activity. Both dimensions are bounded by the fixed set of events the
+ * service provider subscribes to.
  */
 class RecordContentChange extends GuardedListener
 {
@@ -45,6 +49,11 @@ class RecordContentChange extends GuardedListener
      */
     private function classify(object $event): array
     {
+        // An entry save is refined into a publish-lifecycle action.
+        if ($event instanceof Events\EntrySaved && $event->entry instanceof Entry) {
+            return ['entry', $this->entrySaveAction($event->entry)];
+        }
+
         if (isset(self::SPECIAL[$event::class])) {
             return self::SPECIAL[$event::class];
         }
@@ -54,5 +63,22 @@ class RecordContentChange extends GuardedListener
         }
 
         return [Str::snake($matches[1]), strtolower($matches[2])];
+    }
+
+    /**
+     * The entry's publish status at save time — `published` / `draft` /
+     * `scheduled` / `expired`. A status *snapshot*, not a transition:
+     * detecting an actual publish/unpublish would need the pre-save
+     * published value, which Statamic has already synced away by the time
+     * the save event fires. `status()` is reliable, so this is: "an entry
+     * in <status> was saved" — the publish-state mix of editing activity.
+     */
+    private function entrySaveAction(Entry $entry): string
+    {
+        $status = $entry->status();
+
+        return in_array($status, ['published', 'draft', 'scheduled', 'expired'], true)
+            ? $status
+            : 'saved';
     }
 }

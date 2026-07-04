@@ -114,15 +114,32 @@ The base package's `cache.operations` counter additionally carries the
 ### `statamic.content.changes` labels
 
 `type` and `action` are derived from the event class name
-(`EntrySaved` → `entry`/`saved`, `AssetReplaced` → `asset`/`replaced`).
-Subscribed families: entries, terms, localized terms, assets (saved,
-deleted, uploaded, replaced, reuploaded, references-updated), asset
-folders and containers, collections and their trees, taxonomies, globals
-(`GlobalVariablesSaved` — the actual content edit — as well as the set),
-navs and their trees, forms, users, roles, groups, blueprints, fieldsets,
-sites, deleted submissions. Two carry explicit labels: `EntryScheduleReached`
-→ `entry`/`schedule_reached`, `DuplicateIdRegenerated` →
-`duplicate_id`/`regenerated`.
+(`AssetReplaced` → `asset`/`replaced`). Subscribed families: entries,
+terms, localized terms, assets (saved, deleted, uploaded, replaced,
+reuploaded, references-updated), asset folders and containers, collections
+and their trees, taxonomies, globals (`GlobalVariablesSaved` — the actual
+content edit — as well as the set), navs and their trees, forms, users,
+roles, groups, blueprints, fieldsets, sites, deleted submissions. Two
+carry explicit labels: `EntryScheduleReached` → `entry`/`schedule_reached`,
+`DuplicateIdRegenerated` → `duplicate_id`/`regenerated`.
+
+**Entry saves are special.** Instead of a flat `saved`, an `EntrySaved`
+is labelled by the entry's **publish status** at save time — `published`,
+`draft`, `scheduled` or `expired` — so `content.changes{type=entry}`
+shows the publish-state mix of editing (how much live vs draft content is
+being touched). It is a *status snapshot*, not a transition: Statamic has
+already synced the pre-save published value away by the time the event
+fires, so a true publish/unpublish can't be detected reliably at the event
+boundary. `EntryDeleted` stays `entry`/`deleted`.
+
+### Authentication metrics
+
+The **Laravel auth lifecycle** — `login`, `logout`, `failed`, `lockout`,
+`password_reset`, `registered`, `verified` — is emitted by the base
+package as `auth.events{event, guard}` (with the guard dimension). The
+`failed`/`lockout` spikes are the credential-attack signal. The addon's
+`statamic.auth.events` (below) covers only the Statamic-specific events
+the base package doesn't know about.
 
 ### `statamic.auth.events` labels
 

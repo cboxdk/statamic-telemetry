@@ -1064,7 +1064,8 @@
           "mode": "multi",
           "sort": "desc"
         }
-      }
+      },
+      "description": "type/action from the content event. Entry actions are the publish status at save (published/draft/scheduled/expired) \u2014 the publish-state mix of editing, not transitions."
     },
     {
       "id": 36,
@@ -1238,20 +1239,157 @@
     {
       "id": 42,
       "type": "timeseries",
-      "title": "Auth & security events",
+      "title": "Entry saves by publish status",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
         "h": 6,
-        "w": 24,
+        "w": 8,
         "x": 0,
         "y": 40
       },
       "targets": [
         {
           "refId": "Q41",
+          "expr": "sum by (action) (rate(statamic_content_changes_total{service_name=~\"$service\",type=\"entry\"}[$__rate_interval])) * 60",
+          "legendFormat": "{{action}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "opm",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "published"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "draft"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "scheduled"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "expired"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "deleted"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Editorial activity split by the entry's publish status at save time. published = a live entry was edited/created; draft = work in progress."
+    },
+    {
+      "id": 44,
+      "type": "timeseries",
+      "title": "Statamic auth & security events",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "Q43",
           "expr": "sum by (event) (rate(statamic_auth_events_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
           "legendFormat": "{{event}}",
           "datasource": {
@@ -1325,10 +1463,132 @@
           "sort": "desc"
         }
       },
-      "description": "Impersonation, 2FA (a failed spike is a brute-force signal), registrations and password changes. User identity lives on the traces, not the metric."
+      "description": "Statamic-specific: impersonation and the 2FA lifecycle (a failed spike is a brute-force signal). User identity lives on the traces, not the metric."
     },
     {
-      "id": 43,
+      "id": 46,
+      "type": "timeseries",
+      "title": "Logins & failures",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "Q45",
+          "expr": "sum by (event) (rate(auth_events_total{service_name=~\"$service\",event=~\"login|logout|failed|lockout\"}[$__rate_interval])) * 60",
+          "legendFormat": "{{event}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "opm",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "lockout"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "login"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "logout"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Laravel auth lifecycle from the base package's auth.events{event,guard} \u2014 login/logout volume and, critically, failed/lockout as the credential-attack signal."
+    },
+    {
+      "id": 47,
       "type": "row",
       "title": "Inventory (opt-in gauges)",
       "collapsed": false,
@@ -1341,7 +1601,7 @@
       "panels": []
     },
     {
-      "id": 44,
+      "id": 48,
       "type": "table",
       "title": "Entries by collection",
       "datasource": {
@@ -1356,7 +1616,7 @@
       },
       "targets": [
         {
-          "refId": "Q45",
+          "refId": "Q49",
           "expr": "sum by (collection) (statamic_entries_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1404,7 +1664,7 @@
       "description": "Requires statamic-telemetry.gauges.enabled \u2014 evaluated at scrape time."
     },
     {
-      "id": 46,
+      "id": 50,
       "type": "table",
       "title": "Assets by container",
       "datasource": {
@@ -1419,7 +1679,7 @@
       },
       "targets": [
         {
-          "refId": "Q47",
+          "refId": "Q51",
           "expr": "sum by (container) (statamic_assets_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1466,7 +1726,7 @@
       }
     },
     {
-      "id": 48,
+      "id": 52,
       "type": "stat",
       "title": "Users",
       "datasource": {
@@ -1481,7 +1741,7 @@
       },
       "targets": [
         {
-          "refId": "Q49",
+          "refId": "Q53",
           "expr": "sum(statamic_users_count{service_name=~\"$service\"})",
           "legendFormat": "__auto",
           "datasource": {
@@ -1519,7 +1779,7 @@
       }
     },
     {
-      "id": 50,
+      "id": 54,
       "type": "row",
       "title": "Traces",
       "collapsed": false,
@@ -1532,7 +1792,7 @@
       "panels": []
     },
     {
-      "id": 51,
+      "id": 55,
       "type": "table",
       "title": "Recent content requests",
       "datasource": {
@@ -1573,7 +1833,7 @@
       "description": "Root spans named by this addon \u2014 entry:{collection}.{blueprint} / term:{taxonomy}."
     },
     {
-      "id": 52,
+      "id": 56,
       "type": "table",
       "title": "Slow uncached pages",
       "datasource": {
