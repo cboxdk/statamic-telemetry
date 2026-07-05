@@ -171,7 +171,7 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `instrument.views` | false | A `view.render` detail span per rendered view |
 | `instrument.antlers` | false | A detail span per Antlers tag (forces `statamic.antlers.tracing` on) |
 | `gauges.enabled` | false | Inventory gauges (query on every scrape) |
-| `cp.grafana_url` | (unset) | When set, adds a "Telemetry" CP nav item linking to it (`STATAMIC_TELEMETRY_GRAFANA_URL`) |
+| `cp.url` | auto | The "Telemetry" CP nav item's URL. Auto-links to the in-app `laravel-telemetry-ui` dashboard when installed; set `STATAMIC_TELEMETRY_UI_URL` to override (Grafana / remote UI). No UI + no url → no nav item |
 
 ## Antlers tags
 

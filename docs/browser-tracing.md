@@ -79,14 +79,21 @@ traceparent so their RUM roots on it.
 You don't configure any of this — the replacer is registered automatically.
 It is a no-op on pages that don't use the tags.
 
-## CP shortcut
+## CP shortcut to the telemetry UI
 
-Set a Grafana (or telemetry-ui) URL to add a **Telemetry** item to the
-Control Panel nav that opens it in a new tab:
+The addon adds a **Telemetry** item to the Control Panel nav pointing at
+your telemetry UI:
 
-```dotenv
-STATAMIC_TELEMETRY_GRAFANA_URL=https://grafana.example.com/d/cbox-tel-statamic
-```
+- If [`cboxdk/laravel-telemetry-ui`](https://github.com/cboxdk/laravel-telemetry-ui)
+  is installed, it links to that in-app dashboard automatically — it has
+  dedicated Statamic pages (Static Cache, Stache, Glide, Forms, Content,
+  Inventory). Opens in the same tab.
+- Otherwise, set a URL (Grafana, or a remote telemetry-ui) — it opens in a
+  new tab:
 
-Omitted when unset — the telemetry data lives in Grafana; this is just a
-shortcut to it.
+  ```dotenv
+  STATAMIC_TELEMETRY_UI_URL=https://grafana.example.com/d/cbox-tel-statamic
+  ```
+
+Nothing installed and no URL set → no nav item. An explicit
+`STATAMIC_TELEMETRY_UI_URL` always overrides the auto-detected one.

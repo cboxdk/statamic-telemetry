@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cbox\StatamicTelemetry;
 
+use Cbox\StatamicTelemetry\Cp\NavLink;
 use Cbox\StatamicTelemetry\Listeners\AddSiteContext;
 use Cbox\StatamicTelemetry\Listeners\CaptureResponseData;
 use Cbox\StatamicTelemetry\Listeners\RecordAuthEvent;
@@ -170,24 +171,28 @@ class ServiceProvider extends AddonServiceProvider
     }
 
     /**
-     * A "Telemetry" CP nav item linking out to Grafana / telemetry-ui,
-     * when a URL is configured. The telemetry itself lives in Grafana; this
-     * is just a shortcut from the Control Panel.
+     * A "Telemetry" CP nav item linking to the telemetry UI — the in-app
+     * laravel-telemetry-ui dashboard when installed, or a configured
+     * Grafana URL. Resolved inside the callback so all routes are
+     * registered by the time the nav is built.
      */
     private function bootCpNav(): void
     {
-        $url = config('statamic-telemetry.cp.grafana_url');
+        Nav::extend(function ($nav) {
+            $url = NavLink::url();
 
-        if (! is_string($url) || $url === '') {
-            return;
-        }
+            if ($url === null) {
+                return;
+            }
 
-        Nav::extend(function ($nav) use ($url) {
-            $nav->create('Telemetry')
+            $item = $nav->create('Telemetry')
                 ->section('Tools')
                 ->url($url)
-                ->icon('chart-monitoring-indicator')
-                ->attributes(['target' => '_blank', 'rel' => 'noopener']);
+                ->icon('chart-monitoring-indicator');
+
+            if (NavLink::opensInNewTab($url)) {
+                $item->attributes(['target' => '_blank', 'rel' => 'noopener']);
+            }
         });
     }
 

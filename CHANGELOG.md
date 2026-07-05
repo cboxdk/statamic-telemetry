@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The CP nav item now points at the **in-app `cboxdk/laravel-telemetry-ui`
+  dashboard** automatically when that package is installed (it has
+  dedicated Statamic pages) — instead of only an external Grafana URL. The
+  config key is renamed `cp.grafana_url` → `cp.url`
+  (`STATAMIC_TELEMETRY_GRAFANA_URL` → `STATAMIC_TELEMETRY_UI_URL`; the old
+  env is still read as a fallback). An explicit URL overrides the
+  auto-detected one; a cross-origin URL opens in a new tab, the in-app one
+  in the same tab.
+
 ## [0.1.0-alpha.5] - 2026-07-05
 
 ### Added

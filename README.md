@@ -117,8 +117,10 @@ It carries the same `telemetry` tag as the core suite, so it appears as
 a tab alongside Overview, Requests, Jobs, etc. Panels are regenerated
 with `python3 resources/grafana/generate.py`.
 
-Set `STATAMIC_TELEMETRY_GRAFANA_URL` to add a **Telemetry** item to the
-Control Panel nav that opens your Grafana/telemetry-ui in a new tab.
+The addon adds a **Telemetry** item to the Control Panel nav pointing at
+your telemetry UI — the in-app [`cboxdk/laravel-telemetry-ui`](https://github.com/cboxdk/laravel-telemetry-ui)
+dashboard automatically when installed (it has Statamic pages), or set
+`STATAMIC_TELEMETRY_UI_URL` for Grafana / a remote UI.
 
 ## Browser tracing in Antlers
 

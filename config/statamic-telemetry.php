@@ -90,14 +90,16 @@ return [
     | Control Panel
     |--------------------------------------------------------------------------
     |
-    | grafana_url: set it to add a "Telemetry" item to the CP nav that opens
-    | your Grafana (or telemetry-ui) in a new tab. Omitted when unset — the
-    | telemetry data lives in Grafana, this is just a shortcut to it.
+    | A "Telemetry" item in the CP nav linking to your telemetry UI. When
+    | cboxdk/laravel-telemetry-ui is installed it points at that dashboard
+    | automatically (it has dedicated Statamic pages); set `url` to override
+    | with a Grafana or remote telemetry-ui URL. No UI installed and no url
+    | set → no nav item.
     |
     */
 
     'cp' => [
-        'grafana_url' => env('STATAMIC_TELEMETRY_GRAFANA_URL'),
+        'url' => env('STATAMIC_TELEMETRY_UI_URL', env('STATAMIC_TELEMETRY_GRAFANA_URL')),
     ],
 
 ];
