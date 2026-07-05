@@ -15,6 +15,7 @@ use Cbox\StatamicTelemetry\Listeners\RecordSearchIndexUpdate;
 use Cbox\StatamicTelemetry\Listeners\RecordStacheChange;
 use Cbox\StatamicTelemetry\Listeners\StripTraceHeader;
 use Cbox\StatamicTelemetry\Metrics\StatamicMetricsProvider;
+use Cbox\StatamicTelemetry\StaticCaching\BrowserTracingReplacer;
 use Cbox\StatamicTelemetry\StaticCaching\TracingApplicationCacher;
 use Cbox\StatamicTelemetry\StaticCaching\TracingFileCacher;
 use Cbox\StatamicTelemetry\Support\TracingBlink;
@@ -26,6 +27,7 @@ use Illuminate\Routing\Events\ResponsePrepared;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Cache;
 use Statamic\Events;
+use Statamic\Facades\CP\Nav;
 use Statamic\Providers\AddonServiceProvider;
 use Statamic\StaticCaching\Cachers\Writer;
 use Statamic\StaticCaching\StaticCacheManager;
@@ -35,6 +37,10 @@ class ServiceProvider extends AddonServiceProvider
 {
     protected $commands = [
         Console\DashboardsCommand::class,
+    ];
+
+    protected $tags = [
+        Tags\Telemetry::class,
     ];
 
     protected $listen = [
@@ -146,6 +152,43 @@ class ServiceProvider extends AddonServiceProvider
         $this->bootViewEngine();
         $this->bootAntlersTracer();
         $this->bootGauges();
+        $this->bootBrowserTracing();
+        $this->bootCpNav();
+    }
+
+    /**
+     * Keep the browser RUM's per-request bits (traceparent, analytics
+     * session) out of statically cached pages — registered as a Statamic
+     * replacer, which runs before a response is cached.
+     */
+    private function bootBrowserTracing(): void
+    {
+        config()->set('statamic.static_caching.replacers', array_values(array_unique(array_merge(
+            (array) config('statamic.static_caching.replacers', []),
+            [BrowserTracingReplacer::class],
+        ))));
+    }
+
+    /**
+     * A "Telemetry" CP nav item linking out to Grafana / telemetry-ui,
+     * when a URL is configured. The telemetry itself lives in Grafana; this
+     * is just a shortcut from the Control Panel.
+     */
+    private function bootCpNav(): void
+    {
+        $url = config('statamic-telemetry.cp.grafana_url');
+
+        if (! is_string($url) || $url === '') {
+            return;
+        }
+
+        Nav::extend(function ($nav) use ($url) {
+            $nav->create('Telemetry')
+                ->section('Tools')
+                ->url($url)
+                ->icon('chart-monitoring-indicator')
+                ->attributes(['target' => '_blank', 'rel' => 'noopener']);
+        });
     }
 
     /**

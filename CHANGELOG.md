@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Browser RUM in Antlers.** A `telemetry` tag exposes laravel-telemetry's
+  browser tracing to Antlers templates: `{{ telemetry:browser }}` (the
+  traceparent meta + the RUM script) and `{{ telemetry:traceparent }}` (just
+  the meta), the Antlers counterparts to the `@telemetryBrowser` /
+  `@telemetryTraceparent` Blade directives. Both empty when the span ingest
+  or trace is off. Requires `cboxdk/laravel-telemetry` ^0.1.0-alpha.6.
+- **Static-cache safety for browser tracing.** A `BrowserTracingReplacer`
+  (a Statamic replacer, like the built-in CSRF one) strips the per-request
+  traceparent and `data-session` from cached pages before they are stored,
+  so a cache hit never replays one visitor's server trace or analytics
+  session to everyone — the RUM self-roots instead. Covers half measure
+  (served through PHP from cache) and full measure (compiled to an HTML
+  file, served without PHP — self-rooted, no server span).
+- **CP nav shortcut to Grafana.** Set `STATAMIC_TELEMETRY_GRAFANA_URL` to
+  add a "Telemetry" Control Panel nav item that opens Grafana/telemetry-ui
+  in a new tab.
+
 ## [0.1.0-alpha.4] - 2026-07-04
 
 ### Changed

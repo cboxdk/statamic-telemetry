@@ -85,4 +85,19 @@ return [
         'enabled' => env('STATAMIC_TELEMETRY_GAUGES', false),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Control Panel
+    |--------------------------------------------------------------------------
+    |
+    | grafana_url: set it to add a "Telemetry" item to the CP nav that opens
+    | your Grafana (or telemetry-ui) in a new tab. Omitted when unset — the
+    | telemetry data lives in Grafana, this is just a shortcut to it.
+    |
+    */
+
+    'cp' => [
+        'grafana_url' => env('STATAMIC_TELEMETRY_GRAFANA_URL'),
+    ],
+
 ];

@@ -27,6 +27,9 @@ package is configured with (OTLP, Prometheus).
   is: the catch-all routing problem, subclassed cachers, the header-strip
   fix, Blink and Antlers instrumentation, and the invariants that keep
   telemetry from ever breaking a Statamic operation.
+- **[Browser tracing in Antlers](browser-tracing.md)** — the
+  `{{ telemetry:browser }}` / `{{ telemetry:traceparent }}` tags and how
+  they stay correct under half- and full-measure static caching.
 
 ## Install
 

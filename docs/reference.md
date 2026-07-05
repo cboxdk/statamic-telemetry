@@ -171,6 +171,20 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `instrument.views` | false | A `view.render` detail span per rendered view |
 | `instrument.antlers` | false | A detail span per Antlers tag (forces `statamic.antlers.tracing` on) |
 | `gauges.enabled` | false | Inventory gauges (query on every scrape) |
+| `cp.grafana_url` | (unset) | When set, adds a "Telemetry" CP nav item linking to it (`STATAMIC_TELEMETRY_GRAFANA_URL`) |
+
+## Antlers tags
+
+For [browser tracing](browser-tracing.md) in Antlers templates:
+
+| Tag | Output |
+|---|---|
+| `{{ telemetry:browser }}` | traceparent meta + the RUM `<script>` — empty when `telemetry.ingest.spans.enabled` is off |
+| `{{ telemetry:traceparent }}` | just `<meta name="traceparent">` — empty when no trace is active |
+
+Under static caching, the per-request traceparent and `data-session` are
+stripped from cached copies by `BrowserTracingReplacer` (registered
+automatically) so they never leak across visitors.
 
 ## What is deliberately not instrumented
 

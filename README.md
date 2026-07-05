@@ -117,6 +117,28 @@ It carries the same `telemetry` tag as the core suite, so it appears as
 a tab alongside Overview, Requests, Jobs, etc. Panels are regenerated
 with `python3 resources/grafana/generate.py`.
 
+Set `STATAMIC_TELEMETRY_GRAFANA_URL` to add a **Telemetry** item to the
+Control Panel nav that opens your Grafana/telemetry-ui in a new tab.
+
+## Browser tracing in Antlers
+
+laravel-telemetry's browser RUM ([`@cboxdk/telemetry-browser`](https://www.npmjs.com/package/@cboxdk/telemetry-browser))
+in Antlers templates — drop it in your layout `<head>`:
+
+```antlers
+{{ telemetry:browser }}      {{# meta traceparent + the RUM script #}}
+{{ telemetry:traceparent }}  {{# just the meta, if you load the script yourself #}}
+```
+
+Both are empty when the span ingest (`TELEMETRY_INGEST_SPANS`) or the trace
+is off. **Static caching is handled**: the per-request traceparent and
+`data-session` are stripped from cached pages by a Statamic replacer (like
+the CSRF one), so a cache hit never replays one visitor's server trace or
+analytics session to everyone — the RUM self-roots instead. Full-measure
+(file) hits are served without PHP, so they get a self-rooted browser trace
+with no server span; the strip happens once when the file is compiled. See
+[docs/browser-tracing](docs/browser-tracing.md).
+
 ## Composing with your own hooks
 
 laravel-telemetry's resolver hooks are single-slot — the last registration
