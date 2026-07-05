@@ -13,6 +13,7 @@ use Statamic\Events\GlobalVariablesSaved;
 use Statamic\Events\ImpersonationStarted;
 use Statamic\Events\SearchIndexUpdated;
 use Statamic\Events\StacheCleared;
+use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\SubmissionCreated;
 use Statamic\Events\TwoFactorAuthenticationFailed;
 use Statamic\Events\UserRegistered;
@@ -102,6 +103,32 @@ test('stache clears are counted', function () {
 
     event(new StacheCleared);
 
+    $fake->assertCounterIncremented('statamic.stache.clears');
+});
+
+test('cache purges emit an annotation event per cache type', function () {
+    $fake = $this->fakeTelemetry();
+
+    event(new StacheCleared);
+    event(new StaticCacheCleared);
+    event(new GlideCacheCleared);
+
+    $fake->assertEventEmitted('statamic.cache.purge', fn ($event) => $event->attributes['cache.type'] === 'stache');
+    $fake->assertEventEmitted('statamic.cache.purge', fn ($event) => $event->attributes['cache.type'] === 'static');
+    $fake->assertEventEmitted('statamic.cache.purge', fn ($event) => $event->attributes['cache.type'] === 'glide');
+
+    expect($fake->recordedEvents('statamic.cache.purge'))->toHaveCount(3)
+        ->and($fake->recordedEvents('statamic.cache.purge')[0]->attributes['cache.trigger'])->toBe('cli');
+});
+
+test('cache purge annotations respect their config toggle', function () {
+    config()->set('statamic-telemetry.instrument.cache_purges', false);
+
+    $fake = $this->fakeTelemetry();
+
+    event(new StacheCleared);
+
+    $fake->assertEventNotEmitted('statamic.cache.purge');
     $fake->assertCounterIncremented('statamic.stache.clears');
 });
 

@@ -8,6 +8,7 @@ use Cbox\StatamicTelemetry\Cp\NavLink;
 use Cbox\StatamicTelemetry\Listeners\AddSiteContext;
 use Cbox\StatamicTelemetry\Listeners\CaptureResponseData;
 use Cbox\StatamicTelemetry\Listeners\RecordAuthEvent;
+use Cbox\StatamicTelemetry\Listeners\RecordCachePurge;
 use Cbox\StatamicTelemetry\Listeners\RecordContentChange;
 use Cbox\StatamicTelemetry\Listeners\RecordFormSubmission;
 use Cbox\StatamicTelemetry\Listeners\RecordGlideCacheClear;
@@ -49,10 +50,11 @@ class ServiceProvider extends AddonServiceProvider
         RouteMatched::class => [AddSiteContext::class],
         ResponsePrepared::class => [StripTraceHeader::class],
         Events\StacheWarmed::class => [RecordStacheChange::class],
-        Events\StacheCleared::class => [RecordStacheChange::class],
+        Events\StacheCleared::class => [RecordStacheChange::class, RecordCachePurge::class],
+        Events\StaticCacheCleared::class => [RecordCachePurge::class],
         Events\GlideImageGenerated::class => [RecordGlideGeneration::class],
-        Events\GlideCacheCleared::class => [RecordGlideCacheClear::class],
-        Events\GlideAssetCacheCleared::class => [RecordGlideCacheClear::class],
+        Events\GlideCacheCleared::class => [RecordGlideCacheClear::class, RecordCachePurge::class],
+        Events\GlideAssetCacheCleared::class => [RecordGlideCacheClear::class, RecordCachePurge::class],
         Events\SearchIndexUpdated::class => [RecordSearchIndexUpdate::class],
         Events\ImpersonationStarted::class => [RecordAuthEvent::class],
         Events\ImpersonationEnded::class => [RecordAuthEvent::class],

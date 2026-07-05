@@ -111,6 +111,21 @@ The base package's `cache.operations` counter additionally carries the
 `key_group` label from the addon's classifier when
 `telemetry.instrument.cache` is on.
 
+## Annotation events
+
+Unsampled telemetry events (OTLP log records) that the bundled Statamic
+dashboard renders as annotation lines — so latency spikes map to their
+cause at a glance, the same way they map to deploys.
+
+| Event | Attributes | Source event |
+|---|---|---|
+| `statamic.cache.purge` | `cache.type`: stache, static, glide, glide_asset; `cache.trigger`: cli, http | `StacheCleared`, `StaticCacheCleared`, `GlideCacheCleared`, `GlideAssetCacheCleared` |
+
+A purge explains the slow requests that follow it: a stache clear means
+index rebuilds, a static cache clear means full renders, a glide clear
+means image regeneration. `cache.trigger` separates deploy-pipeline
+purges (`cli`) from CP or MCP-triggered ones (`http`).
+
 ### `statamic.content.changes` labels
 
 `type` and `action` are derived from the event class name
@@ -163,6 +178,7 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `instrument.static_cache` | true | Cacher subclass swap, outcomes, header strip |
 | `instrument.stache` | true | Cache-key classifier, warm/clear metrics |
 | `instrument.glide` | true | Generation + cache-clear counters |
+| `instrument.cache_purges` | true | `statamic.cache.purge` annotation event per cache clear |
 | `instrument.forms` | true | Submission counter |
 | `instrument.content_events` | true | Content-change counter |
 | `instrument.search` | true | Search index-update counter |

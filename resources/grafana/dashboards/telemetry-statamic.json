@@ -1,1878 +1,1906 @@
 {
-  "uid": "cbox-tel-statamic",
-  "title": "Statamic",
-  "tags": [
-    "telemetry",
-    "cboxdk",
-    "statamic"
-  ],
-  "timezone": "browser",
-  "schemaVersion": 39,
-  "refresh": "30s",
-  "graphTooltip": 1,
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
-  "templating": {
-    "list": [
-      {
-        "name": "service",
-        "type": "query",
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "query": {
-          "query": "label_values(http_server_request_duration_milliseconds_count, service_name)",
-          "refId": "service"
-        },
-        "includeAll": true,
-        "allValue": ".*",
-        "multi": false,
-        "refresh": 2,
-        "current": {
-          "text": "All",
-          "value": "$__all"
-        }
-      }
-    ]
-  },
-  "links": [
-    {
-      "type": "dashboards",
-      "tags": [
-        "telemetry"
-      ],
-      "asDropdown": false,
-      "includeVars": true,
-      "keepTime": true,
-      "title": ""
-    }
-  ],
-  "panels": [
-    {
-      "id": 1,
-      "type": "row",
-      "title": "Static cache",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "panels": []
+    "uid": "cbox-tel-statamic",
+    "title": "Statamic",
+    "tags": [
+        "telemetry",
+        "cboxdk",
+        "statamic"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "refresh": "30s",
+    "graphTooltip": 1,
+    "time": {
+        "from": "now-1h",
+        "to": "now"
     },
-    {
-      "id": 2,
-      "type": "stat",
-      "title": "Hit ratio",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 1
-      },
-      "targets": [
-        {
-          "refId": "Q3",
-          "expr": "100 * sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"hit\"}[10m])) / sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=~\"hit|miss\"}[10m]))",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 0
-              },
-              {
-                "color": "green",
-                "value": 70
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      },
-      "description": "Static cache hits vs misses over 10m. Full-measure hits served by the web server never reach PHP and are not counted."
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "Hits / min",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 1
-      },
-      "targets": [
-        {
-          "refId": "Q5",
-          "expr": "(sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"hit\"}[5m])) * 60) or vector(0)",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 6,
-      "type": "stat",
-      "title": "Writes / min",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 1
-      },
-      "targets": [
-        {
-          "refId": "Q7",
-          "expr": "(sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"write\"}[5m])) * 60) or vector(0)",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 8,
-      "type": "stat",
-      "title": "Invalidations / h",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 1
-      },
-      "targets": [
-        {
-          "refId": "Q9",
-          "expr": "(sum(increase(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"invalidate\"}[1h]))) or vector(0)",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 100
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 10,
-      "type": "stat",
-      "title": "Flushes (24h)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 1
-      },
-      "targets": [
-        {
-          "refId": "Q11",
-          "expr": "(sum(increase(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"flush\"}[24h]))) or vector(0)",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      },
-      "description": "A full flush empties the static cache \u2014 every page re-renders. More than an occasional one is worth investigating."
-    },
-    {
-      "id": 12,
-      "type": "stat",
-      "title": "Stache warms (24h)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 1
-      },
-      "targets": [
-        {
-          "refId": "Q13",
-          "expr": "(sum(increase(statamic_stache_warms_total{service_name=~\"$service\"}[24h]))) or vector(0)",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 17,
-      "type": "timeseries",
-      "title": "Static cache: hits, misses, writes",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 5
-      },
-      "targets": [
-        {
-          "refId": "Q14",
-          "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"hit\"}[$__rate_interval])) * 60",
-          "legendFormat": "hit",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "refId": "Q15",
-          "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"miss\"}[$__rate_interval])) * 60",
-          "legendFormat": "miss",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "refId": "Q16",
-          "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"write\"}[$__rate_interval])) * 60",
-          "legendFormat": "write",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+    "annotations": {
+        "list": [
+            {
+                "name": "Deploys",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "loki"
+                },
+                "enable": true,
+                "hide": false,
+                "iconColor": "purple",
+                "expr": "{service_name=~\"$service\"} |= `app.deployment`",
+                "titleFormat": "Deploy"
+            },
+            {
+                "name": "Cache purges",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "loki"
+                },
+                "enable": true,
+                "hide": false,
+                "iconColor": "orange",
+                "expr": "{service_name=~\"$service\"} |= `statamic.cache.purge`",
+                "titleFormat": "Cache purge"
             }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "hit"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "miss"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "write"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "invalidate"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "flush"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          }
         ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
     },
-    {
-      "id": 20,
-      "type": "timeseries",
-      "title": "Static cache: invalidations & flushes",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 5
-      },
-      "targets": [
-        {
-          "refId": "Q18",
-          "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"invalidate\"}[$__rate_interval])) * 60",
-          "legendFormat": "invalidate",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "refId": "Q19",
-          "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"flush\"}[$__rate_interval])) * 60",
-          "legendFormat": "flush",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+    "templating": {
+        "list": [
+            {
+                "name": "service",
+                "type": "query",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                },
+                "query": {
+                    "query": "label_values(http_server_request_duration_milliseconds_count, service_name)",
+                    "refId": "service"
+                },
+                "includeAll": true,
+                "allValue": ".*",
+                "multi": false,
+                "refresh": 2,
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                }
             }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "hit"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "miss"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "write"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "invalidate"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "flush"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          }
         ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "Spikes here explain miss/write spikes on the left \u2014 saves fan out invalidations by rule."
     },
-    {
-      "id": 21,
-      "type": "row",
-      "title": "Frontend latency by content route",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 13
-      },
-      "panels": []
-    },
-    {
-      "id": 23,
-      "type": "timeseries",
-      "title": "p95 request duration by content route",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 14
-      },
-      "targets": [
+    "links": [
         {
-          "refId": "Q22",
-          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_milliseconds_bucket{service_name=~\"$service\",http_route=~\"(entry|term|taxonomy):.*\"}[$__rate_interval])))",
-          "legendFormat": "{{http_route}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+            "type": "dashboards",
+            "tags": [
+                "telemetry"
+            ],
+            "asDropdown": false,
+            "includeVars": true,
+            "keepTime": true,
+            "title": ""
         }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "With instrument.content on, the addon overrides http.route with the logical content route (entry:{collection}.{blueprint} / term:{taxonomy} / taxonomy:{handle}), so latency breaks down per content type instead of collapsing into the /{segments?} catch-all. The raw pattern is kept as http.route.template."
-    },
-    {
-      "id": 25,
-      "type": "timeseries",
-      "title": "Request rate by content route",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 14
-      },
-      "targets": [
+    ],
+    "panels": [
         {
-          "refId": "Q24",
-          "expr": "sum by (http_route) (rate(http_server_request_duration_milliseconds_count{service_name=~\"$service\",http_route=~\"(entry|term|taxonomy):.*\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{http_route}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqpm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 26,
-      "type": "row",
-      "title": "Stache",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 22
-      },
-      "panels": []
-    },
-    {
-      "id": 28,
-      "type": "timeseries",
-      "title": "Stache cache traffic by key group",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 23
-      },
-      "targets": [
-        {
-          "refId": "Q27",
-          "expr": "sum by (key_group) (rate(cache_operations_total{service_name=~\"$service\",key_group=~\"stache.*\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{key_group}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "Requires the core cache instrumentation (telemetry.instrument.cache). Key groups come from this addon's classifier: stache.index, stache.item, stache.meta."
-    },
-    {
-      "id": 31,
-      "type": "timeseries",
-      "title": "Stache warm duration",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 23
-      },
-      "targets": [
-        {
-          "refId": "Q29",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(statamic_stache_warm_duration_milliseconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
-          "legendFormat": "p95",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "refId": "Q30",
-          "expr": "sum(rate(statamic_stache_warm_duration_milliseconds_sum{service_name=~\"$service\"}[$__rate_interval])) / sum(rate(statamic_stache_warm_duration_milliseconds_count{service_name=~\"$service\"}[$__rate_interval]))",
-          "legendFormat": "avg",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p95"
+            "id": 1,
+            "type": "row",
+            "title": "Static cache",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
             },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "avg"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+            "panels": []
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "Full warms only (stache:warm / warm after clear). A growing warm time tracks content volume."
-    },
-    {
-      "id": 32,
-      "type": "row",
-      "title": "Content & editors",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 31
-      },
-      "panels": []
-    },
-    {
-      "id": 34,
-      "type": "timeseries",
-      "title": "Content changes",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 0,
-        "y": 32
-      },
-      "targets": [
         {
-          "refId": "Q33",
-          "expr": "sum by (type, action) (rate(statamic_content_changes_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{type}} {{action}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "normal"
+            "id": 2,
+            "type": "stat",
+            "title": "Hit ratio",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 0,
+                "y": 1
+            },
+            "targets": [
+                {
+                    "refId": "Q3",
+                    "expr": "100 * sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"hit\"}[10m])) / sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=~\"hit|miss\"}[10m]))",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "decimals": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 0
+                            },
+                            {
+                                "color": "green",
+                                "value": 70
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                },
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto"
+            },
+            "description": "Static cache hits vs misses over 10m. Full-measure hits served by the web server never reach PHP and are not counted."
+        },
+        {
+            "id": 4,
+            "type": "stat",
+            "title": "Hits / min",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 4,
+                "y": 1
+            },
+            "targets": [
+                {
+                    "refId": "Q5",
+                    "expr": "(sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"hit\"}[5m])) * 60) or vector(0)",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "text",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                },
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto"
             }
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "type/action from the content event. Entry actions are the publish status at save (published/draft/scheduled/expired) \u2014 the publish-state mix of editing, not transitions."
-    },
-    {
-      "id": 36,
-      "type": "timeseries",
-      "title": "Form submissions",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 6,
-        "y": 32
-      },
-      "targets": [
         {
-          "refId": "Q35",
-          "expr": "sum by (form) (rate(statamic_forms_submissions_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{form}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+            "id": 6,
+            "type": "stat",
+            "title": "Writes / min",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 8,
+                "y": 1
+            },
+            "targets": [
+                {
+                    "refId": "Q7",
+                    "expr": "(sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"write\"}[5m])) * 60) or vector(0)",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "text",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                },
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto"
             }
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 38,
-      "type": "timeseries",
-      "title": "Glide generations",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 32
-      },
-      "targets": [
         {
-          "refId": "Q37",
-          "expr": "sum by (preset) (rate(statamic_glide_generations_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{preset}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+            "id": 8,
+            "type": "stat",
+            "title": "Invalidations / h",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 12,
+                "y": 1
+            },
+            "targets": [
+                {
+                    "refId": "Q9",
+                    "expr": "(sum(increase(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"invalidate\"}[1h]))) or vector(0)",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 100
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                },
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto"
             }
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "Sustained generation traffic means the Glide cache is being missed \u2014 presets bound the label; ad-hoc params group under 'custom'."
-    },
-    {
-      "id": 40,
-      "type": "timeseries",
-      "title": "Search index updates",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 32
-      },
-      "targets": [
         {
-          "refId": "Q39",
-          "expr": "sum by (index) (rate(statamic_search_index_updates_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{index}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+            "id": 10,
+            "type": "stat",
+            "title": "Flushes (24h)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 16,
+                "y": 1
+            },
+            "targets": [
+                {
+                    "refId": "Q11",
+                    "expr": "(sum(increase(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"flush\"}[24h]))) or vector(0)",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                },
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto"
+            },
+            "description": "A full flush empties the static cache — every page re-renders. More than an occasional one is worth investigating."
+        },
+        {
+            "id": 12,
+            "type": "stat",
+            "title": "Stache warms (24h)",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 20,
+                "y": 1
+            },
+            "targets": [
+                {
+                    "refId": "Q13",
+                    "expr": "(sum(increase(statamic_stache_warms_total{service_name=~\"$service\"}[24h]))) or vector(0)",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "text",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                },
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto"
             }
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 42,
-      "type": "timeseries",
-      "title": "Entry saves by publish status",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 40
-      },
-      "targets": [
         {
-          "refId": "Q41",
-          "expr": "sum by (action) (rate(statamic_content_changes_total{service_name=~\"$service\",type=\"entry\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{action}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+            "id": 17,
+            "type": "timeseries",
+            "title": "Static cache: hits, misses, writes",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 5
+            },
+            "targets": [
+                {
+                    "refId": "Q14",
+                    "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"hit\"}[$__rate_interval])) * 60",
+                    "legendFormat": "hit",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                },
+                {
+                    "refId": "Q15",
+                    "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"miss\"}[$__rate_interval])) * 60",
+                    "legendFormat": "miss",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                },
+                {
+                    "refId": "Q16",
+                    "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"write\"}[$__rate_interval])) * 60",
+                    "legendFormat": "write",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "hit"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "green"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "miss"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "orange"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "write"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "blue"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "invalidate"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "orange"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "flush"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "red"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
             }
-          }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "published"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "draft"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "yellow"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "scheduled"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "expired"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "deleted"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "Editorial activity split by the entry's publish status at save time. published = a live entry was edited/created; draft = work in progress."
-    },
-    {
-      "id": 44,
-      "type": "timeseries",
-      "title": "Statamic auth & security events",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 40
-      },
-      "targets": [
         {
-          "refId": "Q43",
-          "expr": "sum by (event) (rate(statamic_auth_events_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{event}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+            "id": 20,
+            "type": "timeseries",
+            "title": "Static cache: invalidations & flushes",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 5
+            },
+            "targets": [
+                {
+                    "refId": "Q18",
+                    "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"invalidate\"}[$__rate_interval])) * 60",
+                    "legendFormat": "invalidate",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                },
+                {
+                    "refId": "Q19",
+                    "expr": "sum(rate(statamic_static_cache_operations_total{service_name=~\"$service\",operation=\"flush\"}[$__rate_interval])) * 60",
+                    "legendFormat": "flush",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "hit"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "green"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "miss"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "orange"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "write"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "blue"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "invalidate"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "orange"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "flush"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "red"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "Spikes here explain miss/write spikes on the left — saves fan out invalidations by rule."
+        },
+        {
+            "id": 21,
+            "type": "row",
+            "title": "Frontend latency by content route",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 13
+            },
+            "panels": []
+        },
+        {
+            "id": 23,
+            "type": "timeseries",
+            "title": "p95 request duration by content route",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 14
+            },
+            "targets": [
+                {
+                    "refId": "Q22",
+                    "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_milliseconds_bucket{service_name=~\"$service\",http_route=~\"(entry|term|taxonomy):.*\"}[$__rate_interval])))",
+                    "legendFormat": "{{http_route}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ms",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": [
+                        "mean",
+                        "max"
+                    ]
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "With instrument.content on, the addon overrides http.route with the logical content route (entry:{collection}.{blueprint} / term:{taxonomy} / taxonomy:{handle}), so latency breaks down per content type instead of collapsing into the /{segments?} catch-all. The raw pattern is kept as http.route.template."
+        },
+        {
+            "id": 25,
+            "type": "timeseries",
+            "title": "Request rate by content route",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 14
+            },
+            "targets": [
+                {
+                    "refId": "Q24",
+                    "expr": "sum by (http_route) (rate(http_server_request_duration_milliseconds_count{service_name=~\"$service\",http_route=~\"(entry|term|taxonomy):.*\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{http_route}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqpm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": [
+                        "mean",
+                        "max"
+                    ]
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
             }
-          }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": ".*failed.*"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": ".*impersonation.*"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "Statamic-specific: impersonation and the 2FA lifecycle (a failed spike is a brute-force signal). User identity lives on the traces, not the metric."
-    },
-    {
-      "id": 46,
-      "type": "timeseries",
-      "title": "Logins & failures",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 40
-      },
-      "targets": [
         {
-          "refId": "Q45",
-          "expr": "sum by (event) (rate(auth_events_total{service_name=~\"$service\",event=~\"login|logout|failed|lockout\"}[$__rate_interval])) * 60",
-          "legendFormat": "{{event}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "opm",
-          "min": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisSoftMin": 0,
-            "stacking": {
-              "mode": "none"
+            "id": 26,
+            "type": "row",
+            "title": "Stache",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 22
+            },
+            "panels": []
+        },
+        {
+            "id": 28,
+            "type": "timeseries",
+            "title": "Stache cache traffic by key group",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 23
+            },
+            "targets": [
+                {
+                    "refId": "Q27",
+                    "expr": "sum by (key_group) (rate(cache_operations_total{service_name=~\"$service\",key_group=~\"stache.*\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{key_group}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "Requires the core cache instrumentation (telemetry.instrument.cache). Key groups come from this addon's classifier: stache.index, stache.item, stache.meta."
+        },
+        {
+            "id": 31,
+            "type": "timeseries",
+            "title": "Stache warm duration",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 23
+            },
+            "targets": [
+                {
+                    "refId": "Q29",
+                    "expr": "histogram_quantile(0.95, sum by (le) (rate(statamic_stache_warm_duration_milliseconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
+                    "legendFormat": "p95",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                },
+                {
+                    "refId": "Q30",
+                    "expr": "sum(rate(statamic_stache_warm_duration_milliseconds_sum{service_name=~\"$service\"}[$__rate_interval])) / sum(rate(statamic_stache_warm_duration_milliseconds_count{service_name=~\"$service\"}[$__rate_interval]))",
+                    "legendFormat": "avg",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ms",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "p95"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "orange"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "avg"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "green"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "Full warms only (stache:warm / warm after clear). A growing warm time tracks content volume."
+        },
+        {
+            "id": 32,
+            "type": "row",
+            "title": "Content & editors",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 31
+            },
+            "panels": []
+        },
+        {
+            "id": 34,
+            "type": "timeseries",
+            "title": "Content changes",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "refId": "Q33",
+                    "expr": "sum by (type, action) (rate(statamic_content_changes_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{type}} {{action}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "normal"
+                        }
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": [
+                        "mean",
+                        "max"
+                    ]
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "type/action from the content event. Entry actions are the publish status at save (published/draft/scheduled/expired) — the publish-state mix of editing, not transitions."
+        },
+        {
+            "id": 36,
+            "type": "timeseries",
+            "title": "Form submissions",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 6,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "refId": "Q35",
+                    "expr": "sum by (form) (rate(statamic_forms_submissions_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{form}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
             }
-          }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "failed"
+        {
+            "id": 38,
+            "type": "timeseries",
+            "title": "Glide generations",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
             },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "lockout"
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 12,
+                "y": 32
             },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
+            "targets": [
+                {
+                    "refId": "Q37",
+                    "expr": "sum by (preset) (rate(statamic_glide_generations_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{preset}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
                 }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "login"
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": []
             },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
                 }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "logout"
             },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
+            "description": "Sustained generation traffic means the Glide cache is being missed — presets bound the label; ad-hoc params group under 'custom'."
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "description": "Laravel auth lifecycle from the base package's auth.events{event,guard} \u2014 login/logout volume and, critically, failed/lockout as the credential-attack signal."
-    },
-    {
-      "id": 47,
-      "type": "row",
-      "title": "Inventory (opt-in gauges)",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 46
-      },
-      "panels": []
-    },
-    {
-      "id": 48,
-      "type": "table",
-      "title": "Entries by collection",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 47
-      },
-      "targets": [
         {
-          "refId": "Q49",
-          "expr": "sum by (collection) (statamic_entries_count{service_name=~\"$service\"})",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "instant": true,
-          "range": false,
-          "format": "table"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
+            "id": 40,
+            "type": "timeseries",
+            "title": "Search index updates",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 18,
+                "y": 32
+            },
+            "targets": [
+                {
+                    "refId": "Q39",
+                    "expr": "sum by (index) (rate(statamic_search_index_updates_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{index}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
             }
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "custom": {
-            "align": "auto",
-            "filterable": false
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ],
-        "cellHeight": "md",
-        "footer": {
-          "show": false
-        }
-      },
-      "description": "Requires statamic-telemetry.gauges.enabled \u2014 evaluated at scrape time."
-    },
-    {
-      "id": 50,
-      "type": "table",
-      "title": "Assets by container",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 47
-      },
-      "targets": [
         {
-          "refId": "Q51",
-          "expr": "sum by (container) (statamic_assets_count{service_name=~\"$service\"})",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "instant": true,
-          "range": false,
-          "format": "table"
-        }
-      ],
-      "transformations": [
+            "id": 42,
+            "type": "timeseries",
+            "title": "Entry saves by publish status",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 0,
+                "y": 40
+            },
+            "targets": [
+                {
+                    "refId": "Q41",
+                    "expr": "sum by (action) (rate(statamic_content_changes_total{service_name=~\"$service\",type=\"entry\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{action}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "published"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "green"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "draft"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "yellow"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "scheduled"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "blue"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "expired"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "orange"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "deleted"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "red"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": [
+                        "mean",
+                        "max"
+                    ]
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "Editorial activity split by the entry's publish status at save time. published = a live entry was edited/created; draft = work in progress."
+        },
         {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
+            "id": 44,
+            "type": "timeseries",
+            "title": "Statamic auth & security events",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 8,
+                "y": 40
+            },
+            "targets": [
+                {
+                    "refId": "Q43",
+                    "expr": "sum by (event) (rate(statamic_auth_events_total{service_name=~\"$service\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{event}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byRegexp",
+                            "options": ".*failed.*"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "red"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byRegexp",
+                            "options": ".*impersonation.*"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "orange"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": [
+                        "mean",
+                        "max"
+                    ]
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "Statamic-specific: impersonation and the 2FA lifecycle (a failed spike is a brute-force signal). User identity lives on the traces, not the metric."
+        },
+        {
+            "id": 46,
+            "type": "timeseries",
+            "title": "Logins & failures",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 16,
+                "y": 40
+            },
+            "targets": [
+                {
+                    "refId": "Q45",
+                    "expr": "sum by (event) (rate(auth_events_total{service_name=~\"$service\",event=~\"login|logout|failed|lockout\"}[$__rate_interval])) * 60",
+                    "legendFormat": "{{event}}",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "opm",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "fillOpacity": 18,
+                        "gradientMode": "opacity",
+                        "showPoints": "never",
+                        "spanNulls": true,
+                        "axisSoftMin": 0,
+                        "stacking": {
+                            "mode": "none"
+                        }
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "failed"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "red"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "lockout"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "red"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "login"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "green"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "logout"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "mode": "fixed",
+                                    "fixedColor": "blue"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": [
+                        "mean",
+                        "max"
+                    ]
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "description": "Laravel auth lifecycle from the base package's auth.events{event,guard} — login/logout volume and, critically, failed/lockout as the credential-attack signal."
+        },
+        {
+            "id": 47,
+            "type": "row",
+            "title": "Inventory (opt-in gauges)",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 46
+            },
+            "panels": []
+        },
+        {
+            "id": 48,
+            "type": "table",
+            "title": "Entries by collection",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 0,
+                "y": 47
+            },
+            "targets": [
+                {
+                    "refId": "Q49",
+                    "expr": "sum by (collection) (statamic_entries_count{service_name=~\"$service\"})",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "instant": true,
+                    "range": false,
+                    "format": "table"
+                }
+            ],
+            "transformations": [
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true
+                        }
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "custom": {
+                        "align": "auto",
+                        "filterable": false
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "sortBy": [
+                    {
+                        "displayName": "Value",
+                        "desc": true
+                    }
+                ],
+                "cellHeight": "md",
+                "footer": {
+                    "show": false
+                }
+            },
+            "description": "Requires statamic-telemetry.gauges.enabled — evaluated at scrape time."
+        },
+        {
+            "id": 50,
+            "type": "table",
+            "title": "Assets by container",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 8,
+                "y": 47
+            },
+            "targets": [
+                {
+                    "refId": "Q51",
+                    "expr": "sum by (container) (statamic_assets_count{service_name=~\"$service\"})",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "instant": true,
+                    "range": false,
+                    "format": "table"
+                }
+            ],
+            "transformations": [
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true
+                        }
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "custom": {
+                        "align": "auto",
+                        "filterable": false
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "sortBy": [
+                    {
+                        "displayName": "Value",
+                        "desc": true
+                    }
+                ],
+                "cellHeight": "md",
+                "footer": {
+                    "show": false
+                }
             }
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "custom": {
-            "align": "auto",
-            "filterable": false
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ],
-        "cellHeight": "md",
-        "footer": {
-          "show": false
-        }
-      }
-    },
-    {
-      "id": 52,
-      "type": "stat",
-      "title": "Users",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 16,
-        "y": 47
-      },
-      "targets": [
         {
-          "refId": "Q53",
-          "expr": "sum(statamic_users_count{service_name=~\"$service\"})",
-          "legendFormat": "__auto",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
+            "id": 52,
+            "type": "stat",
+            "title": "Users",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 8,
+                "x": 16,
+                "y": 47
+            },
+            "targets": [
+                {
+                    "refId": "Q53",
+                    "expr": "sum(statamic_users_count{service_name=~\"$service\"})",
+                    "legendFormat": "__auto",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "text",
+                                "value": null
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                },
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto"
+            }
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 54,
-      "type": "row",
-      "title": "Traces",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 51
-      },
-      "panels": []
-    },
-    {
-      "id": 55,
-      "type": "table",
-      "title": "Recent content requests",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 52
-      },
-      "targets": [
         {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"$service\" && name=~\"GET (entry|term):.*\"}",
-          "limit": 20,
-          "spss": 3,
-          "tableType": "traces"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "filterable": false
-          }
+            "id": 54,
+            "type": "row",
+            "title": "Traces",
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 51
+            },
+            "panels": []
         },
-        "overrides": []
-      },
-      "options": {
-        "cellHeight": "sm"
-      },
-      "description": "Root spans named by this addon \u2014 entry:{collection}.{blueprint} / term:{taxonomy}."
-    },
-    {
-      "id": 56,
-      "type": "table",
-      "title": "Slow uncached pages",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 61
-      },
-      "targets": [
         {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"$service\" && span.statamic.static_cache=\"miss\" && duration > 500ms}",
-          "limit": 20,
-          "spss": 3,
-          "tableType": "traces"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "filterable": false
-          }
+            "id": 55,
+            "type": "table",
+            "title": "Recent content requests",
+            "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+            },
+            "gridPos": {
+                "h": 9,
+                "w": 24,
+                "x": 0,
+                "y": 52
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": {
+                        "type": "tempo",
+                        "uid": "tempo"
+                    },
+                    "queryType": "traceql",
+                    "query": "{resource.service.name=~\"$service\" && name=~\"GET (entry|term):.*\"}",
+                    "limit": 20,
+                    "spss": 3,
+                    "tableType": "traces"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "filterable": false
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "cellHeight": "sm"
+            },
+            "description": "Root spans named by this addon — entry:{collection}.{blueprint} / term:{taxonomy}."
         },
-        "overrides": []
-      },
-      "options": {
-        "cellHeight": "sm"
-      },
-      "description": "Static cache misses that took over 500ms to render \u2014 the pages that hurt when the cache is cold."
-    }
-  ],
-  "editable": true
+        {
+            "id": 56,
+            "type": "table",
+            "title": "Slow uncached pages",
+            "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+            },
+            "gridPos": {
+                "h": 9,
+                "w": 24,
+                "x": 0,
+                "y": 61
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": {
+                        "type": "tempo",
+                        "uid": "tempo"
+                    },
+                    "queryType": "traceql",
+                    "query": "{resource.service.name=~\"$service\" && span.statamic.static_cache=\"miss\" && duration > 500ms}",
+                    "limit": 20,
+                    "spss": 3,
+                    "tableType": "traces"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "filterable": false
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "cellHeight": "sm"
+            },
+            "description": "Static cache misses that took over 500ms to render — the pages that hurt when the cache is cold."
+        }
+    ],
+    "editable": true
 }

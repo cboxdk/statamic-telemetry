@@ -44,5 +44,5 @@ this.
 - **New instrumentation is a config toggle**, defaulted to match its cost —
   cheap and universal → on; verbose or per-node → off.
 - Regenerate the Grafana dashboard with
-  `python3 resources/grafana/generate.py` when you add a metric worth a
+  `php resources/grafana/generate.php` when you add a metric worth a
   panel.

@@ -41,6 +41,6 @@ final class NavLink
     {
         $host = parse_url($url, PHP_URL_HOST);
 
-        return $host !== null && $host !== request()?->getHost();
+        return $host !== null && $host !== request()->getHost();
     }
 }

@@ -115,7 +115,7 @@ php artisan statamic-telemetry:dashboards --export=./grafana-provisioning
 
 It carries the same `telemetry` tag as the core suite, so it appears as
 a tab alongside Overview, Requests, Jobs, etc. Panels are regenerated
-with `python3 resources/grafana/generate.py`.
+with `php resources/grafana/generate.php`.
 
 The addon adds a **Telemetry** item to the Control Panel nav pointing at
 your telemetry UI — the in-app [`cboxdk/laravel-telemetry-ui`](https://github.com/cboxdk/laravel-telemetry-ui)

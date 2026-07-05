@@ -34,6 +34,10 @@ return [
     | stache          Cache key classification (stache.index, stache.item, …)
     |                 plus warm/clear counters and warm duration.
     | glide           Counter per generated image, labelled by preset.
+    | cache_purges    Unsampled statamic.cache.purge event per stache /
+    |                 static / glide cache clear, rendered as annotation
+    |                 lines on the bundled dashboard — latency spikes map
+    |                 to purges the same way they map to deploys.
     | forms           Counter per created submission, labelled by form.
     | content_events  Counter for content changes (entry/term/asset/… saved,
     |                 deleted, uploaded).
@@ -61,6 +65,7 @@ return [
         'static_cache' => env('STATAMIC_TELEMETRY_STATIC_CACHE', true),
         'stache' => env('STATAMIC_TELEMETRY_STACHE', true),
         'glide' => env('STATAMIC_TELEMETRY_GLIDE', true),
+        'cache_purges' => env('STATAMIC_TELEMETRY_CACHE_PURGES', true),
         'forms' => env('STATAMIC_TELEMETRY_FORMS', true),
         'content_events' => env('STATAMIC_TELEMETRY_CONTENT_EVENTS', true),
         'search' => env('STATAMIC_TELEMETRY_SEARCH', true),
