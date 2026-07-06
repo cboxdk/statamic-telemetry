@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-06
+
+First tagged release without a pre-release suffix, tracking
+`cboxdk/laravel-telemetry` v0.2.0 (whose public API surface is now
+considered stable enough for production pilots). No `minimum-stability`
+tweak is needed to install the addon any more. Under SemVer 0.x,
+breaking changes bump the minor version from here on.
+
+### Changed
+
+- **Requires `cboxdk/laravel-telemetry` ^0.2.0.** The hook surface the
+  addon builds on (`resolveRouteUsing`, `enrichRequestsUsing`,
+  `classifyCacheKeysUsing`, `resolveUserUsing`, `BrowserSnippet`, events)
+  is unchanged from the alpha line, so this is a version-alignment
+  release — no addon behaviour changes. Verified green against core
+  v0.2.0 (73 tests).
+
 ## [0.1.0-alpha.8] - 2026-07-06
 
 ### Changed

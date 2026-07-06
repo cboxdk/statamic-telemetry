@@ -38,19 +38,16 @@ more. This addon teaches those traces Statamic's vocabulary:
 ## Installation
 
 ```bash
-composer require cboxdk/statamic-telemetry:^0.1.0-alpha.1
+composer require cboxdk/statamic-telemetry:^0.2.0
 ```
 
-> **Alpha (`0.1.0-alpha.1`).** Both packages are on Packagist. Until a
-> stable `0.1.0` is tagged, allow alpha stability in your app's
-> `composer.json` (or Composer will refuse the pre-release):
->
-> ```json
-> "minimum-stability": "alpha",
-> "prefer-stable": true
-> ```
+> **`0.2.0`.** Tracks `cboxdk/laravel-telemetry`'s version line — the
+> first release without a pre-release suffix, so no `minimum-stability`
+> tweak is needed. Under SemVer 0.x, breaking changes bump the minor
+> version; the metric and attribute surface is stable enough for
+> production pilots.
 
-Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry. Everything is
+Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry ^0.2.0. Everything is
 on by default except Antlers view/tag spans and the gauges. Publish the
 config to change toggles:
 
