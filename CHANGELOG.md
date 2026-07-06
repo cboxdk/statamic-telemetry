@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.8] - 2026-07-06
+
+### Changed
+
+- **Frontend 404s are bucketed as `not_found`.** A URL that matches
+  Statamic's `/{segments?}` catch-all but resolves to no entry, term or
+  taxonomy (broken links, bots, stale sitemaps) now gets
+  `http.route = not_found` instead of the raw catch-all template, so 404
+  traffic is visible and sizeable in route tables and histograms instead of
+  diluting the frontend bucket. Scoped to `FrontendController`, so a 404 on
+  a real Laravel route keeps its own `http.route`. Cache hits still keep
+  `/{segments?}` (served before any content resolves — and fast; they carry
+  `statamic.static_cache: hit`). The `resolveRouteUsing` resolver now takes
+  the final response, via `Content::route($request, $response)`.
+
 ## [0.1.0-alpha.7] - 2026-07-05
 
 ### Changed

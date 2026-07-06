@@ -86,8 +86,20 @@ histogram_quantile(0.95, sum by (le, http_route) (
 The value is **bounded** (collections and taxonomies are a fixed set),
 which is why the addon — not the base package — owns it: only the addon
 knows these names are safe as a metric label. The raw Laravel template is
-preserved as `http.route.template` for debugging. Non-content requests
-(real routes, 404s) keep their normal `http.route`.
+preserved as `http.route.template` for debugging.
+
+**Frontend 404s become `not_found`.** A URL that matches the catch-all but
+resolves to no entry/term/taxonomy (broken links, bots, stale sitemaps)
+is bucketed as `http.route = not_found` instead of `/{segments?}`, so 404
+traffic can be seen and sized separately rather than diluting the catch-all.
+The `not_found` fallback is scoped to Statamic's `FrontendController` — a
+404 on a real Laravel route keeps its own `http.route`.
+
+**Cache hits keep `/{segments?}`.** A statically-cached page is served
+before the controller resolves any content, so there is nothing to name it
+by; it stays on the raw template and carries `statamic.static_cache: hit`.
+These are the fast requests, so the catch-all bucket is effectively
+"cache hits" — the slow, content-resolving requests are already named.
 
 ## Metrics
 

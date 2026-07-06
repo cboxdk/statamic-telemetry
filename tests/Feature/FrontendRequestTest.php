@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
+use Cbox\StatamicTelemetry\Support\Content;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Routing\Route;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Site;
+use Statamic\Http\Controllers\FrontendController;
 
 test('a frontend entry request gets a bounded span name and entry attributes', function () {
     Collection::make('pages')->routes('{slug}')->save();
@@ -57,20 +62,53 @@ test('the request duration metric http.route is the logical content route', func
         ->and($routes)->not->toContain('/{segments?}');
 });
 
-test('non-content requests keep the literal route template as http.route', function () {
+test('a Statamic frontend 404 is bucketed as not_found', function () {
     $fake = $this->fakeTelemetry();
 
     $this->get('/definitely-missing')->assertNotFound();
 
+    $routes = [];
     foreach ($fake->collect() as $family) {
         if ($family->name() === 'http.server.request.duration') {
             foreach ($family->samples as $sample) {
-                // No content resolved → no override; http.route is the
-                // real route (or the fallback pattern), never a Statamic name.
-                expect($sample->labels['http.route'] ?? '')->not->toStartWith('entry:');
+                $routes[] = $sample->labels['http.route'] ?? null;
             }
         }
     }
+
+    // 404 traffic (broken links, bots) gets its own bounded bucket instead
+    // of polluting the /{segments?} catch-all.
+    expect($routes)->toContain('not_found')
+        ->and($routes)->not->toContain('/{segments?}');
+
+    // The raw catch-all template is still preserved on the span.
+    $span = array_values(array_filter(
+        $fake->recordedSpans(),
+        fn ($s) => $s->name === 'GET not_found',
+    ))[0];
+
+    expect($span->attributes()['http.route.template'])->toBe('/{segments?}');
+});
+
+test('only a frontend 404 becomes not_found — a real route keeps its own', function () {
+    $notFound = new Response('', 404);
+
+    // A request routed through Statamic's frontend catch-all. The Router
+    // populates the 'controller' action key at dispatch; a hand-built Route
+    // needs it set explicitly for getActionName() to reflect the controller.
+    $frontend = Request::create('/missing');
+    $frontend->setRouteResolver(fn () => new Route(
+        ['GET'], '/{segments?}', ['controller' => FrontendController::class.'@index'],
+    ));
+
+    // A request routed to a normal controller.
+    $real = Request::create('/api/thing');
+    $real->setRouteResolver(fn () => new Route(
+        ['GET'], '/api/thing', ['controller' => 'App\Http\Controllers\ThingController@show'],
+    ));
+
+    expect(Content::route($frontend, $notFound))->toBe('not_found')
+        ->and(Content::route($real, $notFound))->toBeNull();
 });
 
 test('entries in structured collections are unwrapped from their page object', function () {
@@ -103,7 +141,7 @@ test('entries in structured collections are unwrapped from their page object', f
         ->and($span->attributes()['statamic.entry.id'])->toBe((string) $entry->id());
 });
 
-test('non-statamic routes keep their route pattern name', function () {
+test('a 404 is never named as content', function () {
     $fake = $this->fakeTelemetry();
 
     $this->get('/definitely-missing-page')->assertNotFound();

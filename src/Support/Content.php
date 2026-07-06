@@ -7,9 +7,11 @@ namespace Cbox\StatamicTelemetry\Support;
 use Illuminate\Http\Request;
 use Statamic\Entries\Entry;
 use Statamic\Facades\Site;
+use Statamic\Http\Controllers\FrontendController;
 use Statamic\Structures\Page;
 use Statamic\Taxonomies\LocalizedTerm;
 use Statamic\Taxonomies\Taxonomy;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
@@ -53,6 +55,47 @@ final class Content
     public static function routeLabel(Request $request): ?string
     {
         return self::descriptor($request)['label'] ?? null;
+    }
+
+    /**
+     * The logical route for a Statamic frontend request, given the final
+     * response — the content route when one resolved, else `not_found`
+     * for a 404 (a URL that matched no entry/term/taxonomy: broken links,
+     * bots, stale sitemaps). Keeps 404 traffic out of the `/{segments?}`
+     * bucket so it can be seen and sized. Returns null for anything else
+     * (cache hits, non-frontend routes) — the base keeps their route.
+     *
+     * Cache hits stay `/{segments?}`: served straight from the cache
+     * before the controller resolves content, so there is nothing to name
+     * them by. They are fast and carry `statamic.static_cache: hit`.
+     */
+    public static function route(Request $request, Response $response): ?string
+    {
+        $label = self::routeLabel($request);
+
+        if ($label !== null) {
+            return $label;
+        }
+
+        if ($response->getStatusCode() === 404 && self::isFrontendRequest($request)) {
+            return 'not_found';
+        }
+
+        return null;
+    }
+
+    /**
+     * Was this request handled by Statamic's frontend catch-all
+     * (FrontendController), versus a real Laravel route or the CP? Guards
+     * the `not_found` fallback so a 404 on a genuine route keeps its own
+     * `http.route`.
+     */
+    private static function isFrontendRequest(Request $request): bool
+    {
+        $route = $request->route();
+
+        return $route !== null
+            && str_contains((string) $route->getActionName(), FrontendController::class);
     }
 
     /**

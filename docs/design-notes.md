@@ -106,11 +106,22 @@ The right fix is in the base package, not a parallel addon label: a
 `resolveRouteUsing()` hook (added in laravel-telemetry v0.1.0-alpha.4)
 lets an instrumentation supply the *logical route*, which replaces
 `http.route` on both the span attribute and the metric label. The addon
-registers it with `Content::routeLabel` — so `http.route` becomes
+registers it with `Content::route` — so `http.route` becomes
 `entry:{collection}.{blueprint}` / `term:{taxonomy}` /
 `taxonomy:{taxonomy}`, and everything downstream groups by content with
 no per-consumer change. The literal template is preserved as
 `http.route.template`.
+
+The resolver is given the final *response*, not just the request, so it
+can also bucket **frontend 404s** as `not_found`: a URL that matched the
+catch-all but resolved to no content (broken links, bots, stale sitemaps)
+would otherwise sit in `/{segments?}` forever unseen. The fallback is
+scoped to `FrontendController` (via the matched route's action name), so a
+404 on a real Laravel route keeps its own `http.route`. **Cache hits** are
+deliberately left on `/{segments?}`: they are served before the controller
+resolves any content, so nothing names them — but they are the fast path
+and carry `statamic.static_cache: hit`, so the catch-all bucket ends up
+meaning "cache hits" while every content-resolving render is named.
 
 The base package couldn't do this itself: `http.route` is a metric label
 and must be bounded, and the base can't know a resolved name is bounded

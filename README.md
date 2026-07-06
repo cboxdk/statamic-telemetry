@@ -193,7 +193,9 @@ Telemetry::resolveRouteUsing(fn ($request, $response) =>
   `resolveRouteUsing()` hook to override `http.route` with the bounded
   logical route (`entry:blog.article`, `taxonomy:topics`), so the UI route
   table, Grafana and TraceQL all group by content — no per-tool change.
-  The raw template is kept as `http.route.template`. See
+  The raw template is kept as `http.route.template`. Frontend 404s (broken
+  links, bots) bucket as `not_found` instead of `/{segments?}`; cache hits
+  stay `/{segments?}` (served before any content resolves — and fast). See
   [docs/design-notes](docs/design-notes.md#httproute-is-the-content-route-not-the-catch-all).
 - **Trace header stripping.** The core package already skips the trace id
   header on `Cache-Control: public` responses (CDN caches). Statamic's

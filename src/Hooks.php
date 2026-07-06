@@ -45,10 +45,11 @@ final class Hooks
             // term:{taxonomy} / taxonomy:{handle}) replaces the useless
             // /{segments?} catch-all as http.route — on the span and the
             // request metric — so route tables and latency histograms
-            // group by content. Bounded: collections and taxonomies are a
-            // fixed set. The span name derives from it ("METHOD " + route),
-            // so no separate name resolver is needed.
-            $telemetry->resolveRouteUsing(fn ($request, $response) => Content::routeLabel($request));
+            // group by content. Frontend 404s become `not_found`. Bounded:
+            // collections and taxonomies are a fixed set. The span name
+            // derives from it ("METHOD " + route), so no separate name
+            // resolver is needed.
+            $telemetry->resolveRouteUsing(fn ($request, $response) => Content::route($request, $response));
             $telemetry->enrichRequestsUsing(fn ($request, $response) => Content::attributes($request));
         }
 
