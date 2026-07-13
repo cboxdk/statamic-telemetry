@@ -136,7 +136,7 @@ the CSRF one), so a cache hit never replays one visitor's server trace or
 analytics session to everyone — the RUM self-roots instead. Full-measure
 (file) hits are served without PHP, so they get a self-rooted browser trace
 with no server span; the strip happens once when the file is compiled. See
-[docs/browser-tracing](docs/browser-tracing.md).
+[docs/browser-tracing](docs/production/browser-tracing.md).
 
 ## Composing with your own hooks
 
@@ -193,7 +193,7 @@ Telemetry::resolveRouteUsing(fn ($request, $response) =>
   The raw template is kept as `http.route.template`. Frontend 404s (broken
   links, bots) bucket as `not_found` instead of `/{segments?}`; cache hits
   stay `/{segments?}` (served before any content resolves — and fast). See
-  [docs/design-notes](docs/design-notes.md#httproute-is-the-content-route-not-the-catch-all).
+  [docs/design-notes](docs/core-concepts/design-notes.md#httproute-is-the-content-route-not-the-catch-all).
 - **Trace header stripping.** The core package already skips the trace id
   header on `Cache-Control: public` responses (CDN caches). Statamic's
   half-measure cacher decides cacheability by its own rules and snapshots

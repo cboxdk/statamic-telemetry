@@ -1,6 +1,7 @@
 ---
 title: Statamic Telemetry
 description: A Statamic 6 overlay that teaches cboxdk/laravel-telemetry Statamic's vocabulary
+weight: 1
 ---
 
 # Statamic Telemetry
@@ -20,14 +21,18 @@ package is configured with (OTLP, Prometheus).
 
 ## Documentation
 
-- **[Reference](reference.md)** — the canonical catalog: every span
+- **[Quickstart](quickstart.md)** — install, publish the config and import the
+  Grafana dashboard in a couple of minutes.
+- **[Requirements](requirements.md)** — the PHP, Statamic and package versions
+  the Composer resolver enforces.
+- **[Reference](configuration/reference.md)** — the canonical catalog: every span
   attribute, every metric, every config toggle, and the exact events each
   one derives from. Read this to know what you get.
-- **[Design notes](design-notes.md)** — why the addon is built the way it
+- **[Design notes](core-concepts/design-notes.md)** — why the addon is built the way it
   is: the catch-all routing problem, subclassed cachers, the header-strip
   fix, Blink and Antlers instrumentation, and the invariants that keep
   telemetry from ever breaking a Statamic operation.
-- **[Browser tracing in Antlers](browser-tracing.md)** — the
+- **[Browser tracing in Antlers](production/browser-tracing.md)** — the
   `{{ telemetry:browser }}` / `{{ telemetry:traceparent }}` tags and how
   they stay correct under half- and full-measure static caching.
 

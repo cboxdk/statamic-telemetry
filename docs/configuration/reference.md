@@ -1,6 +1,7 @@
 ---
 title: Reference
 description: Every span attribute, metric and config toggle, and the events they derive from
+weight: 21
 ---
 
 # Reference
@@ -203,7 +204,7 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 
 ## Antlers tags
 
-For [browser tracing](browser-tracing.md) in Antlers templates:
+For [browser tracing](../production/browser-tracing.md) in Antlers templates:
 
 | Tag | Output |
 |---|---|

@@ -1,6 +1,7 @@
 ---
 title: Browser tracing in Antlers
 description: The telemetry Antlers tags, and how they stay correct under static caching
+weight: 31
 ---
 
 # Browser tracing in Antlers

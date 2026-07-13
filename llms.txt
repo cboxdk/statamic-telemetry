@@ -18,8 +18,8 @@ FailSafe, listeners extend a GuardedListener base that does the same.
 ## Documentation
 
 - [Overview](docs/index.md): what the addon does and how it plugs in
-- [Reference](docs/reference.md): every span attribute, metric, config toggle, and source event — read this first
-- [Design notes](docs/design-notes.md): why it is built this way — catch-all naming, subclassed cachers, header stripping, Blink, Antlers, the never-throw invariant
+- [Reference](docs/configuration/reference.md): every span attribute, metric, config toggle, and source event — read this first
+- [Design notes](docs/core-concepts/design-notes.md): why it is built this way — catch-all naming, subclassed cachers, header stripping, Blink, Antlers, the never-throw invariant
 - [README](README.md): quick start, composition examples, Grafana dashboard
 
 ## Extension points used (in cboxdk/laravel-telemetry)

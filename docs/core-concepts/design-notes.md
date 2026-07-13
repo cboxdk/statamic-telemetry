@@ -1,6 +1,7 @@
 ---
 title: Design notes
 description: Why the addon is built the way it is
+weight: 11
 ---
 
 # Design notes
@@ -22,7 +23,7 @@ hooks two kinds of Statamic surface:
 2. **Event listeners** — these fire *inside the dispatch of a real
    operation*: an entry save, an asset upload, a login. A throwing listener
    would break that operation. So every listener extends
-   [`GuardedListener`](../src/Listeners/GuardedListener.php), whose `handle()`
+   [`GuardedListener`](../../src/Listeners/GuardedListener.php), whose `handle()`
    wraps the subclass `handleEvent()` in the same `FailSafe::guard`. A
    Redis outage, a malformed event payload, a missing method — none of it
    can break the save.
@@ -36,7 +37,7 @@ the guarded one.
 Every Statamic frontend URL matches one catch-all route, so the base
 package names every frontend span identically. The fix is a two-part dance:
 
-- A `ResponseCreated` listener ([CaptureResponseData](../src/Listeners/CaptureResponseData.php))
+- A `ResponseCreated` listener ([CaptureResponseData](../../src/Listeners/CaptureResponseData.php))
   stashes the content object Statamic resolved onto the request.
 - The `nameRequestsUsing` and `enrichRequestsUsing` resolvers read it back
   at terminate — when the final response (and its status) is known — and
@@ -44,7 +45,7 @@ package names every frontend span identically. The fix is a two-part dance:
 
 Structured collections (including the default skeleton's `pages`) resolve
 to a `Structures\Page` wrapping the entry, not the entry itself, so
-[`Content`](../src/Support/Content.php) unwraps `Page::entry()` first. This
+[`Content`](../../src/Support/Content.php) unwraps `Page::entry()` first. This
 was a real miss caught by the demo — unstructured-collection tests didn't
 exercise it.
 
@@ -55,8 +56,8 @@ FileCacher` / `instanceof ApplicationCacher` checks to choose code paths.
 A decorator around the `Cacher` contract would fail those checks and
 silently change caching behaviour. So the addon re-registers the `file`
 and `application` drivers as tracing *subclasses*
-([TracingFileCacher](../src/StaticCaching/TracingFileCacher.php),
-[TracingApplicationCacher](../src/StaticCaching/TracingApplicationCacher.php)).
+([TracingFileCacher](../../src/StaticCaching/TracingFileCacher.php),
+[TracingApplicationCacher](../../src/StaticCaching/TracingApplicationCacher.php)).
 Custom third-party cacher drivers are not instrumented.
 
 The swap is registered via `afterResolving(StaticCacheManager::class)` in
@@ -73,7 +74,7 @@ Statamic probes the cache with freshly built, synthetic `Request` objects
 too — error-page copies (`copyError`), warm jobs. Those must not inflate
 the hit/miss counters or overwrite the outcome attribute on the real
 request's root span. So
-[`StaticCacheTelemetry`](../src/StaticCaching/StaticCacheTelemetry.php)
+[`StaticCacheTelemetry`](../../src/StaticCaching/StaticCacheTelemetry.php)
 records an outcome only when the request is the container's current request
 (`isCurrentRequest`). Invalidations and flushes are not request-scoped and
 are always counted.
@@ -87,7 +88,7 @@ listener, so without intervention one visitor's trace id would be baked
 into the cached page and replayed to everyone.
 
 `TracingApplicationCacher::cachePage` flags the request; a boot-registered
-`ResponsePrepared` listener ([StripTraceHeader](../src/Listeners/StripTraceHeader.php))
+`ResponsePrepared` listener ([StripTraceHeader](../../src/Listeners/StripTraceHeader.php))
 runs before the cacher's own header-snapshot listener and removes the
 header. The flag lives on the request (not a class static) so that under
 Octane a `cachePage` with no following `ResponsePrepared` can't leak the
@@ -144,7 +145,7 @@ Telemetry::resolveRouteUsing(fn ($request, $response) =>
 The Stache fires no per-operation events but runs on the Laravel cache
 under the hood, so its traffic already flows through the base package's
 cache instrumentation — as thousands of raw keys. The addon's
-[`CacheKeys`](../src/Support/CacheKeys.php) classifier (registered via
+[`CacheKeys`](../../src/Support/CacheKeys.php) classifier (registered via
 `classifyCacheKeysUsing`) buckets them into bounded groups (`stache.index`,
 `stache.item`, `stache.meta`, `static_cache`, `app`) so counters and spans
 stay legible. Nothing is dropped — every operation keeps a group — so the
@@ -155,9 +156,9 @@ duration come from `StacheWarmed`/`StacheCleared`.
 
 Blink is Statamic's per-request memoization layer — where augmentation
 caching and repeated lookups live. It fires no events.
-[`TracingBlink`](../src/Support/TracingBlink.php) is bound as a singleton
+[`TracingBlink`](../../src/Support/TracingBlink.php) is bound as a singleton
 over `Statamic\Support\Blink` (the class the facade resolves), handing out
-[`TallyingBlinkStore`](../src/Support/TallyingBlinkStore.php) instances that
+[`TallyingBlinkStore`](../../src/Support/TallyingBlinkStore.php) instances that
 count `once()` hits and misses onto the trace root span via `bumpStat` —
 the request's memoization *effectiveness*, not per-key noise. It only
 tallies inside an active trace, so Blink use in console commands and
@@ -168,10 +169,10 @@ untraced jobs doesn't accumulate unattached counts.
 Two opt-in layers, both off by default because they add per-render cost:
 
 - **`instrument.views`** wraps the Antlers view engine
-  ([TracingEngine](../src/View/TracingEngine.php)) for one `view.render`
+  ([TracingEngine](../../src/View/TracingEngine.php)) for one `view.render`
   span per rendered view.
 - **`instrument.antlers`** registers a runtime tracer
-  ([AntlersNodeTracer](../src/View/AntlersNodeTracer.php)) through
+  ([AntlersNodeTracer](../../src/View/AntlersNodeTracer.php)) through
   Statamic's official `RuntimeTracerContract`, for a span per *tag*
   invocation. It forces `statamic.antlers.tracing` on, which is why it is
   opt-in — the runtime only consults tracers when tracing is enabled, and
