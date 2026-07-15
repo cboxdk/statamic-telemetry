@@ -42,6 +42,13 @@ class RecordContentChange extends GuardedListener
 
         Telemetry::counter('statamic.content.changes', 'Content changes by type and action')
             ->inc(1, ['type' => $type, 'action' => $action]);
+
+        // A child span so each content mutation is an individual, drillable row
+        // correlated to the CP request (or command) that made it.
+        Telemetry::tracer()->recordSpan('statamic.content.change', 0.0, [
+            'statamic.content.type' => $type,
+            'statamic.content.action' => $action,
+        ]);
     }
 
     /**

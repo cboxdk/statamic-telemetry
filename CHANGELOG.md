@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-15
+
+### Added
+
+- **Per-operation child spans for drill-down.** Glide generations, form
+  submissions, content changes and Stache warms now emit a span on the active
+  request trace (`Telemetry::tracer()->recordSpan()`), carrying the identifying
+  attributes — Glide preset + source path, form handle, content type/action. Each
+  individual operation is now drillable and correlated to the request (or command)
+  that triggered it, instead of only an aggregate counter. The counters stay for
+  cheap rate/overview charts.
+  - Stache warms carry their **real build duration**; the others are point-in-time
+    markers (the events fire *after* the work, with no start time — a true
+    end-to-end duration would need inline instrumentation of the operation).
+  - Static-cache hit/miss/write outcomes are intentionally left as an attribute on
+    the request **root** span rather than doubled into a child span per page-serve
+    (which would multiply span volume on every cached request).
+
 ## [1.0.0] - 2026-07-15
 
 First stable release, tracking the `cboxdk/laravel-telemetry` 1.0 line. The

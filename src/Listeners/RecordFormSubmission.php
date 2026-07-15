@@ -31,5 +31,11 @@ class RecordFormSubmission extends GuardedListener
 
         Telemetry::counter('statamic.forms.submissions', 'Form submissions created')
             ->inc(1, ['form' => $form]);
+
+        // A child span so each submission is an individual, drillable row
+        // correlated to the request it arrived on.
+        Telemetry::tracer()->recordSpan('statamic.forms.submit', 0.0, [
+            'statamic.form' => $form,
+        ]);
     }
 }

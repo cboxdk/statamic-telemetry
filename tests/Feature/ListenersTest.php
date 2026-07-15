@@ -151,3 +151,49 @@ test('listeners respect their config toggles', function () {
 
     $fake->assertCounterNotIncremented('statamic.glide.generations');
 });
+
+test('glide generations also emit a drillable child span with preset and path', function () {
+    $fake = $this->fakeTelemetry();
+
+    event(new GlideImageGenerated('img/hero.jpg', ['p' => 'thumbnail']));
+
+    $fake->assertSpanRecorded(
+        'statamic.glide.generate',
+        fn ($span) => ($span->attributes()['statamic.glide.preset'] ?? null) === 'thumbnail'
+            && ($span->attributes()['statamic.glide.path'] ?? null) === 'img/hero.jpg',
+    );
+});
+
+test('form submissions also emit a drillable child span with the form handle', function () {
+    $fake = $this->fakeTelemetry();
+
+    $form = tap(Form::make('contact')->title('Contact'))->save();
+
+    event(new SubmissionCreated($form->makeSubmission()));
+
+    $fake->assertSpanRecorded(
+        'statamic.forms.submit',
+        fn ($span) => ($span->attributes()['statamic.form'] ?? null) === 'contact',
+    );
+});
+
+test('content changes also emit a drillable child span with type and action', function () {
+    $fake = $this->fakeTelemetry();
+
+    Collection::make('pages')->save();
+
+    $fake->assertSpanRecorded(
+        'statamic.content.change',
+        fn ($span) => ($span->attributes()['statamic.content.type'] ?? null) === 'collection'
+            && ($span->attributes()['statamic.content.action'] ?? null) === 'saved',
+    );
+});
+
+test('a disabled overlay emits neither counter nor span', function () {
+    config()->set('statamic-telemetry.instrument.glide', false);
+    $fake = $this->fakeTelemetry();
+
+    event(new GlideImageGenerated('img/hero.jpg', ['p' => 'thumbnail']));
+
+    $fake->assertSpanNotRecorded('statamic.glide.generate');
+});

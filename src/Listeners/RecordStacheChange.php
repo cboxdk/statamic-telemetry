@@ -24,15 +24,24 @@ class RecordStacheChange extends GuardedListener
         if ($event instanceof StacheWarmed) {
             Telemetry::counter('statamic.stache.warms', 'Stache warm operations')->inc();
 
-            if (($ms = $this->buildTime()) !== null) {
+            $ms = $this->buildTime();
+
+            if ($ms !== null) {
                 Telemetry::histogram('statamic.stache.warm_duration', description: 'Stache warm build time', unit: 'ms')
                     ->record($ms);
             }
+
+            // Unlike the other overlays this one has a real duration, so the
+            // span reflects the actual build time and shows up as a timed child
+            // of the request/command that warmed the Stache.
+            Telemetry::tracer()->recordSpan('statamic.stache.warm', $ms ?? 0.0);
 
             return;
         }
 
         Telemetry::counter('statamic.stache.clears', 'Stache clear operations')->inc();
+
+        Telemetry::tracer()->recordSpan('statamic.stache.clear', 0.0);
     }
 
     private function buildTime(): ?float
