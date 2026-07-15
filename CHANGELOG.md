@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-15
+
+### Changed
+
+- Allow `cboxdk/laravel-telemetry ^0.3.0` alongside `^0.2.0`, so an app on the
+  0.3 telemetry line (as required by `cboxdk/laravel-telemetry-ui` 0.4) can
+  install this addon. The test suite passes unchanged against telemetry 0.3.
+
+## [0.2.1] - 2026-07-13
+
+### Changed
+
+- Docs restructured into the cboxdk topic-folder layout. No code changes.
+
 ## [0.2.0] - 2026-07-06
 
 First tagged release without a pre-release suffix, tracking
