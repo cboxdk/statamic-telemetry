@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Require `cboxdk/laravel-telemetry ^2.4`** (was `^1.0`). Verified against
+  telemetry 2.4.0: the suite passes unchanged (77 tests), pint and PHPStan
+  are clean.
+
+- **User attribution moved to the `user.*` namespace**: `user.roles`,
+  `user.groups` and `user.super` (were `enduser.*`). Telemetry 2.0 dropped
+  `enduser.*` — deprecated in semconv 1.27 — for `user.id`/`user.type`/
+  `user.guard`, so the overlay's three attributes were the only `enduser.*`
+  keys left on the span. One vocabulary, not two.
+
+  **Upgrade note.** TraceQL queries, dashboards and collector processors
+  keying on `enduser.roles`, `enduser.groups` or `enduser.super` need the
+  new names. An app that composes its own resolver on top of
+  `Hooks::userAttributes()` should move its own keys with them.
+
+### Fixed
+
+- The README install block asked for `cboxdk/statamic-telemetry:^0.2.0` and
+  described the package as 0.x SemVer — two majors stale since 1.0.0.
+
 ## [1.1.0] - 2026-07-15
 
 ### Added

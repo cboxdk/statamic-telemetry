@@ -200,7 +200,7 @@ use Cbox\StatamicTelemetry\Support\Content;
 
 Telemetry::resolveUserUsing(fn ($user, $guard) => [
     ...Hooks::userAttributes($user, $guard),
-    'enduser.plan' => $user->plan ?? null,
+    'user.plan' => $user->plan ?? null,
 ]);
 
 Telemetry::classifyCacheKeysUsing(fn (string $store, string $key) =>

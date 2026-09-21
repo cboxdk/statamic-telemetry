@@ -26,9 +26,9 @@ metric labels).
 | `statamic.taxonomy` | root | `topics` |
 | `statamic.site` | root + every span (ambient context) | `default` |
 | `statamic.static_cache` | root | `hit`, `miss`, `write` |
-| `enduser.roles` | root | `editor,author` (sorted, comma-joined) |
-| `enduser.groups` | root | `staff` |
-| `enduser.super` | root | `true` (present only when super) |
+| `user.roles` | root | `editor,author` (sorted, comma-joined) |
+| `user.groups` | root | `staff` |
+| `user.super` | root | `true` (present only when super) |
 | `statamic.blink.hits` / `statamic.blink.misses` | root (tally) | `53` / `21` |
 | `http.route` | root + request metric label (overridden) | `entry:blog.article`, `term:topics`, `taxonomy:topics` — the logical content route (see below) |
 | `http.route.template` | root (when overridden) | `/{segments?}` — the raw Laravel template |
@@ -37,7 +37,7 @@ metric labels).
 | `antlers.tag` | `antlers:{tag}` spans (opt-in) | `collection`, `partial` (bounded) |
 | `antlers.method` | `antlers:{tag}` spans (opt-in) | `blog`, `components/hero` (unbounded) |
 
-`enduser.id`, `enduser.type` and `enduser.guard` come from the base
+`user.id`, `user.type` and `user.guard` come from the base
 package; the addon adds the three role/group/super attributes on top.
 
 ### Request span naming
@@ -175,7 +175,7 @@ the base package doesn't know about.
 `password_changed`, `two_factor_enabled`, `two_factor_disabled`,
 `two_factor_challenged`, `two_factor_failed`, `two_factor_passed`,
 `two_factor_recovery_code_replaced`. No user ids on the metric — identity
-lives on the request trace via `enduser.*`.
+lives on the request trace via `user.*`.
 
 ## Config
 
@@ -185,7 +185,7 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | Key | Default | Effect |
 |---|---|---|
 | `enabled` | true | Master switch for the whole overlay |
-| `instrument.user` | true | `enduser.roles/groups/super` |
+| `instrument.user` | true | `user.roles/groups/super` |
 | `instrument.site_context` | true | `statamic.site` ambient dimension |
 | `instrument.content` | true | Root span naming + entry/term attributes |
 | `instrument.static_cache` | true | Cacher subclass swap, outcomes, header strip |

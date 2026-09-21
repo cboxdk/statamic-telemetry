@@ -20,7 +20,7 @@ Areas of particular interest for this package:
   `X-Trace-Id` before Statamic's half-measure cacher snapshots headers, so
   one visitor's trace id is never replayed to others. A path where it
   survives into a cached response is a security-relevant defect.
-- **User attribution.** `enduser.roles`/`groups`/`super` are derived from
+- **User attribution.** `user.roles`/`groups`/`super` are derived from
   the Statamic user; only handles and a boolean are emitted, never PII.
 
 Underlying transport, scrape-endpoint and redaction concerns live in
