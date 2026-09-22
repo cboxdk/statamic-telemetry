@@ -19,7 +19,7 @@ test('statamic users contribute roles, groups and the super flag', function () {
     $user->save();
 
     expect(Hooks::userAttributes($user, 'web'))->toBe([
-        'enduser.roles' => 'editor',
+        'user.roles' => 'editor',
     ]);
 });
 
@@ -28,7 +28,7 @@ test('super users are flagged', function () {
     $user->save();
 
     expect(Hooks::userAttributes($user, 'web'))->toBe([
-        'enduser.super' => true,
+        'user.super' => true,
     ]);
 });
 

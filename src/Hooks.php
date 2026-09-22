@@ -19,7 +19,7 @@ use Statamic\Contracts\Auth\User as StatamicUser;
  *
  *     Telemetry::resolveUserUsing(fn ($user, $guard) => [
  *         ...Hooks::userAttributes($user, $guard),
- *         'enduser.plan' => $user->plan ?? null,
+ *         'user.plan' => $user->plan ?? null,
  *     ]);
  */
 final class Hooks
@@ -72,9 +72,9 @@ final class Hooks
         }
 
         return array_filter([
-            'enduser.super' => (bool) $user->isSuper(),
-            'enduser.roles' => $user->roles()->map->handle()->sort()->values()->implode(','),
-            'enduser.groups' => $user->groups()->map->handle()->sort()->values()->implode(','),
+            'user.super' => (bool) $user->isSuper(),
+            'user.roles' => $user->roles()->map->handle()->sort()->values()->implode(','),
+            'user.groups' => $user->groups()->map->handle()->sort()->values()->implode(','),
         ], fn ($value) => $value !== '' && $value !== false);
     }
 }

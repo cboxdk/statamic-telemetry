@@ -17,9 +17,9 @@ more. This addon teaches those traces Statamic's vocabulary:
   `statamic.site` on the request root span.
 - **Site context** — `statamic.site` as an ambient dimension on every span in
   the trace, propagated to queued jobs.
-- **User attribution** — `enduser.roles`, `enduser.groups` and `enduser.super`
+- **User attribution** — `user.roles`, `user.groups` and `user.super`
   for Statamic users (file or eloquent driven), on top of the core
-  `enduser.id/type/guard`.
+  `user.id/type/guard`.
 - **Static cache** — hit/miss/write outcome as `statamic.static_cache` on the
   root span, operation counters, and a fix for a subtle replay bug: the
   half-measure cacher snapshots response headers, so the addon strips the
@@ -38,16 +38,10 @@ more. This addon teaches those traces Statamic's vocabulary:
 ## Installation
 
 ```bash
-composer require cboxdk/statamic-telemetry:^0.2.0
+composer require cboxdk/statamic-telemetry
 ```
 
-> **`0.2.0`.** Tracks `cboxdk/laravel-telemetry`'s version line — the
-> first release without a pre-release suffix, so no `minimum-stability`
-> tweak is needed. Under SemVer 0.x, breaking changes bump the minor
-> version; the metric and attribute surface is stable enough for
-> production pilots.
-
-Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry ^0.2.0. Everything is
+Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry ^2.4. Everything is
 on by default except Antlers view/tag spans and the gauges. Publish the
 config to change toggles:
 
@@ -68,8 +62,8 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 | `statamic.collection` / `statamic.blueprint` / `statamic.taxonomy` | root span | handles |
 | `statamic.site` | root span + all spans (context) | site handle |
 | `statamic.static_cache` | root span | `hit`, `miss`, `write` |
-| `enduser.roles` / `enduser.groups` | root span | sorted, comma-joined handles |
-| `enduser.super` | root span | `true` (only when super) |
+| `user.roles` / `user.groups` | root span | sorted, comma-joined handles |
+| `user.super` | root span | `true` (only when super) |
 | `cache.key.group` | cache spans (core) | `stache.index`, `stache.item`, … |
 | `statamic.blink.hits` / `statamic.blink.misses` | root span (tallies) | per-request Blink memoization effectiveness |
 | `view.path` / `view.engine` | `view.render` detail spans (opt-in) | relative path, `antlers` |
@@ -152,7 +146,7 @@ use Cbox\StatamicTelemetry\Support\Content;
 
 Telemetry::resolveUserUsing(fn ($user, $guard) => [
     ...Hooks::userAttributes($user, $guard),
-    'enduser.plan' => $user->plan ?? null,
+    'user.plan' => $user->plan ?? null,
 ]);
 
 Telemetry::nameRequestsUsing(fn ($request, $response) =>

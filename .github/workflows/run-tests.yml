@@ -46,8 +46,7 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
-      # cboxdk/laravel-telemetry resolves from its public GitHub repo (a vcs
-      # repository entry in composer.json) — or from Packagist once published.
+      # cboxdk/laravel-telemetry resolves from Packagist.
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
 

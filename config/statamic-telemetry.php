@@ -20,7 +20,7 @@ return [
     | Instrumentation toggles
     |--------------------------------------------------------------------------
     |
-    | user            enduser.roles / enduser.groups / enduser.super on request
+    | user            user.roles / user.groups / user.super on request
     |                 spans, for Statamic users (file or eloquent driven).
     | site_context    statamic.site as an ambient dimension on every span in
     |                 the trace — propagates to queued jobs.

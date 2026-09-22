@@ -11,7 +11,7 @@ use Statamic\Events;
  * Security-relevant auth events as one counter with a bounded, explicit
  * event label. 2FA failures and impersonation are the audit signals;
  * registrations and password changes round out the picture. No user ids
- * on the metric — the request trace carries enduser.* for that.
+ * on the metric — the request trace carries user.* for that.
  */
 class RecordAuthEvent extends GuardedListener
 {
