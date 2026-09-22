@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-22
+
+Tracks the `cboxdk/laravel-telemetry` 2.x line. Major because the user
+attribution attributes are renamed — see the upgrade note below.
+
 ### Changed
 
 - **Require `cboxdk/laravel-telemetry ^2.4`** (was `^1.0`). Verified against
