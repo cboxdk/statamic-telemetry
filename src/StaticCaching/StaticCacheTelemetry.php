@@ -87,12 +87,21 @@ final class StaticCacheTelemetry
         }
 
         // hasCachedPage() can run more than once per request (middleware,
-        // nocache) — count each outcome once per request.
-        if ($request->attributes->get(self::RECORDED_KEY) === $result) {
+        // nocache), and the write lands between two of those probes — so
+        // remember every outcome already counted, not just the last one. A
+        // single slot let the sequence the comment itself describes,
+        // miss -> write -> miss, count the miss twice: one page serve
+        // reported as two, which is a hit ratio that lies.
+        $recorded = $request->attributes->get(self::RECORDED_KEY);
+        $recorded = is_array($recorded) ? $recorded : [];
+
+        if (isset($recorded[$result])) {
             return;
         }
 
-        $request->attributes->set(self::RECORDED_KEY, $result);
+        $recorded[$result] = true;
+
+        $request->attributes->set(self::RECORDED_KEY, $recorded);
 
         self::operations()->inc(1, ['operation' => $result]);
 

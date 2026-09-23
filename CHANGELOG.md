@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A static-cache outcome is no longer counted twice in one request.** The
+  guard promised "count each outcome once per request" but kept a single
+  last-value slot, so it suppressed immediate repeats only. The sequence it
+  was written for — a middleware probe misses, the rendered page is cached,
+  and something probes again inside the same serve (nocache, an error copy)
+  — recorded `miss` twice on `statamic.static_cache.operations`. One page
+  serve reported as two misses is a hit ratio that lies. Every outcome
+  already counted is now remembered, not just the last one; the repeat probe
+  also no longer reopens the span's `statamic.static_cache` attribute as a
+  miss after the write.
+
 ## [2.0.0] - 2026-09-22
 
 Tracks the `cboxdk/laravel-telemetry` 2.x line. Major because the user

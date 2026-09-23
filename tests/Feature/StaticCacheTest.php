@@ -166,3 +166,38 @@ test('the pending header-strip flag does not leak between requests', function ()
 
     expect($responseB->headers->has('X-Trace-Id'))->toBeTrue();
 });
+
+test('a repeat probe in the same request does not count the miss twice', function () {
+    config()->set('statamic.static_caching.strategy', 'half');
+
+    $fake = $this->fakeTelemetry();
+
+    $span = Telemetry::span('GET /about');
+
+    $cacher = app(Cacher::class);
+    $request = serving(Request::create('/about'));
+
+    // The sequence the guard exists for: the middleware probes and misses,
+    // the rendered page is handed to the cacher, and something probes the
+    // cache again inside the same serve (nocache, an error copy). The
+    // application cacher only reports a page once its prepared response is
+    // snapshotted, so that second probe misses again — one page serve, but
+    // two misses on the counter, which is a hit ratio that lies.
+    $cacher->hasCachedPage($request);
+    $cacher->cachePage($request, '<html>cached</html>');
+    $cacher->hasCachedPage($request);
+
+    $span->end();
+    $fake->flush();
+
+    $operations = $fake->recordedMetrics('statamic.static_cache.operations');
+
+    $operations->assertLabelValues('operation', ['miss', 'write']);
+
+    expect($operations->withLabels(['operation' => 'miss'])->total())->toBe(1.0)
+        ->and($operations->withLabels(['operation' => 'write'])->total())->toBe(1.0);
+
+    // The write still wins the span attribute: the repeat probe belongs to
+    // the same serve, so it must not reopen the outcome as a miss.
+    $fake->assertSpanRecorded('GET /about', fn ($span) => $span->attributes()['statamic.static_cache'] === 'write');
+});
