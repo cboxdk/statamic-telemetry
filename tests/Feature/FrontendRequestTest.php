@@ -48,18 +48,11 @@ test('the request duration metric http.route is the logical content route', func
 
     // http.route now carries the logical content route (via the core
     // resolveRouteUsing hook), so route tables and histograms group by it
-    // instead of the /{segments?} catch-all.
-    $routes = [];
-    foreach ($fake->collect() as $family) {
-        if ($family->name() === 'http.server.request.duration') {
-            foreach ($family->samples as $sample) {
-                $routes[] = $sample->labels['http.route'] ?? null;
-            }
-        }
-    }
-
-    expect($routes)->toContain('entry:pages.page')
-        ->and($routes)->not->toContain('/{segments?}');
+    // instead of the /{segments?} catch-all. Exactly one series — the
+    // catch-all must not survive *beside* the logical route either.
+    $fake->recordedMetrics('http.server.request.duration')
+        ->assertLabelValues('http.route', ['entry:pages.page'])
+        ->assertSeriesCount(1);
 });
 
 test('a Statamic frontend 404 is bucketed as not_found', function () {
@@ -67,19 +60,12 @@ test('a Statamic frontend 404 is bucketed as not_found', function () {
 
     $this->get('/definitely-missing')->assertNotFound();
 
-    $routes = [];
-    foreach ($fake->collect() as $family) {
-        if ($family->name() === 'http.server.request.duration') {
-            foreach ($family->samples as $sample) {
-                $routes[] = $sample->labels['http.route'] ?? null;
-            }
-        }
-    }
-
     // 404 traffic (broken links, bots) gets its own bounded bucket instead
-    // of polluting the /{segments?} catch-all.
-    expect($routes)->toContain('not_found')
-        ->and($routes)->not->toContain('/{segments?}');
+    // of polluting the /{segments?} catch-all — and gets nothing else: a
+    // per-URI fallback would show up here as extra series.
+    $fake->recordedMetrics('http.server.request.duration')
+        ->assertLabelValues('http.route', ['not_found'])
+        ->assertSeriesCount(1);
 
     // The raw catch-all template is still preserved on the span.
     $span = array_values(array_filter(
