@@ -55,3 +55,32 @@ test('non-entry content keeps its generic saved/deleted action', function () {
 
     $fake->assertCounterIncremented('statamic.content.changes', ['type' => 'collection', 'action' => 'saved']);
 });
+
+test('the publish-state vocabulary is complete and mutually exclusive in one run', function () {
+    // The per-state tests above each save one entry, so they cannot see a
+    // status that is resolved once and reused, or a state that quietly
+    // collapses into a neighbour: every one of them still passes when all
+    // four saves land on the same action. Saving all four in one run and
+    // pinning the observed set does catch that — and covers `expired`,
+    // which the snapshot supports but no single-state test exercises.
+    Collection::make('news')->dated(true)
+        ->futureDateBehavior('private')
+        ->pastDateBehavior('private')
+        ->save();
+
+    $fake = $this->fakeTelemetry();
+
+    Entry::make()->collection('pages')->slug('e')->published(true)->save();
+    Entry::make()->collection('pages')->slug('f')->published(false)->save();
+    Entry::make()->collection('news')->slug('g')->published(true)
+        ->date(now()->addWeek()->format('Y-m-d-Hi'))->save();
+    Entry::make()->collection('news')->slug('h')->published(true)
+        ->date(now()->subWeek()->format('Y-m-d-Hi'))->save();
+
+    $fake->recordedMetrics('statamic.content.changes')
+        ->assertLabelValues('action', ['published', 'draft', 'scheduled', 'expired'])
+        // Entry saves never fall back to the generic `entry/saved` pair,
+        // and nothing else got attributed to this counter.
+        ->assertLabelValues('type', ['entry'])
+        ->assertSeriesCount(4);
+});

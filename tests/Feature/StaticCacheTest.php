@@ -58,8 +58,12 @@ test('misses and writes are counted and put on the root span', function () {
     $span->end();
     $fake->flush();
 
-    $fake->assertCounterIncremented('statamic.static_cache.operations', ['operation' => 'miss']);
-    $fake->assertCounterIncremented('statamic.static_cache.operations', ['operation' => 'write']);
+    // A probe then a write: exactly those two outcomes. The per-request
+    // dedupe only remembers the *last* outcome, so a miss recorded again
+    // after the write would slip past a membership assertion.
+    $fake->recordedMetrics('statamic.static_cache.operations')
+        ->assertLabelValues('operation', ['miss', 'write'])
+        ->assertSeriesCount(2);
 
     $fake->assertSpanRecorded('GET /about', fn ($span) => $span->attributes()['statamic.static_cache'] === 'write');
 });
@@ -108,8 +112,12 @@ test('invalidations and flushes are counted', function () {
     $cacher->invalidateUrl('/about');
     $cacher->flush();
 
-    $fake->assertCounterIncremented('statamic.static_cache.operations', ['operation' => 'invalidate']);
-    $fake->assertCounterIncremented('statamic.static_cache.operations', ['operation' => 'flush']);
+    // Two purge calls, two outcomes. Statamic's invalidation paths call
+    // into each other, so the point is as much that invalidateUrl did not
+    // *also* get counted as a flush (or a miss) as that both fired.
+    $fake->recordedMetrics('statamic.static_cache.operations')
+        ->assertLabelValues('operation', ['invalidate', 'flush'])
+        ->assertSeriesCount(2);
 });
 
 test('the trace id header is stripped before the application cacher snapshots headers', function () {

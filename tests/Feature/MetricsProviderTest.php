@@ -16,13 +16,14 @@ test('gauges report entries per collection at collect time', function () {
     Entry::make()->collection('pages')->slug('one')->save();
     Entry::make()->collection('pages')->slug('two')->save();
 
-    $families = collect($fake->collect());
+    // One series per collection. Reading samples[0] could not see a
+    // duplicate `pages` series or a stray extra collection — either of
+    // which doubles the entry total on a dashboard.
+    $entries = $fake->recordedMetrics('statamic.entries.count')
+        ->assertLabelValues('collection', ['pages'])
+        ->assertSeriesCount(1);
 
-    $entries = $families->first(fn ($family) => $family->name() === 'statamic.entries.count');
+    expect($entries->total())->toBe(2.0);
 
-    expect($entries)->not->toBeNull()
-        ->and($entries->samples[0]->labels)->toBe(['collection' => 'pages'])
-        ->and($entries->samples[0]->value)->toBe(2.0);
-
-    expect($families->first(fn ($family) => $family->name() === 'statamic.users.count'))->not->toBeNull();
+    expect($fake->recordedMetrics('statamic.users.count'))->not->toBeEmpty();
 });

@@ -24,14 +24,22 @@ use Statamic\Facades\GlobalSet;
 use Statamic\Facades\Search;
 use Statamic\Facades\User;
 
-test('glide generations are counted per preset', function () {
+test('glide generations are counted per preset, ad-hoc manipulations grouped', function () {
     $fake = $this->fakeTelemetry();
 
     event(new GlideImageGenerated('img/hero.jpg', ['p' => 'thumbnail']));
-    event(new GlideImageGenerated('img/hero.jpg', ['w' => 100]));
 
-    $fake->assertCounterIncremented('statamic.glide.generations', ['preset' => 'thumbnail']);
-    $fake->assertCounterIncremented('statamic.glide.generations', ['preset' => 'custom']);
+    // Ad-hoc manipulations are unbounded in the wild — every width a
+    // template asks for is another param set. They must all collapse into
+    // the one "custom" bucket instead of becoming label values, so the
+    // three below have to stay two series in total.
+    event(new GlideImageGenerated('img/hero.jpg', ['w' => 100]));
+    event(new GlideImageGenerated('img/hero.jpg', ['w' => 640, 'h' => 480]));
+    event(new GlideImageGenerated('img/other.jpg', ['fit' => 'crop_focal']));
+
+    $fake->recordedMetrics('statamic.glide.generations')
+        ->assertLabelValues('preset', ['thumbnail', 'custom'])
+        ->assertSeriesCount(2);
 });
 
 test('form submissions are counted per form', function () {
@@ -71,9 +79,14 @@ test('auth and security events are counted with bounded labels', function () {
     event(new TwoFactorAuthenticationFailed($user));
     event(new ImpersonationStarted($user, $user));
 
-    $fake->assertCounterIncremented('statamic.auth.events', ['event' => 'user_registered']);
-    $fake->assertCounterIncremented('statamic.auth.events', ['event' => 'two_factor_failed']);
-    $fake->assertCounterIncremented('statamic.auth.events', ['event' => 'impersonation_started']);
+    // The vocabulary is the explicit map in RecordAuthEvent — three events
+    // in, exactly three label values out. A fallback that labelled an
+    // unmapped event by its class name would show up as a fourth.
+    $fake->assertMetricLabelValues('statamic.auth.events', 'event', [
+        'user_registered',
+        'two_factor_failed',
+        'impersonation_started',
+    ]);
 });
 
 test('glide cache clears are counted by scope', function () {
