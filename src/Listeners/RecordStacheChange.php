@@ -27,8 +27,10 @@ class RecordStacheChange extends GuardedListener
             $ms = $this->buildTime();
 
             if ($ms !== null) {
-                Telemetry::histogram('statamic.stache.warm_duration', description: 'Stache warm build time', unit: 'ms')
-                    ->record($ms);
+                // Seconds, per the semantic conventions, like every other
+                // duration the stack emits.
+                Telemetry::histogram('statamic.stache.warm_duration', description: 'Stache warm build time', unit: 's')
+                    ->record($ms / 1000);
             }
 
             // Unlike the other overlays this one has a real duration, so the
