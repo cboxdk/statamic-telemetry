@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-09-27
+
+A major because the metric changed unit. `cboxdk/laravel-telemetry` 3.0 put
+every duration in seconds, per the semantic conventions, and this package
+follows — an install still emitting 2.x telemetry will not resolve this
+version.
+
+### Breaking
+
+- **Requires `cboxdk/laravel-telemetry` ^3.0.**
+- **`statamic.stache.warm` is recorded in SECONDS, not milliseconds.** The
+  value is divided at the record call, so the number moves with the unit
+  rather than being relabelled. Any dashboard, alert or recording rule
+  reading that metric needs its threshold divided by a thousand; nothing
+  warns at runtime, because a duration that is a thousand times too small
+  is still a valid duration.
+
 ## [2.0.1] - 2026-09-23
 
 ### Fixed
