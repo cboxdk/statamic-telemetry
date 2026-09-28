@@ -169,6 +169,29 @@ test('the signed-in editor is the actor — id and name, never the email', funct
         ->and(implode(' ', array_map('strval', $record)))->not->toContain('editor@example.com');
 });
 
+test('a user as the changed item is known by name, never by email', function () {
+    $fake = $this->fakeTelemetry();
+
+    tap(User::make()->email('ed@example.com')->data(['name' => 'Ed Itor']))->save();
+    tap(User::make()->email('noname@example.com'))->save();
+
+    $records = auditRecords($fake);
+
+    expect(array_column($records, 'statamic.content.title'))->toBe(['Ed Itor'])
+        ->and(json_encode($records))->not->toContain('example.com');
+});
+
+test('an editor without a name is their id, not their email', function () {
+    $this->actingAs(tap(User::make()->email('anon@example.com'))->save());
+
+    $fake = $this->fakeTelemetry();
+
+    Entry::make()->collection('pages')->slug('n')->save();
+
+    expect(auditRecords($fake)[0])->toHaveKey('user.id')->not->toHaveKey('user.name')
+        ->and(json_encode(auditRecords($fake)))->not->toContain('example.com');
+});
+
 test('the actor name can be switched off, leaving the id', function () {
     config()->set('statamic-telemetry.audit.actor_name', false);
     $user = tap(User::make()->email('editor@example.com')->data(['name' => 'Ed Itor']))->save();

@@ -412,6 +412,9 @@ final class ContentAudit
 
         $id = self::scalar(self::call($user, 'id'));
         $name = config('statamic-telemetry.audit.actor_name', true) ? self::scalar(self::call($user, 'name')) : null;
+        // A "name" that is an email address (some sites store it that way)
+        // stays out, like the email itself.
+        $name = is_string($name) && str_contains($name, '@') ? null : $name;
 
         return array_filter([
             'user.id' => is_scalar($id) ? (string) $id : null,
@@ -465,6 +468,14 @@ final class ContentAudit
 
     private static function title(object $subject): ?string
     {
+        // A user is known by their name here, never by their email — which
+        // is what Statamic's User::title() falls back to.
+        if ($subject instanceof StatamicUser) {
+            $name = self::scalar(self::call($subject, 'name'));
+
+            return is_string($name) && $name !== '' && ! str_contains($name, '@') ? self::cut($name) : null;
+        }
+
         foreach (['title', 'name', 'basename'] as $method) {
             $value = self::scalar(self::call($subject, $method));
 
