@@ -8,7 +8,9 @@ use Illuminate\Support\Str;
 use Statamic\Contracts\Auth\User as StatamicUser;
 use Statamic\Entries\Entry;
 use Statamic\Events;
+use Statamic\Facades\Site;
 use Statamic\Facades\User;
+use Statamic\Sites\Site as StatamicSite;
 use Statamic\Statamic;
 use Throwable;
 use WeakMap;
@@ -47,10 +49,47 @@ final class ContentAudit
     /** Objects already recorded as created, so a trailing `AssetUploaded` is not a second row. @var WeakMap<object, bool> */
     private WeakMap $recordedCreated;
 
+    /** What a site save changed, for the record that follows. @var WeakMap<object, list<string>> */
+    private WeakMap $siteChanges;
+
+    /**
+     * The sites as they were before the CP saved them, by handle, and until
+     * when that holds. Statamic saves every site at once and fires
+     * `SiteSaved` for each, with no dirty state to tell which one changed.
+     *
+     * @var array{at: float, sites: array<string, array<array-key, mixed>>}|null
+     */
+    private ?array $sitesBefore = null;
+
+    /**
+     * The sites of the last save recorded without a snapshot, and when:
+     * every `SiteSaved` of that one batch after the first is not a row.
+     *
+     * @var WeakMap<object, float>
+     */
+    private WeakMap $blindBatch;
+
     public function __construct()
     {
         $this->created = new WeakMap;
         $this->recordedCreated = new WeakMap;
+        $this->siteChanges = new WeakMap;
+        $this->blindBatch = new WeakMap;
+    }
+
+    /**
+     * Remember the sites before a CP save of them — called when the route
+     * that saves them matches, before its controller runs.
+     */
+    public function snapshotSites(): void
+    {
+        $sites = [];
+
+        foreach (Site::all() as $site) {
+            $sites[(string) $site->handle()] = (array) $site->rawConfig();
+        }
+
+        $this->sitesBefore = ['at' => microtime(true), 'sites' => $sites];
     }
 
     /**
@@ -110,7 +149,7 @@ final class ContentAudit
         ];
 
         if ($action === 'updated' && config('statamic-telemetry.audit.changed_fields', true)) {
-            $changed = self::changedFields($subject);
+            $changed = $this->siteChanges[$subject] ?? self::changedFields($subject);
 
             if ($changed !== []) {
                 $attributes['statamic.content.changed'] = self::cut(implode(', ', $changed));
@@ -162,6 +201,10 @@ final class ContentAudit
             return 'created';
         }
 
+        if ($subject instanceof StatamicSite) {
+            return $this->siteAction($subject);
+        }
+
         if ($subject instanceof Entry) {
             $was = $subject->getOriginal('published');
             $is = $subject->published();
@@ -180,6 +223,59 @@ final class ContentAudit
         // any event fires — then nothing looks changed. "saved" says exactly
         // that much; an edit is never dropped for it.
         return self::changedFields($subject) === [] ? 'saved' : 'updated';
+    }
+
+    /**
+     * One `SiteSaved` per site per save: with a snapshot from before the CP
+     * save, only the sites that changed are rows, naming what changed; a
+     * save made from code (no snapshot) is one row for the whole batch.
+     */
+    private function siteAction(StatamicSite $site): ?string
+    {
+        $snapshot = $this->sitesBefore !== null && microtime(true) - $this->sitesBefore['at'] < 60
+            ? $this->sitesBefore['sites']
+            : null;
+
+        if ($snapshot === null) {
+            // Statamic dispatches the batch in one loop over its current
+            // site objects: the first of them is the row, the rest are that
+            // same save.
+            if (isset($this->blindBatch[$site]) && microtime(true) - $this->blindBatch[$site] < 1.0) {
+                return null;
+            }
+
+            $now = microtime(true);
+            foreach (Site::all() as $member) {
+                $this->blindBatch[$member] = $now;
+            }
+            // This one is recorded: its next `SiteSaved` is a new save.
+            unset($this->blindBatch[$site]);
+
+            return 'saved';
+        }
+
+        $before = $snapshot[(string) $site->handle()] ?? null;
+
+        if ($before === null) {
+            return 'created';
+        }
+
+        $now = (array) $site->rawConfig();
+        $changed = [];
+
+        foreach (array_unique([...array_keys($now), ...array_keys($before)]) as $key) {
+            if (json_encode($now[$key] ?? null) !== json_encode($before[$key] ?? null)) {
+                $changed[] = (string) $key;
+            }
+        }
+
+        if ($changed === []) {
+            return null;
+        }
+
+        $this->siteChanges[$site] = array_slice($changed, 0, self::MAX_FIELDS);
+
+        return 'updated';
     }
 
     /**
@@ -235,6 +331,12 @@ final class ContentAudit
             'statamic.content.url' => self::scalar(self::call($view, 'uri')),
             'statamic.content.edit_url' => self::editUrl($view),
         ];
+
+        if ($subject instanceof StatamicSite) {
+            $attributes['statamic.site'] = self::scalar($subject->handle());
+            $attributes['statamic.site.locale'] = self::scalar($subject->locale());
+            $attributes['statamic.content.url'] = self::scalar(self::call($subject, 'url'));
+        }
 
         if ($subject instanceof Entry) {
             $attributes['statamic.content.status'] = self::scalar(self::call($subject, 'status'));

@@ -15,6 +15,7 @@ use Cbox\StatamicTelemetry\Listeners\RecordGlideCacheClear;
 use Cbox\StatamicTelemetry\Listeners\RecordGlideGeneration;
 use Cbox\StatamicTelemetry\Listeners\RecordSearchIndexUpdate;
 use Cbox\StatamicTelemetry\Listeners\RecordStacheChange;
+use Cbox\StatamicTelemetry\Listeners\SnapshotSites;
 use Cbox\StatamicTelemetry\Listeners\StripTraceHeader;
 use Cbox\StatamicTelemetry\Metrics\StatamicMetricsProvider;
 use Cbox\StatamicTelemetry\StaticCaching\BrowserTracingReplacer;
@@ -48,7 +49,7 @@ class ServiceProvider extends AddonServiceProvider
 
     protected $listen = [
         Events\ResponseCreated::class => [CaptureResponseData::class],
-        RouteMatched::class => [AddSiteContext::class],
+        RouteMatched::class => [AddSiteContext::class, SnapshotSites::class],
         ResponsePrepared::class => [StripTraceHeader::class],
         Events\StacheWarmed::class => [RecordStacheChange::class],
         Events\StacheCleared::class => [RecordStacheChange::class, RecordCachePurge::class],

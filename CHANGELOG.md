@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   effect of another (its localisations) is no row. Switch it off with
   `STATAMIC_TELEMETRY_CONTENT_AUDIT=false`; `laravel-telemetry-ui` 3.1 lists
   the records on Statamic → Content.
+- **Sites in the audit log, one row per site that changed.** Statamic saves
+  every site at once and fires `SiteSaved` for each; the addon snapshots
+  the sites when the CP's sites form is submitted and records only the
+  sites that were created, changed (naming the keys: `name`, `url`,
+  `locale`, …) or removed. A sites save from code is one `saved` row.
 
 ### Changed
 

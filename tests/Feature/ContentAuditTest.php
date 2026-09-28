@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use Cbox\StatamicTelemetry\Listeners\SnapshotSites;
 use Cbox\StatamicTelemetry\Support\ContentAudit;
 use Cbox\Telemetry\Testing\TelemetryFake;
+use Illuminate\Routing\Events\RouteMatched;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Cache;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
@@ -199,4 +202,76 @@ test('the change span carries the same detail as the record', function () {
         fn ($span) => ($span->attributes()['statamic.content.title'] ?? null) === 'Spanned'
             && ($span->attributes()['statamic.content.action'] ?? null) === 'created',
     );
+});
+
+describe('sites', function () {
+    beforeEach(function () {
+        config()->set('statamic.system.multisite', true);
+        Site::setSites([
+            'en' => ['name' => 'English', 'url' => '/', 'locale' => 'en_US'],
+            'da' => ['name' => 'Danish', 'url' => '/da/', 'locale' => 'da_DK'],
+        ]);
+        $this->sitesFile = Site::path();
+        $this->hadSitesFile = file_exists($this->sitesFile);
+        $this->sitesBackup = $this->hadSitesFile ? file_get_contents($this->sitesFile) : null;
+        Site::save();
+    });
+
+    afterEach(function () {
+        $this->hadSitesFile ? file_put_contents($this->sitesFile, $this->sitesBackup) : @unlink($this->sitesFile);
+    });
+
+    test('a CP save of the sites records only the sites that changed, and what changed', function () {
+        $fake = $this->fakeTelemetry();
+
+        // What the listener does when the CP's sites route matches.
+        app(ContentAudit::class)->snapshotSites();
+
+        Site::setSites([
+            'en' => ['name' => 'English', 'url' => '/', 'locale' => 'en_US'],
+            'da' => ['name' => 'Dansk', 'url' => 'https://example.dk/', 'locale' => 'da_DK'],
+            'de' => ['name' => 'Deutsch', 'url' => '/de/', 'locale' => 'de_DE'],
+        ])->save();
+
+        expect(array_map(
+            static fn (array $r): array => [$r['statamic.content.action'], $r['statamic.site'], $r['statamic.content.changed'] ?? null],
+            auditRecords($fake),
+        ))->toEqualCanonicalizing([
+            ['created', 'de', null],
+            ['updated', 'da', 'name, url'],
+        ]);
+    });
+
+    test('a removed site is recorded as deleted', function () {
+        $fake = $this->fakeTelemetry();
+        app(ContentAudit::class)->snapshotSites();
+
+        Site::setSites(['en' => ['name' => 'English', 'url' => '/', 'locale' => 'en_US']])->save();
+
+        expect(array_column(auditRecords($fake), 'statamic.content.action', 'statamic.site'))->toBe(['da' => 'deleted']);
+    });
+
+    test('a save from code, with nothing to compare against, is one row for the batch', function () {
+        $fake = $this->fakeTelemetry();
+
+        Site::setSites([
+            'en' => ['name' => 'English', 'url' => '/', 'locale' => 'en_US'],
+            'da' => ['name' => 'Dansk', 'url' => '/da/', 'locale' => 'da_DK'],
+        ])->save();
+
+        expect(array_column(auditRecords($fake), 'statamic.content.action'))->toBe(['saved']);
+    });
+
+    test('the snapshot is taken when the CP route that saves the sites matches, not on any other route', function () {
+        $audit = app(ContentAudit::class);
+        $snapshot = fn () => (fn () => $this->sitesBefore)->call($audit);
+
+        $route = fn (string $name) => (new Route('PATCH', 'cp/sites', fn () => null))->name($name);
+
+        event(new RouteMatched($route('statamic.cp.entries.update'), request()));
+        expect($snapshot())->toBeNull();
+
+        event(new RouteMatched($route(SnapshotSites::ROUTE), request()));
+        expect(array_keys($snapshot()['sites']))->toBe(['en', 'da']);
+    });
 });

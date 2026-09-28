@@ -152,7 +152,7 @@ lists them on **Statamic → Content** as an audit log.
 | `statamic.content.action` | `created`, `updated`, `saved` (nothing measurably changed), `published`, `unpublished`, `deleted`, `uploaded`, `replaced`, `reuploaded`, `schedule_reached`; revisions: `working`, `revision`, `publish`, `unpublish`, `restore` |
 | `statamic.content.id` / `.title` / `.handle` / `.slug` | what an editor recognises the item by |
 | `statamic.collection` / `statamic.taxonomy` / `statamic.asset.container` / `statamic.form` / `statamic.blueprint` | the item's home |
-| `statamic.site` | the localisation |
+| `statamic.site` | the localisation (for a site record: the site itself; `statamic.site.locale` beside it) |
 | `statamic.content.status` | an entry's status after the save |
 | `statamic.content.url` / `statamic.content.path` / `statamic.content.edit_url` | the public URI, an asset's path, the absolute CP edit link |
 | `statamic.content.changed` | the top-level field handles an update changed — names, never values |
@@ -168,6 +168,15 @@ row at all. Publish transitions and changed fields come from Statamic's dirty
 state; with a Stache cache store that hands back its cached instance (an
 unserialised `array` store), that state is already synced by the time the
 event fires, and the row says `saved` rather than guessing.
+
+Sites are saved all at once: Statamic writes the whole sites config and
+fires `SiteSaved` for every site, with no dirty state. When the CP's sites
+form is submitted the addon takes a snapshot first, so only the sites that
+changed become rows — `created`, `updated` (with the changed keys: `name`,
+`url`, `locale`, `lang`, `attributes`, …) or `deleted` — with the site's
+handle as `statamic.site`, its `statamic.site.locale` and URL. A sites save
+made from code has nothing to compare against and is one `saved` row for
+the batch.
 
 ### `statamic.content.changes` labels
 
