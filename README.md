@@ -75,7 +75,7 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 |---|---|---|
 | `statamic.static_cache.operations` | counter | `operation`: hit, miss, write, invalidate, flush |
 | `statamic.stache.warms` / `statamic.stache.clears` | counter | — |
-| `statamic.stache.warm_duration` | histogram (ms) | — |
+| `statamic.stache.warm_duration` | histogram (s) | — |
 | `statamic.glide.generations` | counter | `preset` (ad-hoc params → `custom`) |
 | `statamic.forms.submissions` | counter | `form` |
 | `statamic.content.changes` | counter | `type`, `action` |
@@ -88,6 +88,18 @@ php artisan vendor:publish --tag=statamic-telemetry-config
 
 Core cache counters additionally carry the `key_group` label from the
 classifier.
+
+### Content audit log
+
+Each change behind `statamic.content.changes` is also a
+`statamic.content.change` event in the logs backend: the item (id, title,
+collection, site, URL, CP edit link), what the save did (`created`,
+`updated`, `published`, `unpublished`, `deleted`, `uploaded`, …), the fields
+it changed and the editor who made it — entries, terms, assets, collections,
+blueprints, fieldsets, navigations, globals, users, forms and revisions.
+`laravel-telemetry-ui` lists them on **Statamic → Content**. See the
+[reference](docs/configuration/reference.md#content-audit-log) for every
+attribute.
 
 ## Grafana dashboard
 
@@ -215,9 +227,10 @@ behind each design decision — lives in [docs/](docs/index.md).
 
 ## UI
 
-None yet — the addon is structured as a regular Statamic addon
-(`AddonServiceProvider`), so CP nav, widgets and routes can be added later
-without restructuring.
+A **Telemetry** item under *Tools* in the CP nav links to
+`cboxdk/laravel-telemetry-ui` when it is installed (its Statamic pages:
+Static Cache, Stache, Glide, Forms, Content with the audit log), or to the
+URL in `STATAMIC_TELEMETRY_UI_URL` (a Grafana dashboard, a remote UI).
 
 ## Testing
 

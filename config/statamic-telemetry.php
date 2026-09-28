@@ -41,6 +41,11 @@ return [
     | forms           Counter per created submission, labelled by form.
     | content_events  Counter for content changes (entry/term/asset/… saved,
     |                 deleted, uploaded).
+    | content_audit   One `statamic.content.change` log event per change: the
+    |                 item (id, title, collection, site, url, edit link), the
+    |                 transition (created/updated/published/unpublished/…),
+    |                 the changed fields and who made it — an audit trail.
+    |                 Needs content_events.
     | search          Counter per search index update, labelled by index.
     | auth            Counter for auth/security events: impersonation,
     |                 2FA (enabled/failed/passed/…), registrations and
@@ -68,6 +73,7 @@ return [
         'cache_purges' => env('STATAMIC_TELEMETRY_CACHE_PURGES', true),
         'forms' => env('STATAMIC_TELEMETRY_FORMS', true),
         'content_events' => env('STATAMIC_TELEMETRY_CONTENT_EVENTS', true),
+        'content_audit' => env('STATAMIC_TELEMETRY_CONTENT_AUDIT', true),
         'search' => env('STATAMIC_TELEMETRY_SEARCH', true),
         'auth' => env('STATAMIC_TELEMETRY_AUTH', true),
         'blink' => env('STATAMIC_TELEMETRY_BLINK', true),
@@ -105,6 +111,26 @@ return [
 
     'cp' => [
         'url' => env('STATAMIC_TELEMETRY_UI_URL', env('STATAMIC_TELEMETRY_GRAFANA_URL')),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Content audit
+    |--------------------------------------------------------------------------
+    |
+    | What the `statamic.content.change` records carry about who and what.
+    | actor_name      The editor's name beside their user.id — these are the
+    |                 site's own editors, and an audit trail of ids nobody can
+    |                 read is not much of one. Off → the id only (the base
+    |                 package's default). The email is never sent.
+    | changed_fields  The top-level field handles an update changed (names
+    |                 only, never values).
+    |
+    */
+
+    'audit' => [
+        'actor_name' => env('STATAMIC_TELEMETRY_AUDIT_ACTOR_NAME', true),
+        'changed_fields' => env('STATAMIC_TELEMETRY_AUDIT_CHANGED_FIELDS', true),
     ],
 
 ];

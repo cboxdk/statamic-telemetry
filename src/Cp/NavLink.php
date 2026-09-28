@@ -25,9 +25,14 @@ final class NavLink
             return $configured;
         }
 
-        // The bundled UI, when present — routed by laravel-telemetry-ui.
-        if (Route::has('telemetry-ui.page')) {
-            return route('telemetry-ui.page');
+        // The bundled UI, when present — routed by laravel-telemetry-ui. 2.x+
+        // serves every dashboard path from one SPA route (`telemetry-ui.spa`);
+        // 1.x named its pages route `telemetry-ui.page`. Checking only the
+        // old name dropped the nav item for everyone on 2.x and later.
+        foreach (['telemetry-ui.spa', 'telemetry-ui.page'] as $name) {
+            if (Route::has($name)) {
+                return route($name);
+            }
         }
 
         return null;

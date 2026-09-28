@@ -11,6 +11,9 @@ use Statamic\Facades\Stache;
 
 class RecordStacheChange extends GuardedListener
 {
+    /** @var list<float> seconds */
+    public const BUCKETS = [0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0];
+
     protected function handleEvent(object $event): void
     {
         if (! $event instanceof StacheWarmed && ! $event instanceof StacheCleared) {
@@ -28,8 +31,11 @@ class RecordStacheChange extends GuardedListener
 
             if ($ms !== null) {
                 // Seconds, per the semantic conventions, like every other
-                // duration the stack emits.
-                Telemetry::histogram('statamic.stache.warm_duration', description: 'Stache warm build time', unit: 's')
+                // duration the stack emits. Its own buckets: a warm takes
+                // seconds to minutes, and a host config published before 3.0
+                // still carries millisecond `default_buckets` (1…10000),
+                // which would put every warm in the first two buckets.
+                Telemetry::histogram('statamic.stache.warm_duration', self::BUCKETS, 'Stache warm build time', 's')
                     ->record($ms / 1000);
             }
 

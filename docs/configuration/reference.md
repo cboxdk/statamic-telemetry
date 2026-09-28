@@ -109,7 +109,7 @@ These are the fast requests, so the catch-all bucket is effectively
 | `statamic.static_cache.operations` | counter | `operation`: hit, miss, write, invalidate, flush | cacher subclass overrides |
 | `statamic.stache.warms` | counter | — | `StacheWarmed` |
 | `statamic.stache.clears` | counter | — | `StacheCleared` |
-| `statamic.stache.warm_duration` | histogram (ms) | — | `StacheWarmed` + `Stache::buildTime()` |
+| `statamic.stache.warm_duration` | histogram (s, own buckets 0.05–300 s) | — | `StacheWarmed` + `Stache::buildTime()` |
 | `statamic.glide.generations` | counter | `preset` (ad-hoc params → `custom`) | `GlideImageGenerated` |
 | `statamic.glide.cache_clears` | counter | `scope`: all, asset | `GlideCacheCleared`, `GlideAssetCacheCleared` |
 | `statamic.forms.submissions` | counter | `form` | `SubmissionCreated` |
@@ -138,6 +138,36 @@ A purge explains the slow requests that follow it: a stache clear means
 index rebuilds, a static cache clear means full renders, a glide clear
 means image regeneration. `cache.trigger` separates deploy-pipeline
 purges (`cli`) from CP or MCP-triggered ones (`http`).
+
+## Content audit log
+
+Every content change is also one `statamic.content.change` event (an OTLP
+log record, correlated to the request or command that made it) — the row
+behind the bounded `statamic.content.changes` counter. `laravel-telemetry-ui`
+lists them on **Statamic → Content** as an audit log.
+
+| Attribute | Values |
+|---|---|
+| `statamic.content.type` | `entry`, `term`, `asset`, `collection`, `taxonomy`, `blueprint`, `fieldset`, `nav`, `nav_tree`, `collection_tree`, `global_set`, `global_variables`, `form`, `user`, `role`, `user_group`, `asset_container`, `asset_folder`, `site`, `revision`, `submission`, … |
+| `statamic.content.action` | `created`, `updated`, `saved` (nothing measurably changed), `published`, `unpublished`, `deleted`, `uploaded`, `replaced`, `reuploaded`, `schedule_reached`; revisions: `working`, `revision`, `publish`, `unpublish`, `restore` |
+| `statamic.content.id` / `.title` / `.handle` / `.slug` | what an editor recognises the item by |
+| `statamic.collection` / `statamic.taxonomy` / `statamic.asset.container` / `statamic.form` / `statamic.blueprint` | the item's home |
+| `statamic.site` | the localisation |
+| `statamic.content.status` | an entry's status after the save |
+| `statamic.content.url` / `statamic.content.path` / `statamic.content.edit_url` | the public URI, an asset's path, the absolute CP edit link |
+| `statamic.content.changed` | the top-level field handles an update changed — names, never values |
+| `statamic.revision.message` / `statamic.revision.key` | a revision's message and key |
+| `statamic.content.origin` | `cp`, `api`, `web`, `console` (+ `process.command`) |
+| `user.id` / `user.name` | the signed-in editor; the name can be switched off, the email is never sent |
+
+Statamic fires several events for one save — `EntryCreated` then
+`EntrySaved`, and re-saves an entry's localisations after it — so the record
+keeps to what an editor did: the creation is one `created` row, and a save
+Statamic made as a side effect of another (`EntrySaved::isInitial()`) is no
+row at all. Publish transitions and changed fields come from Statamic's dirty
+state; with a Stache cache store that hands back its cached instance (an
+unserialised `array` store), that state is already synced by the time the
+event fires, and the row says `saved` rather than guessing.
 
 ### `statamic.content.changes` labels
 
@@ -194,12 +224,15 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `instrument.cache_purges` | true | `statamic.cache.purge` annotation event per cache clear |
 | `instrument.forms` | true | Submission counter |
 | `instrument.content_events` | true | Content-change counter |
+| `instrument.content_audit` | true | One `statamic.content.change` audit record per change (needs `content_events`) |
 | `instrument.search` | true | Search index-update counter |
 | `instrument.auth` | true | Auth/security event counter |
 | `instrument.blink` | true | Blink memoization tallies |
 | `instrument.views` | false | A `view.render` detail span per rendered view |
 | `instrument.antlers` | false | A detail span per Antlers tag (forces `statamic.antlers.tracing` on) |
 | `gauges.enabled` | false | Inventory gauges (query on every scrape) |
+| `audit.actor_name` | true | The editor's `user.name` beside `user.id` on audit records |
+| `audit.changed_fields` | true | The changed field handles (names only) on `updated` records |
 | `cp.url` | auto | The "Telemetry" CP nav item's URL. Auto-links to the in-app `laravel-telemetry-ui` dashboard when installed; set `STATAMIC_TELEMETRY_UI_URL` to override (Grafana / remote UI). No UI + no url → no nav item |
 
 ## Antlers tags

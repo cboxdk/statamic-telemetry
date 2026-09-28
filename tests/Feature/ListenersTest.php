@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Cbox\StatamicTelemetry\Listeners\RecordStacheChange;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Routing\Route;
@@ -13,6 +14,7 @@ use Statamic\Events\GlobalVariablesSaved;
 use Statamic\Events\ImpersonationStarted;
 use Statamic\Events\SearchIndexUpdated;
 use Statamic\Events\StacheCleared;
+use Statamic\Events\StacheWarmed;
 use Statamic\Events\StaticCacheCleared;
 use Statamic\Events\SubmissionCreated;
 use Statamic\Events\TwoFactorAuthenticationFailed;
@@ -22,6 +24,7 @@ use Statamic\Facades\Entry;
 use Statamic\Facades\Form;
 use Statamic\Facades\GlobalSet;
 use Statamic\Facades\Search;
+use Statamic\Facades\Stache;
 use Statamic\Facades\User;
 
 test('glide generations are counted per preset, ad-hoc manipulations grouped', function () {
@@ -193,12 +196,15 @@ test('form submissions also emit a drillable child span with the form handle', f
 test('content changes also emit a drillable child span with type and action', function () {
     $fake = $this->fakeTelemetry();
 
+    // The span carries the audit record's detail: what the save did (a new
+    // collection is "created"), not the counter's bounded label.
     Collection::make('pages')->save();
 
     $fake->assertSpanRecorded(
         'statamic.content.change',
         fn ($span) => ($span->attributes()['statamic.content.type'] ?? null) === 'collection'
-            && ($span->attributes()['statamic.content.action'] ?? null) === 'saved',
+            && ($span->attributes()['statamic.content.action'] ?? null) === 'created'
+            && ($span->attributes()['statamic.content.handle'] ?? null) === 'pages',
     );
 });
 
@@ -209,4 +215,20 @@ test('a disabled overlay emits neither counter nor span', function () {
     event(new GlideImageGenerated('img/hero.jpg', ['p' => 'thumbnail']));
 
     $fake->assertSpanNotRecorded('statamic.glide.generate');
+});
+
+test('a stache warm records its build time in seconds, on its own second buckets', function () {
+    // Stache keeps the last warm's timing in milliseconds.
+    Stache::cacheStore()->forever('stache::timing', ['time' => 2400, 'date' => now()->timestamp]);
+    // A host config published before 3.0 still has millisecond default buckets.
+    config()->set('telemetry.default_buckets', [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]);
+
+    $fake = $this->fakeTelemetry();
+
+    event(new StacheWarmed);
+
+    $family = collect($fake->collect())->first(fn ($f) => $f->name() === 'statamic.stache.warm_duration');
+
+    expect($fake->histogramSum('statamic.stache.warm_duration'))->toBe(2.4)
+        ->and($family->definition->buckets)->toBe(RecordStacheChange::BUCKETS);
 });

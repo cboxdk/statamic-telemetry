@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cbox\StatamicTelemetry\Listeners;
 
+use Cbox\StatamicTelemetry\Support\ContentAudit;
 use Cbox\Telemetry\Facades\Telemetry;
 use Illuminate\Support\Str;
 use Statamic\Entries\Entry;
@@ -18,6 +19,11 @@ use Statamic\Events;
  * a flat "saved", so the counter shows the publish-state mix of editing
  * activity. Both dimensions are bounded by the fixed set of events the
  * service provider subscribes to.
+ *
+ * Each change is also one audit record ({@see ContentAudit}): the item, the
+ * transition (created / updated / published / unpublished / …), the fields
+ * that moved and who made it, as a `statamic.content.change` event in the
+ * logs backend — the per-item history the bounded counter cannot carry.
  */
 class RecordContentChange extends GuardedListener
 {
@@ -34,6 +40,14 @@ class RecordContentChange extends GuardedListener
             return;
         }
 
+        $audit = app(ContentAudit::class);
+
+        // `*Created` only marks the object: the save right after it is the
+        // one change, recorded (and counted) once.
+        if ($audit->noteCreated($event)) {
+            return;
+        }
+
         [$type, $action] = $this->classify($event);
 
         if ($type === null) {
@@ -43,12 +57,20 @@ class RecordContentChange extends GuardedListener
         Telemetry::counter('statamic.content.changes', 'Content changes by type and action')
             ->inc(1, ['type' => $type, 'action' => $action]);
 
+        $record = config('statamic-telemetry.instrument.content_audit', true)
+            ? $audit->record($event, $type, $action)
+            : null;
+
         // A child span so each content mutation is an individual, drillable row
         // correlated to the CP request (or command) that made it.
-        Telemetry::tracer()->recordSpan('statamic.content.change', 0.0, [
+        Telemetry::tracer()->recordSpan(ContentAudit::EVENT, 0.0, $record ?? [
             'statamic.content.type' => $type,
             'statamic.content.action' => $action,
         ]);
+
+        if ($record !== null) {
+            Telemetry::event(ContentAudit::EVENT, $record);
+        }
     }
 
     /**
@@ -74,11 +96,10 @@ class RecordContentChange extends GuardedListener
 
     /**
      * The entry's publish status at save time — `published` / `draft` /
-     * `scheduled` / `expired`. A status *snapshot*, not a transition:
-     * detecting an actual publish/unpublish would need the pre-save
-     * published value, which Statamic has already synced away by the time
-     * the save event fires. `status()` is reliable, so this is: "an entry
-     * in <status> was saved" — the publish-state mix of editing activity.
+     * `scheduled` / `expired`. A status *snapshot*, not a transition — "an
+     * entry in <status> was saved", the publish-state mix of editing
+     * activity — kept as it is so the counter's series stay stable. The
+     * transition (published / unpublished) is on the audit record.
      */
     private function entrySaveAction(Entry $entry): string
     {

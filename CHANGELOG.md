@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A content audit log.** Every content change is now also one
+  `statamic.content.change` event in the logs backend — the item (id,
+  title, handle, collection/taxonomy/container, site, URL, CP edit link),
+  what the save did (`created`, `updated`, `published`, `unpublished`,
+  `deleted`, `uploaded`, `replaced`, revision `publish`/`working`/…), the
+  field handles an update changed (never their values) and who made it
+  (`user.id`, and `user.name` unless `audit.actor_name` is off; never the
+  email), from where (`cp`, `api`, `web`, `console` + command). Covers
+  entries, terms, assets, collections, taxonomies, blueprints, fieldsets,
+  navigations and their trees, global sets and variables, users, roles,
+  groups, forms, sites and revisions. `*Created` events are now listened
+  to so a creation is one `created` row, and an entry saved only as a side
+  effect of another (its localisations) is no row. Switch it off with
+  `STATAMIC_TELEMETRY_CONTENT_AUDIT=false`; `laravel-telemetry-ui` 3.1 lists
+  the records on Statamic → Content.
+
+### Changed
+
+- **The `statamic.content.change` span carries the audit record's detail.**
+  Its `statamic.content.action` is now what the save did (`created`,
+  `updated`, …) rather than the counter's label; the counter itself is
+  unchanged, so dashboards and alerts on `statamic.content.changes` keep
+  working.
+- **`statamic.stache.warm_duration` has its own buckets** (0.05 s – 300 s)
+  instead of `telemetry.default_buckets`. A host config published before
+  3.0 still carries millisecond default buckets (1 … 10000), which put every
+  warm in the first bucket or two and made its percentiles meaningless. The
+  first window after deploying this reads the old bucket counts against the
+  new bounds; it settles on its own.
+
+### Fixed
+
+- **The "Telemetry" CP nav item was gone for everyone on
+  `laravel-telemetry-ui` 2.x and later.** It looked for the 1.x route name
+  (`telemetry-ui.page`); 2.x serves the dashboard from `telemetry-ui.spa`.
+  Both are recognised now.
+
 ## [3.0.0] - 2026-09-27
 
 A major because the metric changed unit. `cboxdk/laravel-telemetry` 3.0 put

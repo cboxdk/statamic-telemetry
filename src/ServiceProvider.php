@@ -20,6 +20,7 @@ use Cbox\StatamicTelemetry\Metrics\StatamicMetricsProvider;
 use Cbox\StatamicTelemetry\StaticCaching\BrowserTracingReplacer;
 use Cbox\StatamicTelemetry\StaticCaching\TracingApplicationCacher;
 use Cbox\StatamicTelemetry\StaticCaching\TracingFileCacher;
+use Cbox\StatamicTelemetry\Support\ContentAudit;
 use Cbox\StatamicTelemetry\Support\TracingBlink;
 use Cbox\StatamicTelemetry\View\AntlersNodeTracer;
 use Cbox\StatamicTelemetry\View\TracingEngine;
@@ -67,6 +68,21 @@ class ServiceProvider extends AddonServiceProvider
         Events\ValidTwoFactorAuthenticationCodeProvided::class => [RecordAuthEvent::class],
         Events\TwoFactorRecoveryCodeReplaced::class => [RecordAuthEvent::class],
         Events\SubmissionCreated::class => [RecordFormSubmission::class],
+        // `*Created` marks the object so its save is recorded as the creation.
+        Events\EntryCreated::class => [RecordContentChange::class],
+        Events\TermCreated::class => [RecordContentChange::class],
+        Events\AssetCreated::class => [RecordContentChange::class],
+        Events\CollectionCreated::class => [RecordContentChange::class],
+        Events\TaxonomyCreated::class => [RecordContentChange::class],
+        Events\NavCreated::class => [RecordContentChange::class],
+        Events\GlobalSetCreated::class => [RecordContentChange::class],
+        Events\GlobalVariablesCreated::class => [RecordContentChange::class],
+        Events\FormCreated::class => [RecordContentChange::class],
+        Events\UserCreated::class => [RecordContentChange::class],
+        Events\BlueprintCreated::class => [RecordContentChange::class],
+        Events\FieldsetCreated::class => [RecordContentChange::class],
+        Events\AssetContainerCreated::class => [RecordContentChange::class],
+        Events\SiteCreated::class => [RecordContentChange::class],
         Events\EntrySaved::class => [RecordContentChange::class],
         Events\EntryDeleted::class => [RecordContentChange::class],
         Events\TermSaved::class => [RecordContentChange::class],
@@ -127,6 +143,9 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->registerStaticCacheDrivers();
         $this->registerTracingBlink();
+
+        // One per process: it pairs a `*Created` with the save that follows.
+        $this->app->singleton(ContentAudit::class);
     }
 
     /**
