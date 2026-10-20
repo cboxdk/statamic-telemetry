@@ -52,8 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `laravel-telemetry-ui` 2.x and later.** It looked for the 1.x route name
   (`telemetry-ui.page`); 2.x serves the dashboard from `telemetry-ui.spa`.
   Both are recognised now, and a test builds the CP nav with the real
-  `laravel-telemetry-ui` installed (a dev dependency now), so a renamed route
-  fails the suite instead of the nav.
+  `laravel-telemetry-ui` installed (CI adds it on PHP 8.4+), so a renamed
+  route fails the suite instead of the nav.
 
 ## [3.0.0] - 2026-09-27
 

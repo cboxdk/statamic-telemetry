@@ -29,7 +29,6 @@
         "statamic/cms": "^6.0"
     },
     "require-dev": {
-        "cboxdk/laravel-telemetry-ui": "^3.3",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",

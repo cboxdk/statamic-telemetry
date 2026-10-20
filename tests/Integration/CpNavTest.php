@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Cbox\StatamicTelemetry\ServiceProvider;
+use Cbox\StatamicTelemetry\Tests\Integration\WithTelemetryUiTestCase;
 use Statamic\CP\Navigation\Nav as Navigation;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\User;
@@ -23,4 +24,4 @@ test('the Telemetry item is in the built CP nav, under Tools, linking to the ins
     // it is built from, and a test against a faked route kept passing.
     expect($items)->toHaveKey('Tools / Telemetry')
         ->and($items['Tools / Telemetry'])->toBe('http://localhost/telemetry-ui');
-});
+})->skip(! WithTelemetryUiTestCase::installed(), WithTelemetryUiTestCase::MISSING);
