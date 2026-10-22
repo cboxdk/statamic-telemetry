@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Cbox\StatamicTelemetry\Telemetry\Requests;
 use Cbox\StatamicTelemetry\Telemetry\Traces;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 use Statamic\Facades\User;
 
 /** A Tempo search response with three traces across two endpoints. */
@@ -89,9 +90,10 @@ it('renders the dashboard for a permitted user with real numbers', function () {
 
     $this->get(cp_route('telemetry.dashboard'))
         ->assertOk()
-        ->assertSee('Telemetry')
-        ->assertSee('Recent requests')
-        ->assertSee('GET /');
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('statamic-telemetry::Telemetry')
+            ->where('overview.recent.0.name', 'GET /')
+            ->has('metrics'));
 });
 
 it('renders a single trace waterfall page', function () {
@@ -111,7 +113,9 @@ it('shows the empty state when the backend has no traces, without throwing', fun
 
     $this->get(cp_route('telemetry.dashboard'))
         ->assertOk()
-        ->assertSee('No requests in this window');
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('statamic-telemetry::Telemetry')
+            ->where('overview.count', 0));
 });
 
 it('denies the dashboard to a user without the permission', function () {

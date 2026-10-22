@@ -52,6 +52,11 @@ class ServiceProvider extends AddonServiceProvider
 
     protected $viewNamespace = 'statamic-telemetry';
 
+    protected $vite = [
+        'input' => ['resources/js/cp.js'],
+        'publicDirectory' => 'resources/dist',
+    ];
+
     protected $listen = [
         Events\ResponseCreated::class => [CaptureResponseData::class],
         RouteMatched::class => [AddSiteContext::class, SnapshotSites::class],
