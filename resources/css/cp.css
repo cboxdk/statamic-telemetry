@@ -159,3 +159,10 @@
 .ptel-span-track { position: relative; height: 14px; background: color-mix(in oklab, var(--color-gray-500) 12%, transparent); border-radius: 3px; }
 .ptel-span-bar { position: absolute; top: 0; height: 100%; min-width: 2px; border-radius: 3px; background: var(--color-blue-500); }
 .ptel-span-dur { text-align: right; color: var(--color-gray-500); font-variant-numeric: tabular-nums; }
+
+/* Telemetry metric section */
+.ptel-tele .ptel-section { font-size: .8125rem; text-transform: uppercase; letter-spacing: .04em; color: var(--color-gray-500); font-weight: 600; margin: 1.5rem 0 .75rem; }
+.ptel-tele .ptel-pad { padding: 1rem 1.25rem; }
+.ptel-tele .ptel-ops { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.ptel-tele .ptel-op { font-size: .8125rem; padding: .25rem .5rem; border-radius: .4rem; background: color-mix(in oklab, var(--color-gray-500) 12%, transparent); display: inline-flex; gap: .4rem; font-variant-numeric: tabular-nums; }
+.ptel-tele .ptel-op-k { color: var(--color-gray-500); }

@@ -237,6 +237,23 @@ class ServiceProvider extends AddonServiceProvider
     private function bootCpNav(): void
     {
         Nav::extend(function ($nav) {
+            // Content audit + doctor live as sub-items under "Telemetry".
+            $children = [];
+
+            if (app(AuditLog::class)->enabled()) {
+                $children[] = Nav::item('Content audit')
+                    ->route('telemetry.audit')
+                    ->icon('list-ul')
+                    ->can('view content audit log');
+            }
+
+            // The doctor is always available — a diagnostics page is most
+            // useful precisely when the backend is down.
+            $children[] = Nav::item('Telemetry doctor')
+                ->route('telemetry.doctor')
+                ->icon('pulse')
+                ->can('view telemetry diagnostics');
+
             // An explicit `cp.url` (Grafana / a remote UI) still wins — an
             // opt-out from the native page. Otherwise "Telemetry" is the native
             // inline dashboard.
@@ -252,30 +269,14 @@ class ServiceProvider extends AddonServiceProvider
                     $item->attributes(['target' => '_blank', 'rel' => 'noopener']);
                 }
             } else {
-                $nav->create('Telemetry')
+                $item = $nav->create('Telemetry')
                     ->section('Tools')
                     ->route('telemetry.dashboard')
                     ->icon('chart-monitoring-indicator')
                     ->can('view telemetry');
             }
 
-            // The native Content audit page — only when a logs backend is
-            // reachable, and only for users allowed to see it.
-            if (app(AuditLog::class)->enabled()) {
-                $nav->create('Content audit')
-                    ->section('Tools')
-                    ->route('telemetry.audit')
-                    ->icon('list-ul')
-                    ->can('view content audit log');
-            }
-
-            // The telemetry doctor — always available (it is a diagnostics
-            // page, useful precisely when the backend is down).
-            $nav->create('Telemetry doctor')
-                ->section('Tools')
-                ->route('telemetry.doctor')
-                ->icon('pulse')
-                ->can('view telemetry diagnostics');
+            $item->children($children);
         });
     }
 
