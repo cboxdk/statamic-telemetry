@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cbox\StatamicTelemetry\Http\Controllers\Cp;
 
 use Cbox\StatamicTelemetry\Telemetry\Requests;
+use Cbox\StatamicTelemetry\Telemetry\TelemetryMetrics;
 use Cbox\StatamicTelemetry\Telemetry\Traces;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class TelemetryController extends CpController
         '24h' => 'Last 24 hours',
     ];
 
-    public function __invoke(Request $request, Requests $requests, Traces $traces): View
+    public function __invoke(Request $request, Requests $requests, Traces $traces, TelemetryMetrics $metrics): View
     {
         if (is_string($trace = $request->query('trace')) && $trace !== '') {
             $data = [
@@ -38,11 +39,13 @@ class TelemetryController extends CpController
         }
 
         $window = $this->window($request);
+        $seconds = $this->seconds($window);
 
         $data = [
             'window' => $window,
             'windows' => self::WINDOWS,
-            'overview' => $requests->overview($this->seconds($window)),
+            'overview' => $requests->overview($seconds),
+            'metrics' => $metrics->overview($seconds),
         ];
 
         return view('statamic-telemetry::cp.telemetry', $data); // @phpstan-ignore argument.type

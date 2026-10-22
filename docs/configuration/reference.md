@@ -256,14 +256,26 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 
 ### Telemetry dashboard page
 
-A native **Telemetry** page (nav: *Tools → Telemetry*) replaces the link-out to
-`laravel-telemetry-ui`. It reads the backend's **traces** (Tempo API on
-`cp.audit.url`) and shows request volume/rate, p50/p95/max latency with
-server-rendered inline-SVG charts, the slowest endpoints and recent requests;
-each request opens a single-trace waterfall. Guarded (empty state when the
-backend has nothing / is unreachable). Gated by **View the telemetry
-dashboard**. Metric and log sections are planned; set `cp.url` to opt back out
-to Grafana / a remote UI.
+A native **Telemetry** page (nav: *Tools → Telemetry*, with **Content audit**
+and **Telemetry doctor** as sub-items) replaces the link-out to
+`laravel-telemetry-ui`. It reads the backend (telemetryd or an LGTM stack, over
+its Tempo and Prometheus APIs on `cp.audit.url`):
+
+- **Traces** — request volume/rate, p50/p95/max latency with inline-SVG charts,
+  the slowest endpoints and recent requests; each opens a single-trace
+  waterfall.
+- **Metrics** — requests grouped by the addon's bounded content route
+  (`entry:{collection}.{blueprint}`, not the catch-all `/{segments?}`), the
+  static-cache hit ratio and operations, and content changes by type/action.
+
+Guarded throughout (empty state when the backend has nothing / is unreachable)
+and gated by **View the telemetry dashboard**. Set `cp.url` to opt back out to
+Grafana / a remote UI.
+
+The metric section needs metrics in the backend: run the app with a shared
+store (`TELEMETRY_STORE=sqlite` / `redis` / `apcu`, not the default per-process
+`array`) and `php artisan telemetry:flush` (or `--daemon`) shipping them over
+OTLP. Traces and the audit log need no such wiring.
 
 ### Content audit page
 

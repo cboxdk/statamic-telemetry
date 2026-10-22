@@ -94,5 +94,64 @@
                 </div>
             </div>
         @endif
+
+        @if ($metrics->hasData())
+            <h2 class="ptel-section">Metrics</h2>
+            <div class="ptel-grid">
+                <div class="ptel-card">
+                    <div class="ptel-card-head">Requests by route</div>
+                    @php $maxR = max(1.0, ...array_map(static fn (array $r): float => $r['count'], $metrics->routes ?: [['count' => 1.0]])); @endphp
+                    <table>
+                        <thead><tr><th>Route</th><th>Requests</th></tr></thead>
+                        <tbody>
+                            @foreach ($metrics->routes as $r)
+                                <tr>
+                                    <td class="ptel-endpoint">{{ $r['route'] }}<div class="ptel-meter-row">{!! Svg::meter($r['count'] / $maxR) !!}</div></td>
+                                    <td>{{ number_format($r['count']) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    @if ($metrics->cacheOperations !== [])
+                        <div class="ptel-card" style="margin-bottom: 1rem">
+                            <div class="ptel-card-head">Static cache</div>
+                            <div class="ptel-pad">
+                                @if ($metrics->cacheHitRatio !== null)
+                                    @php $hr = $metrics->cacheHitRatio; @endphp
+                                    <div class="ptel-value" style="color: {{ $hr >= 0.8 ? 'var(--color-green-500)' : ($hr >= 0.4 ? 'var(--color-orange-500)' : 'var(--color-red-500)') }}">{{ round($hr * 100) }}%</div>
+                                    <div class="ptel-detail">hit ratio</div>
+                                @endif
+                                <div class="ptel-ops">
+                                    @foreach ($metrics->cacheOperations as $op => $n)
+                                        <span class="ptel-op"><span class="ptel-op-k">{{ $op }}</span>{{ number_format($n) }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($metrics->contentChanges !== [])
+                        <div class="ptel-card">
+                            <div class="ptel-card-head">Content changes</div>
+                            <table>
+                                <thead><tr><th>Type</th><th>Action</th><th>Count</th></tr></thead>
+                                <tbody>
+                                    @foreach ($metrics->contentChanges as $c)
+                                        <tr>
+                                            <td>{{ $c['type'] }}</td>
+                                            <td><span class="ptel-badge" style="--tone: var(--color-blue-500)">{{ $c['action'] }}</span></td>
+                                            <td>{{ number_format($c['count']) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
     </div>
 @endsection
