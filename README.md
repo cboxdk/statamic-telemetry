@@ -232,6 +232,45 @@ A **Telemetry** item under *Tools* in the CP nav links to
 Static Cache, Stache, Glide, Forms, Content with the audit log), or to the
 URL in `STATAMIC_TELEMETRY_UI_URL` (a Grafana dashboard, a remote UI).
 
+### Native Content audit page
+
+A second item, **Content audit** under *Tools*, is a Control-Panel-native page
+— no telemetry-ui, no React — that reads the `statamic.content.change` records
+back from the telemetry backend and lists them in the CP itself: who changed
+what, when, the transition (created / published / deleted / …), the fields an
+edit touched and a link into the CP. Filter by type, action and site, search,
+and pick the window.
+
+The store is the telemetry backend you already send to — **telemetryd** (the
+single-binary `cboxdk/telemetryd`) or a full **LGTM** stack. Both answer the
+Loki HTTP query API, so the page runs one LogQL range query and filters the
+window in PHP; nothing new to run, and a backend that is down never breaks the
+page (it shows an error state).
+
+Point it at that backend's logs URL and the item appears, for users with the
+**View content audit log** permission:
+
+```dotenv
+STATAMIC_TELEMETRY_AUDIT_LOGS_URL=http://localhost:3100   # telemetryd / Loki
+# optional, as your backend needs them:
+# STATAMIC_TELEMETRY_AUDIT_LOGS_TOKEN=...                 # bearer token
+# STATAMIC_TELEMETRY_AUDIT_LOGS_TENANT=...                # X-Scope-OrgID
+```
+
+A site already running `laravel-telemetry-ui` needs nothing new — the URL and
+token fall back to its `TELEMETRY_UI_LOGS_URL` / `TELEMETRY_UI_TOKEN`. See the
+[reference](docs/configuration/reference.md#content-audit-page) for every key.
+
+### Telemetry doctor
+
+A third item, **Telemetry doctor** under *Tools*, is a read-only health page
+for the pipeline: is telemetry enabled, where does it ship (OTLP endpoint,
+metric store, exporters), how deep is the **spool** (entries still waiting to
+ship), and does the audit log's backend answer. It is always available — most
+useful precisely when something is down — and mirrors the key signals of
+`php artisan telemetry:doctor`. Gated by the **View telemetry doctor**
+permission.
+
 ## Testing
 
 ```bash

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cbox\StatamicTelemetry;
 
+use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Cp\NavLink;
 use Cbox\StatamicTelemetry\Listeners\AddSiteContext;
 use Cbox\StatamicTelemetry\Listeners\CaptureResponseData;
@@ -32,7 +33,9 @@ use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Cache;
 use Statamic\Events;
 use Statamic\Facades\CP\Nav;
+use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
+use Statamic\Statamic;
 use Statamic\StaticCaching\Cachers\Writer;
 use Statamic\StaticCaching\StaticCacheManager;
 use Statamic\Support\Blink;
@@ -46,6 +49,8 @@ class ServiceProvider extends AddonServiceProvider
     protected $tags = [
         Tags\Telemetry::class,
     ];
+
+    protected $viewNamespace = 'statamic-telemetry';
 
     protected $listen = [
         Events\ResponseCreated::class => [CaptureResponseData::class],
@@ -176,7 +181,32 @@ class ServiceProvider extends AddonServiceProvider
         $this->bootAntlersTracer();
         $this->bootGauges();
         $this->bootBrowserTracing();
+        $this->bootPermissions();
         $this->bootCpNav();
+
+        // The CP pages' stylesheet, linked in the CP <head> (page content has
+        // its <style> tags stripped, so a linked sheet is what applies).
+        Statamic::externalStyle(url(config('statamic.cp.route').'/telemetry/cp.css'));
+    }
+
+    /**
+     * The permission that gates the native Content audit CP page. Registered
+     * through Permission::extend so it lands in the roles UI during the
+     * permission boot cycle, whether or not the page is currently enabled.
+     */
+    private function bootPermissions(): void
+    {
+        Permission::extend(function () {
+            Permission::group('statamic_telemetry', 'Telemetry', function () {
+                Permission::register('view content audit log', function ($permission) {
+                    $permission->label('View content audit log');
+                });
+
+                Permission::register('view telemetry diagnostics', function ($permission) {
+                    $permission->label('View telemetry doctor');
+                });
+            });
+        });
     }
 
     /**
@@ -203,18 +233,34 @@ class ServiceProvider extends AddonServiceProvider
         Nav::extend(function ($nav) {
             $url = NavLink::url();
 
-            if ($url === null) {
-                return;
+            if ($url !== null) {
+                $item = $nav->create('Telemetry')
+                    ->section('Tools')
+                    ->url($url)
+                    ->icon('chart-monitoring-indicator');
+
+                if (NavLink::opensInNewTab($url)) {
+                    $item->attributes(['target' => '_blank', 'rel' => 'noopener']);
+                }
             }
 
-            $item = $nav->create('Telemetry')
+            // The native Content audit page — only when a logs backend is
+            // reachable, and only for users allowed to see it.
+            if (app(AuditLog::class)->enabled()) {
+                $nav->create('Content audit')
+                    ->section('Tools')
+                    ->route('telemetry.audit')
+                    ->icon('list-ul')
+                    ->can('view content audit log');
+            }
+
+            // The telemetry doctor — always available (it is a diagnostics
+            // page, useful precisely when the backend is down).
+            $nav->create('Telemetry doctor')
                 ->section('Tools')
-                ->url($url)
-                ->icon('chart-monitoring-indicator');
-
-            if (NavLink::opensInNewTab($url)) {
-                $item->attributes(['target' => '_blank', 'rel' => 'noopener']);
-            }
+                ->route('telemetry.doctor')
+                ->icon('pulse')
+                ->can('view telemetry diagnostics');
         });
     }
 
