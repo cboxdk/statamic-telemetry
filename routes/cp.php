@@ -5,11 +5,17 @@ declare(strict_types=1);
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\AssetsController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\AuditController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\DoctorController;
+use Cbox\StatamicTelemetry\Http\Controllers\Cp\TelemetryController;
 use Illuminate\Support\Facades\Route;
 
 // The pages' stylesheet, linked in the CP <head>. No permission gate — it is
 // just CSS, and the CP's own auth already fronts the group.
 Route::get('telemetry/cp.css', [AssetsController::class, 'stylesheet'])->name('telemetry.assets');
+
+// The native Telemetry dashboard (Requests + single-trace waterfall).
+Route::get('telemetry', TelemetryController::class)
+    ->middleware('can:view telemetry')
+    ->name('telemetry.dashboard');
 
 // Runs inside Statamic's authenticated CP route group (name prefix
 // `statamic.cp.`, so these resolve as `cp_route('telemetry.audit')` etc.); the

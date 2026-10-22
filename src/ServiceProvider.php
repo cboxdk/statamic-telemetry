@@ -185,8 +185,10 @@ class ServiceProvider extends AddonServiceProvider
         $this->bootCpNav();
 
         // The CP pages' stylesheet, linked in the CP <head> (page content has
-        // its <style> tags stripped, so a linked sheet is what applies).
-        Statamic::externalStyle(url(config('statamic.cp.route').'/telemetry/cp.css'));
+        // its <style> tags stripped, so a linked sheet is what applies). The
+        // content hash in the query busts the cache whenever the CSS changes.
+        $cssVersion = substr((string) @md5_file(__DIR__.'/../resources/css/cp.css'), 0, 8);
+        Statamic::externalStyle(url(config('statamic.cp.route').'/telemetry/cp.css').'?v='.$cssVersion);
     }
 
     /**
@@ -198,6 +200,10 @@ class ServiceProvider extends AddonServiceProvider
     {
         Permission::extend(function () {
             Permission::group('statamic_telemetry', 'Telemetry', function () {
+                Permission::register('view telemetry', function ($permission) {
+                    $permission->label('View the telemetry dashboard');
+                });
+
                 Permission::register('view content audit log', function ($permission) {
                     $permission->label('View content audit log');
                 });
@@ -231,17 +237,26 @@ class ServiceProvider extends AddonServiceProvider
     private function bootCpNav(): void
     {
         Nav::extend(function ($nav) {
-            $url = NavLink::url();
+            // An explicit `cp.url` (Grafana / a remote UI) still wins — an
+            // opt-out from the native page. Otherwise "Telemetry" is the native
+            // inline dashboard.
+            $external = config('statamic-telemetry.cp.url');
 
-            if ($url !== null) {
+            if (is_string($external) && $external !== '') {
                 $item = $nav->create('Telemetry')
                     ->section('Tools')
-                    ->url($url)
+                    ->url($external)
                     ->icon('chart-monitoring-indicator');
 
-                if (NavLink::opensInNewTab($url)) {
+                if (NavLink::opensInNewTab($external)) {
                     $item->attributes(['target' => '_blank', 'rel' => 'noopener']);
                 }
+            } else {
+                $nav->create('Telemetry')
+                    ->section('Tools')
+                    ->route('telemetry.dashboard')
+                    ->icon('chart-monitoring-indicator')
+                    ->can('view telemetry');
             }
 
             // The native Content audit page — only when a logs backend is
