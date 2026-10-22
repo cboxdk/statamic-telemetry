@@ -90,7 +90,7 @@ it('renders the dashboard for a permitted user with real numbers', function () {
     $this->get(cp_route('telemetry.dashboard'))
         ->assertOk()
         ->assertSee('Telemetry')
-        ->assertSee('Slowest endpoints')
+        ->assertSee('Recent requests')
         ->assertSee('GET /');
 });
 
@@ -111,7 +111,7 @@ it('shows the empty state when the backend has no traces, without throwing', fun
 
     $this->get(cp_route('telemetry.dashboard'))
         ->assertOk()
-        ->assertSee('No request traces');
+        ->assertSee('No requests in this window');
 });
 
 it('denies the dashboard to a user without the permission', function () {
