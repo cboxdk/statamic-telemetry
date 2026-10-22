@@ -101,16 +101,53 @@ return [
     | Control Panel
     |--------------------------------------------------------------------------
     |
-    | A "Telemetry" item in the CP nav linking to your telemetry UI. When
-    | cboxdk/laravel-telemetry-ui is installed it points at that dashboard
-    | automatically (it has dedicated Statamic pages); set `url` to override
-    | with a Grafana or remote telemetry-ui URL. No UI installed and no url
-    | set → no nav item.
+    | url    A "Telemetry" item in the CP nav linking to your telemetry UI.
+    |        When cboxdk/laravel-telemetry-ui is installed it points at that
+    |        dashboard automatically (it has dedicated Statamic pages); set
+    |        `url` to override with a Grafana or remote telemetry-ui URL. No UI
+    |        installed and no url set → no nav item.
+    |
+    | audit  A native "Content audit" CP page that reads the
+    |        `statamic.content.change` records back from the telemetry backend
+    |        (telemetryd or an LGTM stack — both answer the Loki query API) and
+    |        lists them in the Control Panel itself. No telemetry-ui, no React.
+    |        It is shown only to users with the "View content audit log"
+    |        permission, and only when a logs URL resolves.
+    |
+    |        url            The logs backend's base URL — telemetryd, or Loki
+    |                       (a Grafana datasource proxy works too). Falls back
+    |                       to telemetry-ui's own env so a site already running
+    |                       it needs no new config. No URL → no audit page.
+    |        token / tenant Optional bearer token and X-Scope-OrgID tenant,
+    |                       as the backend requires.
+    |        service        The `service.name` to match; defaults to this app's
+    |                       telemetry service name. service_label is the Loki
+    |                       stream label it landed on (service_name by default).
+    |        selector       A full LogQL stream selector to override the one
+    |                       built from service/service_label, e.g. for an
+    |                       unusual label scheme.
+    |        window / limit Default look-back and the newest-N records pulled
+    |                       from the backend before filtering in PHP.
+    |        enabled        Force the page off (null/true = on when a URL
+    |                       resolves).
     |
     */
 
     'cp' => [
         'url' => env('STATAMIC_TELEMETRY_UI_URL', env('STATAMIC_TELEMETRY_GRAFANA_URL')),
+
+        'audit' => [
+            'enabled' => env('STATAMIC_TELEMETRY_AUDIT_UI'),
+            'url' => env('STATAMIC_TELEMETRY_AUDIT_LOGS_URL', env('TELEMETRY_UI_LOGS_URL')),
+            'token' => env('STATAMIC_TELEMETRY_AUDIT_LOGS_TOKEN', env('TELEMETRY_UI_TOKEN')),
+            'tenant' => env('STATAMIC_TELEMETRY_AUDIT_LOGS_TENANT', env('TELEMETRY_UI_LOGS_TENANT')),
+            'service' => env('STATAMIC_TELEMETRY_AUDIT_SERVICE'),
+            'service_label' => env('STATAMIC_TELEMETRY_AUDIT_SERVICE_LABEL', 'service_name'),
+            'selector' => env('STATAMIC_TELEMETRY_AUDIT_SELECTOR'),
+            'window' => env('STATAMIC_TELEMETRY_AUDIT_WINDOW', '24h'),
+            'limit' => env('STATAMIC_TELEMETRY_AUDIT_LIMIT', 1000),
+            'timeout' => env('STATAMIC_TELEMETRY_AUDIT_TIMEOUT', 5),
+        ],
     ],
 
     /*

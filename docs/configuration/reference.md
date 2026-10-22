@@ -243,6 +243,38 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `audit.actor_name` | true | The editor's `user.name` beside `user.id` on audit records |
 | `audit.changed_fields` | true | The changed field handles (names only) on `updated` records |
 | `cp.url` | auto | The "Telemetry" CP nav item's URL. Auto-links to the in-app `laravel-telemetry-ui` dashboard when installed; set `STATAMIC_TELEMETRY_UI_URL` to override (Grafana / remote UI). No UI + no url → no nav item |
+| `cp.audit.url` | — | Logs backend URL for the native Content audit page (telemetryd / Loki). Falls back to `TELEMETRY_UI_LOGS_URL`. No URL → no page |
+| `cp.audit.token` | — | Bearer token for the logs backend. Falls back to `TELEMETRY_UI_TOKEN` |
+| `cp.audit.tenant` | — | `X-Scope-OrgID` tenant for a multi-tenant backend. Falls back to `TELEMETRY_UI_LOGS_TENANT` |
+| `cp.audit.service` | app's | `service.name` to match; defaults to `telemetry.service.name` |
+| `cp.audit.service_label` | `service_name` | The Loki stream label the service landed on |
+| `cp.audit.selector` | — | A full LogQL stream selector, overriding the one built from `service`/`service_label` |
+| `cp.audit.window` | `24h` | Default look-back window (`1h`, `24h`, `7d`, `30d`) |
+| `cp.audit.limit` | 1000 | Newest-N records pulled from the backend before filtering in PHP |
+| `cp.audit.timeout` | 5 | Request timeout to the logs backend, in seconds |
+| `cp.audit.enabled` | auto | Force the page off; otherwise on when a URL resolves |
+
+### Content audit page
+
+A Control-Panel-native **Content audit** page (nav: *Tools → Content audit*)
+reads the `statamic.content.change` records back from the telemetry backend —
+**telemetryd** or an **LGTM** stack, both over the Loki query API — and lists
+them in the CP itself, with no dependency on `laravel-telemetry-ui`. One LogQL
+range query over the window; facets, search and pagination run in PHP. A
+backend that is missing, slow or down never throws into the CP — the page
+renders an error state. Shown only to users with the **View content audit log**
+permission, and only when `cp.audit.url` resolves.
+
+### Telemetry doctor page
+
+A read-only **Telemetry doctor** page (nav: *Tools → Telemetry doctor*) shows
+the pipeline's health: `telemetry.enabled`, the metric store driver, the OTLP
+endpoint and exporters, the OTLP **spool** depth (`Spool::size()` — entries
+waiting to ship), and a live probe of the audit log's backend (reachable /
+HTTP status). It never throws, and is always in the nav — a diagnostics page
+is most useful when something is down. Gated by the **View telemetry
+diagnostics** permission. For the full end-to-end check run
+`php artisan telemetry:doctor`.
 
 ## Antlers tags
 
