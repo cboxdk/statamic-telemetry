@@ -27,6 +27,12 @@ class TelemetryController extends CpController
         '24h' => 'Last 24 hours',
     ];
 
+    /** The page's sections (tabs). Value → label. */
+    public const SECTIONS = [
+        'overview' => 'Overview',
+        'statamic' => 'Statamic',
+    ];
+
     public function __invoke(Request $request, Requests $requests, Traces $traces, TelemetryMetrics $metrics): View
     {
         if (is_string($trace = $request->query('trace')) && $trace !== '') {
@@ -40,15 +46,25 @@ class TelemetryController extends CpController
 
         $window = $this->window($request);
         $seconds = $this->seconds($window);
+        $section = $this->section($request);
 
         $data = [
+            'section' => $section,
+            'sections' => self::SECTIONS,
             'window' => $window,
             'windows' => self::WINDOWS,
-            'overview' => $requests->overview($seconds),
+            'overview' => $section === 'overview' ? $requests->overview($seconds) : null,
             'metrics' => $metrics->overview($seconds),
         ];
 
         return view('statamic-telemetry::cp.telemetry', $data); // @phpstan-ignore argument.type
+    }
+
+    private function section(Request $request): string
+    {
+        $section = (string) $request->query('section', 'overview');
+
+        return isset(self::SECTIONS[$section]) ? $section : 'overview';
     }
 
     private function window(Request $request): string

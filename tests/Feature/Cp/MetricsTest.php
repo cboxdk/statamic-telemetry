@@ -22,7 +22,7 @@ function vector(array $series): array
     ];
 }
 
-/** Fake the three PromQL queries TelemetryMetrics issues, by metric name. */
+/** Fake the PromQL queries TelemetryMetrics issues, keyed by metric name. */
 function fakeProm(): void
 {
     config()->set('statamic-telemetry.cp.audit.url', 'http://prom.test');
@@ -30,27 +30,31 @@ function fakeProm(): void
     Http::fake(function ($request) {
         $url = urldecode($request->url());
 
-        if (str_contains($url, 'http_server_request_duration_seconds_count')) {
-            return Http::response(vector([
+        return match (true) {
+            // p50/p95/p99 request latency (histogram_quantile, seconds).
+            str_contains($url, 'http_server_request_duration_seconds_bucket') => Http::response(vector([
+                ['labels' => [], 'value' => 0.15],
+            ])),
+            str_contains($url, 'http_server_request_duration_seconds_count') => Http::response(vector([
                 ['labels' => ['http_route' => 'entry:blog.article'], 'value' => 42],
                 ['labels' => ['http_route' => '/cp/telemetry'], 'value' => 5],
-            ]));
-        }
-
-        if (str_contains($url, 'statamic_static_cache_operations_total')) {
-            return Http::response(vector([
+            ])),
+            str_contains($url, 'statamic_static_cache_operations_total') => Http::response(vector([
                 ['labels' => ['operation' => 'hit'], 'value' => 80],
                 ['labels' => ['operation' => 'miss'], 'value' => 20],
-            ]));
-        }
-
-        if (str_contains($url, 'statamic_content_changes_total')) {
-            return Http::response(vector([
+            ])),
+            str_contains($url, 'statamic_stache_warms_total') => Http::response(vector([['labels' => [], 'value' => 12]])),
+            str_contains($url, 'statamic_glide_generations_total') => Http::response(vector([
+                ['labels' => ['preset' => 'thumbnail'], 'value' => 9],
+            ])),
+            str_contains($url, 'statamic_forms_submissions_total') => Http::response(vector([
+                ['labels' => ['form' => 'contact'], 'value' => 4],
+            ])),
+            str_contains($url, 'statamic_content_changes_total') => Http::response(vector([
                 ['labels' => ['type' => 'entry', 'action' => 'published'], 'value' => 3],
-            ]));
-        }
-
-        return Http::response(vector([]));
+            ])),
+            default => Http::response(vector([])),
+        };
     });
 }
 
@@ -91,11 +95,17 @@ it('renders the metric section on the dashboard', function () {
     fakeProm();
     $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
 
+    // Overview tab: requests grouped by the content route.
     $this->get(cp_route('telemetry.dashboard'))
         ->assertOk()
         ->assertSee('Requests by route')
-        ->assertSee('entry:blog.article')
-        ->assertSee('Static cache');
+        ->assertSee('entry:blog.article');
+
+    // Statamic tab: the addon's own signals.
+    $this->get(cp_route('telemetry.dashboard').'?section=statamic')
+        ->assertOk()
+        ->assertSee('Static cache')
+        ->assertSee('Content changes');
 });
 
 it('never throws when the metrics backend is down', function () {
