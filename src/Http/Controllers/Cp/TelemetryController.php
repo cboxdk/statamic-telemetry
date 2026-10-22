@@ -9,6 +9,8 @@ use Cbox\StatamicTelemetry\Telemetry\TelemetryMetrics;
 use Cbox\StatamicTelemetry\Telemetry\Traces;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 use Statamic\Http\Controllers\CP\CpController;
 
 /**
@@ -33,7 +35,7 @@ class TelemetryController extends CpController
         'statamic' => 'Statamic',
     ];
 
-    public function __invoke(Request $request, Requests $requests, Traces $traces, TelemetryMetrics $metrics): View
+    public function __invoke(Request $request, Requests $requests, Traces $traces, TelemetryMetrics $metrics): View|Response
     {
         if (is_string($trace = $request->query('trace')) && $trace !== '') {
             $data = [
@@ -48,16 +50,14 @@ class TelemetryController extends CpController
         $seconds = $this->seconds($window);
         $section = $this->section($request);
 
-        $data = [
+        return Inertia::render('statamic-telemetry::Telemetry', [
             'section' => $section,
             'sections' => self::SECTIONS,
             'window' => $window,
             'windows' => self::WINDOWS,
             'overview' => $section === 'overview' ? $requests->overview($seconds) : null,
             'metrics' => $metrics->overview($seconds),
-        ];
-
-        return view('statamic-telemetry::cp.telemetry', $data); // @phpstan-ignore argument.type
+        ]);
     }
 
     private function section(Request $request): string

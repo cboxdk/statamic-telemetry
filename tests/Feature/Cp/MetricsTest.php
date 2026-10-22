@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Cbox\StatamicTelemetry\Telemetry\Metrics;
 use Cbox\StatamicTelemetry\Telemetry\TelemetryMetrics;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 use Statamic\Facades\User;
 
 /** A Prometheus instant vector. */
@@ -98,14 +99,16 @@ it('renders the metric section on the dashboard', function () {
     // Overview tab: requests grouped by the content route.
     $this->get(cp_route('telemetry.dashboard'))
         ->assertOk()
-        ->assertSee('Requests by route')
-        ->assertSee('entry:blog.article');
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('statamic-telemetry::Telemetry')
+            ->where('metrics.routes.0.route', 'entry:blog.article'));
 
     // Statamic tab: the addon's own signals.
     $this->get(cp_route('telemetry.dashboard').'?section=statamic')
         ->assertOk()
-        ->assertSee('Static cache')
-        ->assertSee('Content changes');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('metrics.cacheHitRatio', 0.8)
+            ->where('metrics.contentChanges.0.type', 'entry'));
 });
 
 it('never throws when the metrics backend is down', function () {
