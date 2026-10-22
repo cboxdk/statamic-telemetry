@@ -242,7 +242,7 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `gauges.enabled` | false | Inventory gauges (query on every scrape) |
 | `audit.actor_name` | true | The editor's `user.name` beside `user.id` on audit records |
 | `audit.changed_fields` | true | The changed field handles (names only) on `updated` records |
-| `cp.url` | auto | The "Telemetry" CP nav item's URL. Auto-links to the in-app `laravel-telemetry-ui` dashboard when installed; set `STATAMIC_TELEMETRY_UI_URL` to override (Grafana / remote UI). No UI + no url → no nav item |
+| `cp.url` | — | Turns the "Telemetry" nav item back into a link-out (Grafana / a remote `laravel-telemetry-ui`), an opt-out from the native dashboard. Unset → the native Telemetry page |
 | `cp.audit.url` | — | Logs backend URL for the native Content audit page (telemetryd / Loki). Falls back to `TELEMETRY_UI_LOGS_URL`. No URL → no page |
 | `cp.audit.token` | — | Bearer token for the logs backend. Falls back to `TELEMETRY_UI_TOKEN` |
 | `cp.audit.tenant` | — | `X-Scope-OrgID` tenant for a multi-tenant backend. Falls back to `TELEMETRY_UI_LOGS_TENANT` |
@@ -253,6 +253,17 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `cp.audit.limit` | 1000 | Newest-N records pulled from the backend before filtering in PHP |
 | `cp.audit.timeout` | 5 | Request timeout to the logs backend, in seconds |
 | `cp.audit.enabled` | auto | Force the page off; otherwise on when a URL resolves |
+
+### Telemetry dashboard page
+
+A native **Telemetry** page (nav: *Tools → Telemetry*) replaces the link-out to
+`laravel-telemetry-ui`. It reads the backend's **traces** (Tempo API on
+`cp.audit.url`) and shows request volume/rate, p50/p95/max latency with
+server-rendered inline-SVG charts, the slowest endpoints and recent requests;
+each request opens a single-trace waterfall. Guarded (empty state when the
+backend has nothing / is unreachable). Gated by **View the telemetry
+dashboard**. Metric and log sections are planned; set `cp.url` to opt back out
+to Grafana / a remote UI.
 
 ### Content audit page
 

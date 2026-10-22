@@ -227,10 +227,22 @@ behind each design decision — lives in [docs/](docs/index.md).
 
 ## UI
 
-A **Telemetry** item under *Tools* in the CP nav links to
-`cboxdk/laravel-telemetry-ui` when it is installed (its Statamic pages:
-Static Cache, Stache, Glide, Forms, Content with the audit log), or to the
-URL in `STATAMIC_TELEMETRY_UI_URL` (a Grafana dashboard, a remote UI).
+Three Control-Panel-native pages under *Tools*, all reading back from the
+telemetry backend (telemetryd or an LGTM stack, over its Loki / Tempo query
+APIs) — no React, no `laravel-telemetry-ui`, no build step:
+
+### Native Telemetry dashboard
+
+The **Telemetry** item is a native inline dashboard: request volume and rate,
+p50 / p95 / max latency with sparkline and an avg-latency chart, the slowest
+endpoints, and the most recent requests — each opening a single-trace
+**waterfall**. Charts are server-rendered inline SVG. Built from the backend's
+traces (metric and log sections follow). Gated by the **View the telemetry
+dashboard** permission.
+
+Setting `STATAMIC_TELEMETRY_UI_URL` (a Grafana dashboard or a remote
+`laravel-telemetry-ui`) turns the item back into a link-out — an explicit
+opt-out from the native page.
 
 ### Native Content audit page
 
