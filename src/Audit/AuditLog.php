@@ -40,40 +40,67 @@ final class AuditLog
 
     public function query(AuditQuery $query, int $perPage = 50): AuditResult
     {
+        [$rows, $capped, $error] = $this->fetch($query->windowSeconds());
+
+        if ($error !== null) {
+            return AuditResult::failed($error);
+        }
+
+        return $this->paginate($rows, $query, $perPage, $capped);
+    }
+
+    /**
+     * The audit rows for a single entry (or other content item) by its id,
+     * newest first — the per-entry change history for the telemetry fieldtype.
+     *
+     * @return list<AuditRow>
+     */
+    public function forEntry(string $contentId, int $windowSeconds): array
+    {
+        [$rows] = $this->fetch($windowSeconds);
+
+        return array_values(array_filter($rows, static fn (AuditRow $row): bool => $row->id === $contentId));
+    }
+
+    /**
+     * Fetch and parse the audit rows over the window.
+     *
+     * @return array{0: list<AuditRow>, 1: bool, 2: ?string} [rows, capped, error]
+     */
+    private function fetch(int $windowSeconds): array
+    {
         if (! $this->backend->configured()) {
-            return AuditResult::failed('No logs backend configured. Set STATAMIC_TELEMETRY_AUDIT_LOGS_URL to your telemetryd or Loki endpoint.');
+            return [[], false, 'No logs backend configured. Set STATAMIC_TELEMETRY_AUDIT_LOGS_URL to your telemetryd or Loki endpoint.'];
         }
 
         $end = time();
-        $start = $end - $query->windowSeconds();
         $limit = (int) config('statamic-telemetry.cp.audit.limit', self::DEFAULT_LIMIT);
 
         try {
             $response = $this->backend->request()->get($this->backend->endpoint('loki/api/v1/query_range'), [
                 'query' => $this->logql(),
-                'start' => $start * 1_000_000_000,
+                'start' => ($end - $windowSeconds) * 1_000_000_000,
                 'end' => $end * 1_000_000_000,
                 'limit' => $limit,
                 'direction' => 'backward',
             ]);
         } catch (Throwable $exception) {
-            return AuditResult::failed('Could not reach the logs backend: '.$exception->getMessage());
+            return [[], false, 'Could not reach the logs backend: '.$exception->getMessage()];
         }
 
         if (! $response->successful()) {
-            return AuditResult::failed('The logs backend returned HTTP '.$response->status().'.');
+            return [[], false, 'The logs backend returned HTTP '.$response->status().'.'];
         }
 
         $json = $response->json();
 
         if (! is_array($json) || ($json['status'] ?? null) !== 'success') {
-            return AuditResult::failed('The URL answered, but not with a Loki log API.');
+            return [[], false, 'The URL answered, but not with a Loki log API.'];
         }
 
         $rows = $this->parse($json);
-        $capped = count($rows) >= $limit;
 
-        return $this->paginate($rows, $query, $perPage, $capped);
+        return [$rows, count($rows) >= $limit, null];
     }
 
     /**

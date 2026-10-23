@@ -286,6 +286,15 @@ opens its trace **waterfall** in the right pane, and selecting a log shows its
 full labels. Filter by a free-text search and the time window; **Live tail**
 polls the list. Gated by **View the telemetry dashboard**.
 
+### `telemetry` fieldtype (per-entry)
+
+A read-only **Telemetry** fieldtype for entry blueprints shows that entry's own
+telemetry inline in the publish form: how often it was requested and its p95
+latency (from traces keyed by the `statamic.entry.id` the addon stamps on each
+content request) and its change history (from the audit log). It stores
+nothing — the snapshot is gathered server-side in the fieldtype's `preload()`.
+Add it to a blueprint like any other field (`type: telemetry`).
+
 ### Content audit page
 
 A Control-Panel-native **Content audit** page (nav: *Tools → Content audit*)
