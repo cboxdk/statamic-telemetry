@@ -277,6 +277,15 @@ store (`TELEMETRY_STORE=sqlite` / `redis` / `apcu`, not the default per-process
 `array`) and `php artisan telemetry:flush` (or `--daemon`) shipping them over
 OTLP. Traces and the audit log need no such wiring.
 
+### Explore page
+
+A two-pane **Explore** page (nav: *Tools → Telemetry → Explore*) over the
+backend's signals: **Requests** / **Traces** (Tempo) and **Logs** / **Errors**
+(Loki). The left pane is a filtered, live-tailable list; selecting a request
+opens its trace **waterfall** in the right pane, and selecting a log shows its
+full labels. Filter by a free-text search and the time window; **Live tail**
+polls the list. Gated by **View the telemetry dashboard**.
+
 ### Content audit page
 
 A Control-Panel-native **Content audit** page (nav: *Tools → Content audit*)
