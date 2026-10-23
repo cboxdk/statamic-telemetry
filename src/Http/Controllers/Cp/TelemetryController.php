@@ -7,7 +7,6 @@ namespace Cbox\StatamicTelemetry\Http\Controllers\Cp;
 use Cbox\StatamicTelemetry\Telemetry\Requests;
 use Cbox\StatamicTelemetry\Telemetry\TelemetryMetrics;
 use Cbox\StatamicTelemetry\Telemetry\Traces;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,15 +34,13 @@ class TelemetryController extends CpController
         'statamic' => 'Statamic',
     ];
 
-    public function __invoke(Request $request, Requests $requests, Traces $traces, TelemetryMetrics $metrics): View|Response
+    public function __invoke(Request $request, Requests $requests, Traces $traces, TelemetryMetrics $metrics): Response
     {
         if (is_string($trace = $request->query('trace')) && $trace !== '') {
-            $data = [
+            return Inertia::render('statamic-telemetry::Trace', [
                 'traceId' => $trace,
                 'spans' => $traces->trace($trace),
-            ];
-
-            return view('statamic-telemetry::cp.trace', $data); // @phpstan-ignore argument.type
+            ]);
         }
 
         $window = $this->window($request);

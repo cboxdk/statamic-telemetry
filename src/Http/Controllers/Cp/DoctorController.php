@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Cbox\StatamicTelemetry\Http\Controllers\Cp;
 
 use Cbox\StatamicTelemetry\Diagnostics\Diagnostics;
-use Illuminate\Contracts\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 use Statamic\Http\Controllers\CP\CpController;
 
 /**
@@ -14,10 +15,10 @@ use Statamic\Http\Controllers\CP\CpController;
  */
 class DoctorController extends CpController
 {
-    public function __invoke(Diagnostics $diagnostics): View
+    public function __invoke(Diagnostics $diagnostics): Response
     {
-        $data = ['result' => $diagnostics->gather()];
-
-        return view('statamic-telemetry::cp.doctor', $data); // @phpstan-ignore argument.type
+        return Inertia::render('statamic-telemetry::Doctor', [
+            'result' => $diagnostics->gather(),
+        ]);
     }
 }

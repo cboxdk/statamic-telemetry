@@ -102,8 +102,9 @@ it('renders a single trace waterfall page', function () {
 
     $this->get(cp_route('telemetry.dashboard').'?trace=aaaa')
         ->assertOk()
-        ->assertSee('Trace')
-        ->assertSee('db.query');
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('statamic-telemetry::Trace')
+            ->where('spans.1.name', 'db.query'));
 });
 
 it('shows the empty state when the backend has no traces, without throwing', function () {
