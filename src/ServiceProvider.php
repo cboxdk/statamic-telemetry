@@ -49,6 +49,10 @@ class ServiceProvider extends AddonServiceProvider
         Tags\Telemetry::class,
     ];
 
+    protected $fieldtypes = [
+        Fieldtypes\Telemetry::class,
+    ];
+
     protected $vite = [
         'input' => ['resources/js/cp.js'],
         'publicDirectory' => 'resources/dist',

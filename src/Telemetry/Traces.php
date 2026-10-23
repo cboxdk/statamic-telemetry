@@ -23,18 +23,37 @@ final class Traces
      */
     public function search(int $windowSeconds, int $limit = 200): array
     {
+        return $this->query(['limit' => $limit], $windowSeconds);
+    }
+
+    /**
+     * Traces for one entry, via TraceQL on the `statamic.entry.id` attribute
+     * the addon stamps on each content request's root span.
+     *
+     * @return list<TraceSummary>
+     */
+    public function byEntry(string $entryId, int $windowSeconds, int $limit = 50): array
+    {
+        return $this->query(['q' => '{span.statamic.entry.id="'.addslashes($entryId).'"}', 'limit' => $limit], $windowSeconds);
+    }
+
+    /**
+     * @param  array<string, scalar>  $params
+     * @return list<TraceSummary>
+     */
+    private function query(array $params, int $windowSeconds): array
+    {
         if (! $this->backend->configured()) {
             return [];
         }
 
         $end = time();
-        $start = $end - $windowSeconds;
 
         try {
             $response = $this->backend->request()->get($this->backend->endpoint('api/search'), [
-                'start' => $start,
+                'start' => $end - $windowSeconds,
                 'end' => $end,
-                'limit' => $limit,
+                ...$params,
             ]);
         } catch (Throwable) {
             return [];
