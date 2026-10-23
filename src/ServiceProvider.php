@@ -233,10 +233,15 @@ class ServiceProvider extends AddonServiceProvider
     private function bootCpNav(): void
     {
         Nav::extend(function ($nav) {
-            // Content audit + doctor live as sub-items under "Telemetry".
+            // Explore + Content audit + doctor live as sub-items under "Telemetry".
             $children = [];
 
             if (app(AuditLog::class)->enabled()) {
+                $children[] = Nav::item('Explore')
+                    ->route('telemetry.explore')
+                    ->icon('magnifying-glass')
+                    ->can('view telemetry');
+
                 $children[] = Nav::item('Content audit')
                     ->route('telemetry.audit')
                     ->icon('list-ul')
