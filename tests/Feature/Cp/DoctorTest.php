@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Cbox\StatamicTelemetry\Diagnostics\Diagnostics;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 use Statamic\Facades\User;
 
 it('reports an unreachable backend without throwing', function () {
@@ -43,9 +44,10 @@ it('renders the doctor page for a permitted user', function () {
 
     $this->get(cp_route('telemetry.doctor'))
         ->assertOk()
-        ->assertSee('Telemetry doctor')
-        ->assertSee('Spool')
-        ->assertSee('Logs backend');
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('statamic-telemetry::Doctor')
+            ->where('result.backendReachable', true)
+            ->where('result.telemetryEnabled', true));
 });
 
 it('denies the doctor page to a user without the permission', function () {

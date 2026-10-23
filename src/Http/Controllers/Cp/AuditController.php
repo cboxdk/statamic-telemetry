@@ -6,8 +6,9 @@ namespace Cbox\StatamicTelemetry\Http\Controllers\Cp;
 
 use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Audit\AuditQuery;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 use Statamic\Http\Controllers\CP\CpController;
 
 /**
@@ -17,18 +18,16 @@ use Statamic\Http\Controllers\CP\CpController;
  */
 class AuditController extends CpController
 {
-    public function __invoke(Request $request, AuditLog $log): View
+    public function __invoke(Request $request, AuditLog $log): Response
     {
         abort_unless($log->enabled(), 404);
 
         $query = AuditQuery::fromRequest($request);
 
-        $data = [
+        return Inertia::render('statamic-telemetry::ContentAudit', [
             'query' => $query,
             'result' => $log->query($query),
             'windows' => AuditQuery::WINDOWS,
-        ];
-
-        return view('statamic-telemetry::cp.audit', $data); // @phpstan-ignore argument.type
+        ]);
     }
 }

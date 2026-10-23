@@ -35,7 +35,6 @@ use Statamic\Events;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
-use Statamic\Statamic;
 use Statamic\StaticCaching\Cachers\Writer;
 use Statamic\StaticCaching\StaticCacheManager;
 use Statamic\Support\Blink;
@@ -49,8 +48,6 @@ class ServiceProvider extends AddonServiceProvider
     protected $tags = [
         Tags\Telemetry::class,
     ];
-
-    protected $viewNamespace = 'statamic-telemetry';
 
     protected $vite = [
         'input' => ['resources/js/cp.js'],
@@ -188,12 +185,6 @@ class ServiceProvider extends AddonServiceProvider
         $this->bootBrowserTracing();
         $this->bootPermissions();
         $this->bootCpNav();
-
-        // The CP pages' stylesheet, linked in the CP <head> (page content has
-        // its <style> tags stripped, so a linked sheet is what applies). The
-        // content hash in the query busts the cache whenever the CSS changes.
-        $cssVersion = substr((string) @md5_file(__DIR__.'/../resources/css/cp.css'), 0, 8);
-        Statamic::externalStyle(url(config('statamic.cp.route').'/telemetry/cp.css').'?v='.$cssVersion);
     }
 
     /**

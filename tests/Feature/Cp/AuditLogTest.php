@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Audit\AuditQuery;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 use Statamic\Facades\User;
 
 /**
@@ -119,9 +120,10 @@ it('shows the page to a permitted user and lists the changes', function () {
 
     $this->get(cp_route('telemetry.audit'))
         ->assertOk()
-        ->assertSee('Content audit')
-        ->assertSee('Hello World')
-        ->assertSee('photo.jpg');
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('statamic-telemetry::ContentAudit')
+            ->where('result.total', 2)
+            ->where('result.rows.0.title', 'photo.jpg'));
 });
 
 it('denies a user without the permission', function () {
