@@ -84,6 +84,45 @@ it('loads a trace waterfall as the detail for a selected request', function () {
             ->where('detail.spans.0.name', 'GET /'));
 });
 
+it('filters the request list by a facet through a TraceQL selector', function () {
+    exploreBackend();
+    $this->actingAs(tap(User::make()->email('a@b.test')->makeSuper())->save());
+
+    $this->get(cp_route('telemetry.explore').'?signal=requests&status=500&route='.urlencode('/cp'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.status', '500')
+            ->where('filters.route', '/cp'));
+
+    // The Tempo search carried a TraceQL selector built from both facets.
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/api/search')) {
+            return false;
+        }
+        $url = urldecode($request->url());
+
+        return str_contains($url, 'span.http.response.status_code=500')
+            && str_contains($url, 'span.http.route="/cp"');
+    });
+});
+
+it('filters by a status class as a TraceQL numeric range', function () {
+    exploreBackend();
+    $this->actingAs(tap(User::make()->email('a@b.test')->makeSuper())->save());
+
+    $this->get(cp_route('telemetry.explore').'?signal=requests&status=4xx')->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/api/search')) {
+            return false;
+        }
+        $url = urldecode($request->url());
+
+        return str_contains($url, 'span.http.response.status_code>=400')
+            && str_contains($url, 'span.http.response.status_code<500');
+    });
+});
+
 it('denies explore to a user without the permission', function () {
     $this->actingAs(tap(User::make()->email('nobody@b.test'))->save());
 

@@ -19,9 +19,9 @@ final class Requests
 
     public function __construct(private readonly Traces $traces) {}
 
-    public function overview(int $windowSeconds): RequestsOverview
+    public function overview(int $windowSeconds, ?int $endsAt = null): RequestsOverview
     {
-        $traces = $this->traces->search($windowSeconds, self::FETCH);
+        $traces = $this->traces->search($windowSeconds, self::FETCH, null, $endsAt);
 
         if ($traces === []) {
             return new RequestsOverview(0, 0.0, 0.0, 0.0, 0.0, [], [], [], []);
@@ -33,7 +33,7 @@ final class Requests
         $count = count($traces);
         $minutes = max(1.0, $windowSeconds / 60);
 
-        [$countSeries, $latencySeries] = $this->series($traces, $windowSeconds);
+        [$countSeries, $latencySeries] = $this->series($traces, $windowSeconds, $endsAt);
 
         return new RequestsOverview(
             count: $count,
@@ -54,9 +54,9 @@ final class Requests
      * @param  list<TraceSummary>  $traces
      * @return array{0: list<int>, 1: list<float>}
      */
-    private function series(array $traces, int $windowSeconds): array
+    private function series(array $traces, int $windowSeconds, ?int $endsAt = null): array
     {
-        $end = time() * 1000;
+        $end = ($endsAt ?? time()) * 1000;
         $start = $end - $windowSeconds * 1000;
         $span = max(1, $end - $start);
 

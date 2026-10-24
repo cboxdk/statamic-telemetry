@@ -1,3 +1,4 @@
+import '../css/telemetry.css';
 import Telemetry from './pages/Telemetry.vue';
 import Trace from './pages/Trace.vue';
 import Explore from './pages/Explore.vue';

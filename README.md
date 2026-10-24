@@ -227,26 +227,65 @@ behind each design decision — lives in [docs/](docs/index.md).
 
 ## UI
 
-Three Control-Panel-native pages under *Tools*, all reading back from the
-telemetry backend (telemetryd or an LGTM stack, over its Loki / Tempo query
-APIs) — no React, no `laravel-telemetry-ui`, no build step:
+Control-Panel-native pages that read back from the telemetry backend
+(telemetryd or an LGTM stack, over its Loki / Tempo / Prometheus query APIs) —
+no React, no `laravel-telemetry-ui`. The CP surfaces are Vue/Inertia built with
+`@statamic/cms/ui`; the compiled assets live in `resources/dist` and are
+committed, so an install needs no Node. Time-series charts are rendered with
+Apache ECharts — readable axes, hover tooltips, legends and deploy markers — and
+the headline metrics carry a period-over-period delta.
 
-### Native Telemetry dashboard
+The **Telemetry** item carries the main features as top tabs — **Overview**,
+**Explore**, **Activity** and **Statamic** — and keeps only the config/tools
+pages (Content audit, Telemetry doctor) in its sub-nav, so nothing you reach for
+daily is buried there. Drag a range on any chart to **zoom** the whole surface
+to that window.
 
-The **Telemetry** item is a native inline dashboard: request volume and rate,
-p50 / p95 / max latency with sparkline and an avg-latency chart, the slowest
-endpoints, and the most recent requests — each opening a single-trace
-**waterfall**. Charts are server-rendered inline SVG. Built from the backend's
-traces (metric and log sections follow). Gated by the **View the telemetry
+### Overview
+
+A dashboard of cards, from metrics over the chosen window: a **Requests** card
+with the 1/2/3XX · 4XX · 5XX split and a stacked throughput chart; a
+**Duration** card with avg + p95 and their over-time lines (falling back to
+trace-derived percentiles so the tiles are never blank while metrics lag); an
+**Exceptions** card; and a **Routes needing attention** table — per route, its
+requests, server errors and rate, p95 and a trend sparkline, most errors /
+slowest first, each linking into a filtered Explore. Recent requests sit below,
+each opening a single-trace **waterfall**. Gated by the **View the telemetry
 dashboard** permission.
 
+### Explore
+
+A two-pane list + detail over the backend's signals — requests and traces
+(Tempo), logs and errors (Loki). Requests carry a **stat header** (requests,
+error rate, p50, p95, traces), a **facet rail** (status / method / route, with
+counts, from metrics) that narrows the list through a TraceQL selector, and a
+throughput chart; selecting a request shows its waterfall. **Live tail** polls
+the window. Gated by the same permission.
+
+### Activity
+
+Application activity beyond HTTP, from laravel-telemetry's own metrics: **queue
+jobs** (processed / dispatched, worker utilisation, a per-job table with p95),
+**database queries** (total with N+1 and duplicate-query counts, by connection),
+**storage operations** (by disk, with share bars) and **outgoing HTTP** (by
+host, with error rate and p95). Each panel fills as the app does that work, and
+a quiet one simply shows nothing.
+
+### Release checkpoints
+
+Run `php artisan telemetry:deploy --notes="v1.2.3"` from your deploy pipeline
+and each release emits an `app.deployment` marker. The dashboard reads them back
+and overlays them as vertical lines on the Overview timelines, with a
+**Releases** strip above — so a latency or error regression maps to the release
+that started it at a glance.
+
 Setting `STATAMIC_TELEMETRY_UI_URL` (a Grafana dashboard or a remote
-`laravel-telemetry-ui`) turns the item back into a link-out — an explicit
-opt-out from the native page.
+`laravel-telemetry-ui`) turns the **Telemetry** item back into a link-out — an
+explicit opt-out from the native pages.
 
 ### Native Content audit page
 
-A second item, **Content audit** under *Tools*, is a Control-Panel-native page
+**Content audit**, in the Telemetry sub-nav, is a Control-Panel-native page
 — no telemetry-ui, no React — that reads the `statamic.content.change` records
 back from the telemetry backend and lists them in the CP itself: who changed
 what, when, the transition (created / published / deleted / …), the fields an
@@ -275,7 +314,7 @@ token fall back to its `TELEMETRY_UI_LOGS_URL` / `TELEMETRY_UI_TOKEN`. See the
 
 ### Telemetry doctor
 
-A third item, **Telemetry doctor** under *Tools*, is a read-only health page
+**Telemetry doctor**, also in the Telemetry sub-nav, is a read-only health page
 for the pipeline: is telemetry enabled, where does it ship (OTLP endpoint,
 metric store, exporters), how deep is the **spool** (entries still waiting to
 ship), and does the audit log's backend answer. It is always available — most

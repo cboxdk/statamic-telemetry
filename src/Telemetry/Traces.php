@@ -17,13 +17,21 @@ final class Traces
     public function __construct(private readonly Backend $backend) {}
 
     /**
-     * Recent traces in the window, newest first.
+     * Recent traces in the window, newest first. An optional TraceQL selector
+     * (e.g. `{span.http.response.status_code=500}`) narrows the search to the
+     * matching traces — how the Explore facets filter the list.
      *
      * @return list<TraceSummary>
      */
-    public function search(int $windowSeconds, int $limit = 200): array
+    public function search(int $windowSeconds, int $limit = 200, ?string $traceql = null, ?int $endsAt = null): array
     {
-        return $this->query(['limit' => $limit], $windowSeconds);
+        $params = ['limit' => $limit];
+
+        if (is_string($traceql) && $traceql !== '') {
+            $params['q'] = $traceql;
+        }
+
+        return $this->query($params, $windowSeconds, $endsAt);
     }
 
     /**
@@ -41,13 +49,13 @@ final class Traces
      * @param  array<string, scalar>  $params
      * @return list<TraceSummary>
      */
-    private function query(array $params, int $windowSeconds): array
+    private function query(array $params, int $windowSeconds, ?int $endsAt = null): array
     {
         if (! $this->backend->configured()) {
             return [];
         }
 
-        $end = time();
+        $end = $endsAt ?? time();
 
         try {
             $response = $this->backend->request()->get($this->backend->endpoint('api/search'), [
