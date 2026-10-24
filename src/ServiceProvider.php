@@ -237,15 +237,12 @@ class ServiceProvider extends AddonServiceProvider
     private function bootCpNav(): void
     {
         Nav::extend(function ($nav) {
-            // Explore + Content audit + doctor live as sub-items under "Telemetry".
+            // Overview and Explore are main tabs inside the dashboard itself;
+            // the sub-nav carries only the config/tools pages — Content audit
+            // and the doctor — so the main features are never buried in it.
             $children = [];
 
             if (app(AuditLog::class)->enabled()) {
-                $children[] = Nav::item('Explore')
-                    ->route('telemetry.explore')
-                    ->icon('magnifying-glass')
-                    ->can('view telemetry');
-
                 $children[] = Nav::item('Content audit')
                     ->route('telemetry.audit')
                     ->icon('list-ul')

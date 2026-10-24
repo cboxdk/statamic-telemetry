@@ -23,13 +23,13 @@ final class Logs
      *
      * @return list<array{timestamp: int, level: string, line: string, labels: array<string, string>, traceId: ?string}>
      */
-    public function query(int $windowSeconds, string $level = '', string $search = '', int $limit = 200): array
+    public function query(int $windowSeconds, string $level = '', string $search = '', int $limit = 200, ?int $endsAt = null): array
     {
         if (! $this->backend->configured()) {
             return [];
         }
 
-        $end = time();
+        $end = $endsAt ?? time();
         $start = $end - $windowSeconds;
         $query = $this->selector($level);
 

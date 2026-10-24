@@ -27,9 +27,9 @@ final class Metrics
      *
      * @return list<array{labels: array<string, string>, value: float}>
      */
-    public function instant(string $query): array
+    public function instant(string $query, ?int $at = null): array
     {
-        $json = $this->get('api/v1/query', ['query' => $query, 'time' => time()]);
+        $json = $this->get('api/v1/query', ['query' => $query, 'time' => $at ?? time()]);
 
         if ($json === null || ($json['data']['resultType'] ?? null) !== 'vector') {
             return [];
@@ -55,9 +55,9 @@ final class Metrics
     }
 
     /** The single scalar from an instant query (0.0 when there is no data). */
-    public function scalar(string $query): float
+    public function scalar(string $query, ?int $at = null): float
     {
-        return $this->instant($query)[0]['value'] ?? 0.0;
+        return $this->instant($query, $at)[0]['value'] ?? 0.0;
     }
 
     /**
@@ -66,9 +66,9 @@ final class Metrics
      *
      * @return list<array{labels: array<string, string>, points: list<array{0: float, 1: float}>}>
      */
-    public function range(string $query, int $windowSeconds, int $step = 60): array
+    public function range(string $query, int $windowSeconds, int $step = 60, ?int $endsAt = null): array
     {
-        $end = time();
+        $end = $endsAt ?? time();
         $json = $this->get('api/v1/query_range', [
             'query' => $query,
             'start' => $end - $windowSeconds,
