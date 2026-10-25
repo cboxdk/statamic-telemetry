@@ -46,3 +46,13 @@ export function percent(ratio) {
 export function clock(msEpoch) {
     return new Date(msEpoch).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+/** "25 Oct 14:05" — for axes and tooltips that span more than a day. */
+export function dateClock(msEpoch) {
+    return new Date(msEpoch).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+/** The right time label for a span: clock within a day and a half, date + clock beyond. */
+export function timeLabel(msEpoch, spanMs) {
+    return spanMs > 36 * 3600e3 ? dateClock(msEpoch) : clock(msEpoch);
+}

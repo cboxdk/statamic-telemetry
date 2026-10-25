@@ -136,6 +136,10 @@ return [
     'cp' => [
         'url' => env('STATAMIC_TELEMETRY_UI_URL', env('STATAMIC_TELEMETRY_GRAFANA_URL')),
 
+        // Keep the telemetry pages themselves (and their calls to the
+        // backend) out of the app's own traces and metrics.
+        'ignore_own_routes' => env('STATAMIC_TELEMETRY_CP_IGNORE_OWN_ROUTES', true),
+
         'audit' => [
             'enabled' => env('STATAMIC_TELEMETRY_AUDIT_UI'),
             'url' => env('STATAMIC_TELEMETRY_AUDIT_LOGS_URL', env('TELEMETRY_UI_LOGS_URL')),

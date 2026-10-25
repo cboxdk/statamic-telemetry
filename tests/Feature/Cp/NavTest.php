@@ -58,10 +58,11 @@ it('builds the in-page nav from the user\'s permissions and marks the active pag
 
     $items = app(TelemetryNav::class)->items('explore');
 
-    expect(collect($items)->pluck('key')->all())->toContain('overview', 'explore', 'activity', 'static-cache', 'stache', 'glide', 'forms', 'content', 'doctor')
+    expect(collect($items)->pluck('key')->all())->toContain('overview', 'explore', 'requests', 'jobs', 'queries', 'exceptions', 'outgoing', 'static-cache', 'stache', 'glide', 'forms', 'content', 'doctor')
         ->and(collect($items)->firstWhere('key', 'explore')['active'])->toBeTrue()
         ->and(collect($items)->firstWhere('key', 'overview')['active'])->toBeFalse()
-        ->and(collect($items)->firstWhere('key', 'activity')['params'])->toBe(['section' => 'activity']);
+        // Groups draw the dividers: main | activity | statamic | tools.
+        ->and(collect($items)->pluck('group')->unique()->values()->all())->toBe(['main', 'activity', 'statamic', 'tools']);
 });
 
 it('hides every in-page nav item from a user without telemetry permissions', function () {

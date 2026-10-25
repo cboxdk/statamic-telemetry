@@ -57,6 +57,35 @@
                 <RequestRow v-for="t in rows.items" :key="t.id" :row="t" :active="openTraceId === t.id" @open="openTrace" />
             </div>
 
+            <!-- Log records (exceptions): type · message · origin, expandable to every label -->
+            <div v-else-if="rows.kind === 'logs'" class="max-h-[70vh] overflow-y-auto" scroll-region>
+                <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
+                <div v-for="r in rows.items" :key="r.id" class="border-b border-gray-100 dark:border-gray-800">
+                    <button type="button" class="grid w-full grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-3 px-4 py-2 text-left text-sm transition-colors hover:bg-gray-500/10" @click="toggleLog(r.id)">
+                        <span class="pt-0.5 tabular-nums text-xs text-gray-500">{{ clock(r.timestamp) }}</span>
+                        <span class="min-w-0">
+                            <span class="flex items-center gap-2">
+                                <span class="shrink-0 rounded bg-red-500/15 px-1 font-mono text-[10.5px] font-semibold text-red-600 dark:text-red-400" :title="r.fullType">{{ r.type }}</span>
+                                <span class="min-w-0 font-mono text-[13px]" :class="expandedLog === r.id ? 'whitespace-pre-wrap break-words' : 'truncate'">{{ r.message || r.fullType }}</span>
+                            </span>
+                            <span class="flex min-w-0 items-center gap-2 text-[11px] text-gray-500">
+                                <span v-if="r.origin" class="truncate font-mono">{{ r.origin }}</span>
+                                <span v-if="r.path" class="truncate font-mono">{{ r.path }}</span>
+                                <span v-else-if="r.route" class="truncate font-mono">{{ r.route }}</span>
+                                <span v-if="r.group" class="shrink-0">group {{ r.group }}</span>
+                            </span>
+                        </span>
+                    </button>
+                    <div v-if="expandedLog === r.id" class="grid grid-cols-[12rem_1fr] gap-x-3 gap-y-1 bg-gray-500/5 px-4 py-3 text-xs">
+                        <template v-for="(v, k) in r.labels" :key="k">
+                            <div class="truncate text-gray-500">{{ k }}</div>
+                            <div class="break-words font-mono">{{ v }}</div>
+                        </template>
+                        <div v-if="r.traceId" class="col-span-2 pt-1"><Button size="xs" text="Open trace" @click="openTrace(r.traceId)" /></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Spans -->
             <div v-else class="max-h-[70vh] overflow-y-auto" scroll-region>
                 <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
@@ -72,7 +101,7 @@
                     <span class="min-w-0">
                         <span class="flex items-center gap-2">
                             <span class="truncate font-mono text-[13px]">{{ r.label }}</span>
-                            <span v-for="chip in chips(r)" :key="chip" class="shrink-0 rounded bg-gray-500/10 px-1 font-mono text-[10.5px] text-gray-500">{{ chip }}</span>
+                            <span v-for="chip in chips(r)" :key="chip.text" class="shrink-0 rounded px-1 font-mono text-[10.5px]" :class="chipClass(chip.tone)">{{ chip.text }}</span>
                         </span>
                         <span class="block truncate text-[11px] text-gray-500"><template v-if="r.request">in <span class="font-mono">{{ r.request }}</span></template><span v-else class="font-mono">{{ r.span }}</span></span>
                     </span>
@@ -137,14 +166,27 @@ const hasChart = computed(() => chartSeries.value.some((s) => (s.data || []).som
 const breakdown = computed(() => props.aggregate?.breakdown || null);
 
 // ── Rows ───────────────────────────────────────────────────────────────────────
-const rowsHeading = computed(() => ({ requests: 'Requests', spans: { stache: 'Warms and clears', glide: 'Generations', forms: 'Submissions' }[props.page.key] || 'Events', audit: 'Changes' })[props.rows.kind] || 'Rows');
+const HEADINGS = { requests: 'Requests', 'static-cache': 'Requests', jobs: 'Job runs', queries: 'Queries', exceptions: 'Exceptions', outgoing: 'Outgoing requests', stache: 'Warms and clears', glide: 'Generations', forms: 'Submissions', content: 'Changes' };
+const rowsHeading = computed(() => HEADINGS[props.page.key] || 'Rows');
 const rowsSub = computed(() => {
     if (props.rows.kind === 'audit') return 'Who changed what — click an item to edit it';
+    if (props.rows.kind === 'logs') return `${fmt(props.rows.items?.length ?? 0)} of ${fmt(props.rows.total ?? 0)} in this window — click a record for its details`;
     const n = props.rows.items?.length ?? 0;
     return `${fmt(n)} of ${fmt(props.rows.total ?? n)} in this window — click a row to open its trace`;
 });
-const searchPlaceholder = computed(() => ({ 'static-cache': 'Path, title, collection…', stache: 'Request…', glide: 'Image path, preset, request…', forms: 'Form, request…', content: 'Title, id, editor, field…' })[props.page.key] || 'Search…');
-const chips = (r) => [r.op, r.preset, r.container, r.form].filter(Boolean);
+const searchPlaceholder = computed(() => ({
+    requests: 'Path, title, route, collection…', 'static-cache': 'Path, title, collection…', jobs: 'Job class, queue…', queries: 'SQL, table, connection…',
+    exceptions: 'Exception, message, file…', outgoing: 'Host, URL, status…', stache: 'Request…', glide: 'Image path, preset, request…', forms: 'Form, request…', content: 'Title, id, editor, field…',
+})[props.page.key] || 'Search…');
+// The small facts after a span row's label; a failure is always the first, in red.
+const chips = (r) => [
+    ...(r.outcome === 'failed' || (r.error && r.error !== 'ok') ? [{ text: r.outcome === 'failed' ? 'failed' : String(r.error).slice(0, 40), tone: 'red' }] : []),
+    ...[r.op, r.preset, r.container, r.form, r.queue, r.attempts ? `attempt ${r.attempts}` : null, r.connection, r.repeats > 1 ? `×${r.repeats}` : null, r.host, r.status]
+        .filter(Boolean).map((text) => ({ text: String(text), tone: r.status >= 500 && String(text) === String(r.status) ? 'red' : r.status >= 400 && String(text) === String(r.status) ? 'amber' : 'default' })),
+];
+const chipClass = (tone) => ({ red: 'bg-red-500/15 text-red-600 dark:text-red-400', amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-400' }[tone] || 'bg-gray-500/10 text-gray-500');
+const expandedLog = ref(null);
+const toggleLog = (id) => (expandedLog.value = expandedLog.value === id ? null : id);
 
 // A breakdown table from the server's column spec: mono, right-aligned numbers, share bars.
 const BreakdownTable = defineComponent({
@@ -158,6 +200,8 @@ const BreakdownTable = defineComponent({
                     h('span', { class: 'text-xs tabular-nums text-gray-500' }, percent(v || 0)),
                 ]);
             }
+            if (col.kind === 'ms') return h('span', { class: v >= 1000 ? 'text-red-500' : v >= 300 ? 'text-orange-500' : '' }, ms(v || 0));
+            if (col.kind === 'errors') return h('span', { class: v > 0 ? 'text-red-500' : 'text-gray-500' }, fmt(v || 0));
             return typeof v === 'number' ? fmt(v) : (v ?? '—');
         };
         return () => h(Table, null, () => [

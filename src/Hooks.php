@@ -56,6 +56,15 @@ final class Hooks
         if (config('statamic-telemetry.instrument.stache', true)) {
             $telemetry->classifyCacheKeysUsing(CacheKeys::classify(...));
         }
+
+        // The telemetry pages read the backend on every load. Traced, those
+        // requests and their outgoing calls to telemetryd would be the busiest
+        // route and host in the very pages that display them — so, like
+        // telemetry-ui, they stay out of the app's own telemetry.
+        if (config('statamic-telemetry.cp.ignore_own_routes', true)) {
+            $cp = trim((string) config('statamic.cp.route', 'cp'), '/');
+            $telemetry->ignorePaths([$cp.'/telemetry', $cp.'/telemetry/*']);
+        }
     }
 
     /**

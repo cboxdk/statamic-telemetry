@@ -1,7 +1,6 @@
 <template>
-    <TelemetryPage title="Telemetry" :nav="nav" :window="window" :windows="windows" :from="from" :to="to" :carry="() => ({ section })">
+    <TelemetryPage title="Telemetry" :nav="nav" :window="window" :windows="windows" :from="from" :to="to">
         <!-- ───────────── Overview ───────────── -->
-        <template v-if="section === 'overview'">
             <div v-if="deployments.length" class="flex flex-wrap items-center gap-2">
                 <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Releases</span>
                 <Badge v-for="d in deployments" :key="d.timestamp + d.id" :text="`${time(d.timestamp)} · ${d.notes || d.id}`" color="violet" size="sm" pill />
@@ -135,10 +134,8 @@
             <Card v-if="isOverviewEmpty">
                 <p class="py-10 text-center text-sm text-gray-500">No requests in this window. Check the telemetry backend is reachable and receiving traces and metrics.</p>
             </Card>
-        </template>
 
         <!-- ───────────── Activity ───────────── -->
-        <ActivitySection v-else :activity="activity" :markers="chartMarkers" />
     </TelemetryPage>
 </template>
 
@@ -150,13 +147,10 @@ import TelemetryPage from '../components/TelemetryPage.vue';
 import Tile from '../components/Tile.vue';
 import Chart from '../components/Chart.vue';
 import TimeChart from '../components/TimeChart.vue';
-import ActivitySection from '../components/ActivitySection.vue';
 import { useTelemetryUrl, rangeBounds } from '../lib/useTelemetryUrl.js';
 import { count as fmt, ms, percent as pct, clock as time } from '../lib/format.js';
 
 const props = defineProps({
-    section: String,
-    sections: Object,
     nav: { type: Array, default: () => [] },
     window: String,
     windows: Object,
@@ -167,7 +161,6 @@ const props = defineProps({
     overview: Object,
     exceptions: Object,
     deployments: { type: Array, default: () => [] },
-    activity: Object,
     metrics: Object,
 });
 
@@ -180,8 +173,8 @@ const Empty = defineComponent({
 });
 
 // ── URL / state ────────────────────────────────────────────────────────────────
-const { go, href, pushDrawer } = useTelemetryUrl(() => ({ section: props.section, window: props.window, from: props.from, to: props.to }));
-const hrefTime = (path, extra = {}) => href(path, { section: null, ...extra });
+const { go, href, pushDrawer } = useTelemetryUrl(() => ({ window: props.window, from: props.from, to: props.to }));
+const hrefTime = (path, extra = {}) => href(path, extra);
 const routeHref = (route) => hrefTime(props.exploreUrl, { signal: 'requests', route });
 const attr = (t, key) => t.attributes?.[key] || null;
 const statusHref = (cls) => hrefTime(props.exploreUrl, { signal: 'requests', status: cls });

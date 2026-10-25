@@ -42,7 +42,17 @@ function fakeStatamicBackend(): void
     Http::fake(function ($request) use ($t, $nano) {
         $url = urldecode($request->url());
 
-        if (str_contains($url, '/api/v1/query_range')) {
+        if (str_contains($url, '/loki/api/v1/query_range')) {
+            return Http::response(['status' => 'success', 'data' => ['resultType' => 'streams', 'result' => [[
+                'stream' => ['service_name' => 'cbox-web', 'level' => 'error'],
+                'values' => [
+                    [$nano, 'exception', ['exception_type' => 'App\\Exceptions\\PaymentFailed', 'exception_message' => 'Card declined', 'exception_file' => '/app/Billing/Charge.php', 'exception_line' => '42', 'url_path' => '/checkout']],
+                    [$nano, 'exception', ['exception_type' => 'RuntimeException', 'exception_message' => 'boom']],
+                ],
+            ]]]]);
+        }
+
+        if (str_contains($url, '/api/v1/query_range') && ! str_contains($url, '/loki/')) {
             return Http::response(pageMatrix([
                 ['labels' => ['preset' => 'small'], 'points' => [[$t - 120, 2], [$t - 60, 3], [$t, 0]]],
             ]));
@@ -57,6 +67,16 @@ function fakeStatamicBackend(): void
         }
 
         if (str_contains($url, '/api/search')) {
+            if (str_contains($url, 'consumer')) {
+                return Http::response(['traces' => [[
+                    'traceID' => 'j1', 'rootServiceName' => 'cbox-web', 'rootTraceName' => 'App\\Jobs\\SendWelcome process', 'startTimeUnixNano' => $nano, 'durationMs' => 250.0,
+                    'spanSets' => [['spans' => [
+                        ['spanID' => 'js1', 'name' => 'App\\Jobs\\SendWelcome process', 'startTimeUnixNano' => $nano, 'durationNanos' => '250000000', 'attributes' => otlpAttrs(['laravel.job.class' => 'App\\Jobs\\SendWelcome', 'messaging.destination.name' => 'emails', 'laravel.job.attempts' => '1'])],
+                        ['spanID' => 'js2', 'name' => 'App\\Jobs\\Reindex process', 'startTimeUnixNano' => $nano, 'durationNanos' => '90000000', 'status' => ['code' => 2, 'message' => 'timeout'], 'attributes' => otlpAttrs(['laravel.job.class' => 'App\\Jobs\\Reindex', 'messaging.destination.name' => 'default', 'laravel.job.attempts' => '3'])],
+                    ]]],
+                ]]]);
+            }
+
             if (str_contains($url, 'glide')) {
                 return Http::response(['traces' => [[
                     'traceID' => 'g1', 'rootServiceName' => 'cbox-web', 'rootTraceName' => 'GET entry:pages.page', 'startTimeUnixNano' => $nano, 'durationMs' => 80.0,
@@ -88,7 +108,7 @@ it('renders the Glide page: generations by preset on top, every generation as a 
     $this->get(cp_route('telemetry.page', ['page' => 'glide']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('statamic-telemetry::StatamicPage')
+            ->component('statamic-telemetry::AreaPage')
             ->where('page.title', 'Glide')
             ->where('aggregate.stats.0.label', 'Generations')
             ->where('aggregate.stats.0.value', '8')
@@ -143,4 +163,52 @@ it('marks the page active in the in-page nav', function () {
     $this->get(cp_route('telemetry.page', ['page' => 'forms']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('nav', fn ($nav) => collect($nav)->firstWhere('active', true)['key'] === 'forms'));
+});
+
+it('renders the Jobs page: every run as a row, failures flagged, facets by job and queue', function () {
+    $this->get(cp_route('telemetry.page', ['page' => 'jobs']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('page.group', 'activity')
+            ->where('aggregate.stats.0.label', 'Processed')
+            ->where('rows.kind', 'spans')
+            ->where('rows.items.0.job', 'SendWelcome')
+            ->where('rows.items.0.queue', 'emails')
+            ->where('rows.items.0.outcome', 'ok')
+            ->where('rows.items.1.outcome', 'failed')
+            ->where('rows.items.1.error', 'error: timeout')
+            ->where('rows.facets.queue.0.value', 'emails'));
+
+    $this->get(cp_route('telemetry.page', ['page' => 'jobs']).'?outcome=failed')
+        ->assertInertia(fn (Assert $page) => $page->count('rows.items', 1)->where('rows.items.0.job', 'Reindex'));
+});
+
+it('renders the Exceptions page from error-level log records, typed and searchable', function () {
+    $this->get(cp_route('telemetry.page', ['page' => 'exceptions']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('aggregate.stats.0.value', '2')
+            ->where('aggregate.breakdown.rows.0.count', 1)
+            ->where('rows.kind', 'logs')
+            ->where('rows.items.0.type', 'PaymentFailed')
+            ->where('rows.items.0.message', 'Card declined')
+            ->where('rows.items.0.origin', 'Charge.php:42')
+            ->where('rows.items.0.path', '/checkout')
+            ->where('rows.facets.type.0.count', 1));
+
+    $this->get(cp_route('telemetry.page', ['page' => 'exceptions']).'?q=declined')
+        ->assertInertia(fn (Assert $page) => $page->count('rows.items', 1));
+});
+
+it('renders the Requests page with the route table on top and every request underneath', function () {
+    $this->get(cp_route('telemetry.page', ['page' => 'requests']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('aggregate.stats.0.label', 'Requests')
+            ->where('aggregate.chart.series.0.name', '1/2/3XX')
+            ->where('rows.kind', 'requests')
+            ->where('rows.items.0.path', '/about')
+            ->where('rows.facets.collection.0.value', 'pages'));
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'api/search') && str_contains(urldecode($request->url()), '{kind=server}'));
 });

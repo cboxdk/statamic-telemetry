@@ -21,7 +21,7 @@ import * as echarts from 'echarts/core';
 import { LineChart, BarChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, BrushComponent, ToolboxComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { count as fmtCount, ms as fmtMs, msTight, percent as fmtPct, clock } from '../lib/format.js';
+import { count as fmtCount, ms as fmtMs, msTight, percent as fmtPct, timeLabel } from '../lib/format.js';
 
 // Statically bundled: an addon's published assets live under /vendor/<addon>/,
 // but Vite bakes the default base into ECharts' internal dynamic-import URLs, so
@@ -45,6 +45,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['zoom']);
+
+// How much time the axis covers — beyond a day and a half the labels need the date.
+const spanMs = () => (props.time.length > 1 ? props.time[props.time.length - 1] - props.time[0] : 0);
 
 const el = ref(null);
 const flags = ref([]);
@@ -146,7 +149,7 @@ function buildOption() {
             padding: [6, 10],
             textStyle: { color: dark ? '#e5e7eb' : '#18181b', fontSize: 12 },
             formatter: (params) => {
-                const head = `<div style="font-size:11px;opacity:.6;margin-bottom:3px">${clock(params[0].value[0])}</div>`;
+                const head = `<div style="font-size:11px;opacity:.6;margin-bottom:3px">${timeLabel(params[0].value[0], spanMs())}</div>`;
                 const rows = params
                     .map((p) => `<div style="display:flex;justify-content:space-between;gap:14px"><span>${p.marker}${p.seriesName}</span><b>${fmt(p.value[1])}</b></div>`)
                     .join('');
@@ -157,7 +160,7 @@ function buildOption() {
             type: 'time',
             axisLine: { show: false },
             axisTick: { show: false },
-            axisLabel: { color: muted, fontSize: 10.5, hideOverlap: true, formatter: (v) => clock(v) },
+            axisLabel: { color: muted, fontSize: 10.5, hideOverlap: true, formatter: (v) => timeLabel(v, spanMs()) },
             splitLine: { show: false },
         },
         yAxis: {
