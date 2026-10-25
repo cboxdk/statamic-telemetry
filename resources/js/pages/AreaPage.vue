@@ -14,9 +14,9 @@
         </Card>
 
         <!-- Breakdown table -->
-        <CardPanel v-if="breakdown?.rows?.length" :heading="breakdown.heading" :subheading="breakdown.subheading || undefined" class="mb-0!">
-            <BreakdownTable :table="breakdown" />
-        </CardPanel>
+        <Section v-if="breakdown?.rows?.length" :heading="breakdown.heading" :subheading="breakdown.subheading || ''" inset>
+            <div class="px-4 pb-2 sm:px-4.5"><BreakdownTable :table="breakdown" /></div>
+        </Section>
 
         <!-- Rows: what the numbers count -->
         <Card inset>
@@ -116,8 +116,9 @@
 
 <script setup>
 import { ref, computed, watch, defineComponent, h } from 'vue';
-import { Button, Card, CardPanel, Input, Table, TableColumns, TableColumn, TableRows, TableRow, TableCell } from '@statamic/cms/ui';
+import { Button, Card, Input, Table, TableColumns, TableColumn, TableRows, TableRow, TableCell } from '@statamic/cms/ui';
 import TelemetryPage from '../components/TelemetryPage.vue';
+import Section from '../components/Section.vue';
 import Tile from '../components/Tile.vue';
 import Empty from '../components/Empty.vue';
 import TimeChart from '../components/TimeChart.vue';

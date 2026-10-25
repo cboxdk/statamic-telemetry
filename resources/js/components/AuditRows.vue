@@ -48,7 +48,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Badge, Button, Table, TableColumns, TableColumn, TableRows, TableRow, TableCell } from '@statamic/cms/ui';
-import { count as fmt } from '../lib/format.js';
+import { count as fmt, dateClock } from '../lib/format.js';
 
 const props = defineProps({
     result: { type: Object, required: true },
@@ -62,9 +62,5 @@ const color = (a) => ({ created: 'green', published: 'green', uploaded: 'green',
 const label = (r) => r.title || r.handle || r.id || '—';
 const context = (r) => [r.type, r.scope, r.site].filter(Boolean).join(' · ');
 const newTab = (url) => { try { return new URL(url).host !== location.host; } catch { return false; } };
-const when = (ts) => {
-    const d = new Date(ts);
-    const p = (n) => String(n).padStart(2, '0');
-    return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-};
+const when = (ts) => dateClock(ts);
 </script>

@@ -36,6 +36,7 @@
 import { computed } from 'vue';
 import { Fieldtype } from '@statamic/cms';
 import { Badge } from '@statamic/cms/ui';
+import { dateTime } from '../lib/format.js';
 
 const emit = defineEmits(Fieldtype.emits);
 const props = defineProps(Fieldtype.props);
@@ -47,6 +48,6 @@ const days = computed(() => Math.round((meta.value.window || 604800) / 86400));
 const fmt = (n) => new Intl.NumberFormat().format(n || 0);
 const ms = (v) => (!v || v <= 0 ? '—' : v >= 1000 ? (v / 1000).toFixed(2) + ' s' : Math.round(v) + ' ms');
 const tone = (v) => (v >= 1000 ? 'var(--color-red-500)' : v >= 300 ? 'var(--color-orange-500)' : 'var(--color-green-500)');
-const date = (ts) => new Date(ts).toLocaleString();
+const date = (ts) => dateTime(ts);
 const color = (a) => ({ created: 'green', published: 'green', uploaded: 'green', updated: 'blue', deleted: 'red', unpublished: 'orange' }[a] || 'default');
 </script>

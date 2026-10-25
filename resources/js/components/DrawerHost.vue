@@ -1,10 +1,11 @@
 <template>
-    <!-- One Statamic Stack per drawer entry in the URL; Stacks nest on their own. -->
+    <!-- One Statamic Stack per drawer entry in the URL; Stacks nest on their own.
+         No `size`: the default leaves a ~225px strip of the page visible and gives
+         the waterfall the width it needs (half was too narrow for span names). -->
     <Stack
         v-for="entry in drawers"
         :key="keyOf(entry)"
         :open="true"
-        size="half"
         inset
         :title="titleOf(entry)"
         icon="chart-monitoring-indicator"
