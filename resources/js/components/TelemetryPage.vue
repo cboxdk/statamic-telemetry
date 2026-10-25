@@ -20,6 +20,7 @@
 </template>
 
 <script setup>
+import { computed, inject, watchEffect, onBeforeUnmount } from 'vue';
 import { Header } from '@statamic/cms/ui';
 import { Head } from '@statamic/cms/inertia';
 import TelemetryTopbar from './TelemetryTopbar.vue';
@@ -38,6 +39,23 @@ const props = defineProps({
     carry: { type: Function, default: () => ({}) },
     // Pages without a time dimension (the doctor) hide the period controls.
     timebar: { type: Boolean, default: true },
+});
+
+// The CP's header breadcrumb comes from the sidebar: "Telemetry / <active child>".
+// Only Overview, Explore, Content and Doctor are sidebar children, so on any
+// other page the child crumb would read "Overview" (its pattern covers every
+// /telemetry/* URL). Append the page's own title there, the way core pages do.
+const SIDEBAR_CHILDREN = ['overview', 'explore', 'content', 'doctor'];
+const layout = inject('layout', null);
+const activeKey = computed(() => props.nav.find((item) => item.active)?.key);
+watchEffect(() => {
+    if (!layout?.additionalBreadcrumbs) return;
+    layout.additionalBreadcrumbs.value = activeKey.value && !SIDEBAR_CHILDREN.includes(activeKey.value)
+        ? [{ display: props.title, url: null, links: [] }]
+        : [];
+});
+onBeforeUnmount(() => {
+    if (layout?.additionalBreadcrumbs) layout.additionalBreadcrumbs.value = [];
 });
 
 // Other pages get the time state only — never this page's filters.

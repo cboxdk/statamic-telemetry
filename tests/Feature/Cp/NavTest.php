@@ -58,11 +58,11 @@ it('builds the in-page nav from the user\'s permissions and marks the active pag
 
     $items = app(TelemetryNav::class)->items('explore');
 
-    expect(collect($items)->pluck('key')->all())->toContain('overview', 'explore', 'requests', 'jobs', 'queries', 'exceptions', 'outgoing', 'static-cache', 'stache', 'glide', 'forms', 'content', 'doctor')
+    expect(collect($items)->pluck('key')->all())->toContain('overview', 'explore', 'requests', 'jobs', 'queries', 'exceptions', 'outgoing', 'static-cache', 'stache', 'glide', 'forms', 'content')
         ->and(collect($items)->firstWhere('key', 'explore')['active'])->toBeTrue()
         ->and(collect($items)->firstWhere('key', 'overview')['active'])->toBeFalse()
         // Groups draw the dividers: main | activity | statamic | tools.
-        ->and(collect($items)->pluck('group')->unique()->values()->all())->toBe(['main', 'activity', 'statamic', 'tools']);
+        ->and(collect($items)->pluck('group')->unique()->values()->all())->toBe(['main', 'activity', 'statamic']);
 });
 
 it('hides every in-page nav item from a user without telemetry permissions', function () {
@@ -76,7 +76,7 @@ it('passes the in-page nav to every telemetry page', function () {
     config()->set('statamic-telemetry.cp.audit.url', 'http://backend.test');
     Http::fake(['http://backend.test/*' => Http::response(['traces' => []])]);
 
-    foreach (['telemetry.dashboard' => 'overview', 'telemetry.explore' => 'explore', 'telemetry.doctor' => 'doctor'] as $route => $active) {
+    foreach (['telemetry.dashboard' => 'overview', 'telemetry.explore' => 'explore'] as $route => $active) {
         $this->get(cp_route($route))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
