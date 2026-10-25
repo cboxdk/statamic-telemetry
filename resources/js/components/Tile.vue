@@ -4,7 +4,7 @@
     <component
         :is="href ? Link : 'div'"
         v-bind="href ? { href } : {}"
-        :class="href ? 'block rounded-lg no-underline hover:bg-gray-50 dark:hover:bg-gray-800/40' : null"
+        :class="href ? 'block rounded-lg no-underline hover:bg-gray-500/10' : null"
     >
         <div class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">{{ label }}</div>
         <div class="mt-0.5 text-xl font-bold leading-tight tabular-nums" :class="dim ? 'text-gray-500' : tone">{{ value ?? '—' }}</div>

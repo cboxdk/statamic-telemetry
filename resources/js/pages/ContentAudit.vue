@@ -66,7 +66,7 @@
                 </div>
             </div>
 
-            <div v-if="result.capped" class="border-t border-gray-200 bg-gray-50 px-4 py-2.5 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900/60">Showing the newest changes in this window — narrow the window to see further back.</div>
+            <div v-if="result.capped" class="border-t border-gray-200 bg-gray-500/5 px-4 py-2.5 text-xs text-gray-500 dark:border-gray-800">Showing the newest changes in this window — narrow the window to see further back.</div>
         </Card>
     </TelemetryPage>
 </template>
