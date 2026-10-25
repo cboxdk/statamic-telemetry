@@ -36,6 +36,22 @@ final class Logs
     }
 
     /**
+     * Log lines whose structured-metadata label has a value — e.g. every
+     * error-level record with `url_path="/about"`, the exceptions behind one
+     * page. Keys are label names as Loki stores them (dots become underscores).
+     *
+     * @return list<array{timestamp: int, level: string, line: string, labels: array<string, string>, traceId: ?string}>
+     */
+    public function withLabel(string $label, string $value, string $level = '', int $windowSeconds = 86400, int $limit = 100, ?int $endsAt = null): array
+    {
+        if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $label) !== 1) {
+            return [];
+        }
+
+        return $this->fetch($this->selector($level).' | '.$label.'="'.addslashes($value).'"', $windowSeconds, $limit, $endsAt);
+    }
+
+    /**
      * The log lines emitted during one trace, matched on the `trace_id`
      * structured-metadata label laravel-telemetry stamps on every record.
      *

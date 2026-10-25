@@ -140,6 +140,10 @@ return [
         // backend) out of the app's own traces and metrics.
         'ignore_own_routes' => env('STATAMIC_TELEMETRY_CP_IGNORE_OWN_ROUTES', true),
 
+        // Add a full-width "Telemetry" tab to every entry blueprint (the
+        // entry's own requests, latency, cache, exceptions and changes).
+        'entry_tab' => env('STATAMIC_TELEMETRY_ENTRY_TAB', true),
+
         'audit' => [
             'enabled' => env('STATAMIC_TELEMETRY_AUDIT_UI'),
             'url' => env('STATAMIC_TELEMETRY_AUDIT_LOGS_URL', env('TELEMETRY_UI_LOGS_URL')),

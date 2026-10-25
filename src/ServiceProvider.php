@@ -6,6 +6,7 @@ namespace Cbox\StatamicTelemetry;
 
 use Cbox\StatamicTelemetry\Cp\NavLink;
 use Cbox\StatamicTelemetry\Listeners\AddSiteContext;
+use Cbox\StatamicTelemetry\Listeners\AddTelemetryTab;
 use Cbox\StatamicTelemetry\Listeners\CaptureResponseData;
 use Cbox\StatamicTelemetry\Listeners\RecordAuthEvent;
 use Cbox\StatamicTelemetry\Listeners\RecordCachePurge;
@@ -59,6 +60,7 @@ class ServiceProvider extends AddonServiceProvider
 
     protected $listen = [
         Events\ResponseCreated::class => [CaptureResponseData::class],
+        Events\EntryBlueprintFound::class => [AddTelemetryTab::class],
         RouteMatched::class => [AddSiteContext::class, SnapshotSites::class],
         ResponsePrepared::class => [StripTraceHeader::class],
         Events\StacheWarmed::class => [RecordStacheChange::class],

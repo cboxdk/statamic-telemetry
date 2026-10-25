@@ -48,9 +48,9 @@ final class Traces
      *
      * @return list<TraceSummary>
      */
-    public function byEntry(string $entryId, int $windowSeconds, int $limit = 50): array
+    public function byEntry(string $entryId, int $windowSeconds, int $limit = 50, ?int $endsAt = null): array
     {
-        return $this->query(['q' => '{span.statamic.entry.id="'.addslashes($entryId).'"}', 'limit' => $limit], $windowSeconds);
+        return $this->query(['q' => '{'.self::SERVER_SPANS.' && span.statamic.entry.id="'.addslashes($entryId).'"}', 'limit' => $limit], $windowSeconds, $endsAt);
     }
 
     /**
