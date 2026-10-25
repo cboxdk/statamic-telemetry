@@ -13,9 +13,9 @@
             </div>
         </Card>
 
-        <!-- Breakdown table -->
-        <Section v-if="breakdown?.rows?.length" :heading="breakdown.heading" :subheading="breakdown.subheading || ''" inset>
-            <div class="px-4 pb-2 sm:px-4.5"><BreakdownTable :table="breakdown" /></div>
+        <!-- Breakdown tables: the aggregate's, and (static cache) the one grouped from the rows. A row filters the rows below. -->
+        <Section v-for="table in breakdownTables" :key="table.heading" :heading="table.heading" :subheading="hint(table)" inset>
+            <div class="px-4 pb-2 sm:px-4.5"><BreakdownTable :table="table" :active="activeIn(table)" :selectable="!!dimOf(table)" @select="(v) => filterFrom(table, v)" /></div>
         </Section>
 
         <!-- Rows: what the numbers count -->
@@ -54,7 +54,7 @@
             <!-- Requests -->
             <div v-else-if="rows.kind === 'requests'" class="max-h-[70vh] overflow-y-auto" scroll-region>
                 <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
-                <RequestRow v-for="t in rows.items" :key="t.id" :row="t" :active="openTraceId === t.id" @open="openTrace" />
+                <RequestRow v-for="t in rows.items" :key="t.id" :row="t" :active="openTraceId === t.id" :filters="filters" @open="openTrace" @facet="toggleIfFacet" />
             </div>
 
             <!-- Log records (exceptions): type · message · origin, expandable to every label -->
@@ -65,14 +65,14 @@
                         <span class="pt-0.5 tabular-nums text-xs text-gray-500">{{ clock(r.timestamp) }}</span>
                         <span class="min-w-0">
                             <span class="flex items-center gap-2">
-                                <span class="shrink-0 rounded bg-red-500/15 px-1 font-mono text-[10.5px] font-semibold text-red-600 dark:text-red-400" :title="r.fullType">{{ r.type }}</span>
+                                <button type="button" class="shrink-0 rounded bg-red-500/15 px-1 font-mono text-[10.5px] font-semibold text-red-600 hover:bg-red-500/25 dark:text-red-400" :title="`${r.fullType} — click to filter`" @click.stop="toggleFacet('type', r.type)">{{ r.type }}</button>
                                 <span class="min-w-0 font-mono text-[13px]" :class="expandedLog === r.id ? 'whitespace-pre-wrap break-words' : 'truncate'">{{ r.message || r.fullType }}</span>
                             </span>
                             <span class="flex min-w-0 items-center gap-2 text-[11px] text-gray-500">
                                 <span v-if="r.origin" class="truncate font-mono">{{ r.origin }}</span>
                                 <span v-if="r.path" class="truncate font-mono">{{ r.path }}</span>
                                 <span v-else-if="r.route" class="truncate font-mono">{{ r.route }}</span>
-                                <span v-if="r.group" class="shrink-0">group {{ r.group }}</span>
+                                <button v-if="r.group" type="button" class="shrink-0 hover:underline" @click.stop="toggleFacet('group', r.group)">group {{ r.group }}</button>
                             </span>
                         </span>
                     </button>
@@ -101,7 +101,17 @@
                     <span class="min-w-0">
                         <span class="flex items-center gap-2">
                             <span class="truncate font-mono text-[13px]">{{ r.label }}</span>
-                            <span v-for="chip in chips(r)" :key="chip.text" class="shrink-0 rounded px-1 font-mono text-[10.5px]" :class="chipClass(chip.tone)">{{ chip.text }}</span>
+                            <!-- A chip with a facet behind it filters the list; the others just inform. -->
+                            <component
+                                :is="chip.dim ? 'button' : 'span'"
+                                v-for="chip in chips(r)"
+                                :key="chip.text"
+                                :type="chip.dim ? 'button' : null"
+                                class="shrink-0 rounded px-1 font-mono text-[10.5px]"
+                                :class="[chipClass(chip.tone), chip.dim ? 'hover:ring-1 hover:ring-gray-400' : '']"
+                                :title="chip.dim ? 'Click to filter' : null"
+                                @click.stop="chip.dim && toggleFacet(chip.dim, chip.value)"
+                            >{{ chip.text }}</component>
                         </span>
                         <span class="block truncate text-[11px] text-gray-500"><template v-if="r.request">in <span class="font-mono">{{ r.request }}</span></template><span v-else class="font-mono">{{ r.span }}</span></span>
                     </span>
@@ -154,6 +164,8 @@ const facetDims = computed(() => Object.keys(props.rows.facetLabels || {}).filte
 const hasFilters = computed(() => Object.keys(props.filters || {}).length > 0);
 const applySearch = () => go({ q: searchText.value || null, page: null });
 const toggleFacet = (dim, value) => go({ [dim]: props.filters[dim] === String(value) ? null : String(value), page: null });
+const hasFacet = (dim) => !!props.rows.facetLabels?.[dim];
+const toggleIfFacet = (dim, value) => hasFacet(dim) && toggleFacet(dim, value);
 const clearFilters = () => go({ ...Object.fromEntries(Object.keys(props.rows.facetLabels || {}).map((k) => [k, null])), page: null });
 const onZoom = ([fromMs, toMs]) => navigate({ from: Math.round(fromMs / 1000), to: Math.round(toMs / 1000) });
 
@@ -164,7 +176,12 @@ const openTraceId = computed(() => (topDrawer.value?.kind === 'trace' ? topDrawe
 const chartTime = computed(() => (props.aggregate?.chart?.t || []).map((t) => t * 1000));
 const chartSeries = computed(() => (props.aggregate?.chart?.series || []).map((s) => ({ ...s, color: s.color || undefined })));
 const hasChart = computed(() => chartSeries.value.some((s) => (s.data || []).some((v) => v > 0)));
-const breakdown = computed(() => props.aggregate?.breakdown || null);
+const breakdownTables = computed(() => [props.aggregate?.breakdown, props.rows?.groups].filter((t) => t?.rows?.length));
+// A breakdown row filters the rows below when its first column is one of the page's facets.
+const dimOf = (table) => (hasFacet(table.columns[0]?.key) ? table.columns[0].key : null);
+const hint = (table) => [table.subheading, dimOf(table) ? 'click a row to filter the list below' : ''].filter(Boolean).join(' · ');
+const activeIn = (table) => (dimOf(table) ? props.filters[dimOf(table)] ?? null : null);
+const filterFrom = (table, row) => dimOf(table) && toggleFacet(dimOf(table), row[dimOf(table)]);
 
 // ── Rows ───────────────────────────────────────────────────────────────────────
 const HEADINGS = { requests: 'Requests', 'static-cache': 'Requests', jobs: 'Job runs', queries: 'Queries', exceptions: 'Exceptions', outgoing: 'Outgoing requests', stache: 'Warms and clears', glide: 'Generations', forms: 'Submissions', content: 'Changes' };
@@ -180,19 +197,37 @@ const searchPlaceholder = computed(() => ({
     exceptions: 'Exception, message, file…', outgoing: 'Host, URL, status…', stache: 'Request…', glide: 'Image path, preset, request…', forms: 'Form, request…', content: 'Title, id, editor, field…',
 })[props.page.key] || 'Search…');
 // The small facts after a span row's label; a failure is always the first, in red.
-const chips = (r) => [
-    ...(r.outcome === 'failed' || (r.error && r.error !== 'ok') ? [{ text: r.outcome === 'failed' ? 'failed' : String(r.error).slice(0, 40), tone: 'red' }] : []),
-    ...[r.op, r.preset, r.container, r.form, r.queue, r.attempts ? `attempt ${r.attempts}` : null, r.connection, r.repeats > 1 ? `×${r.repeats}` : null, r.host, r.status]
-        .filter(Boolean).map((text) => ({ text: String(text), tone: r.status >= 500 && String(text) === String(r.status) ? 'red' : r.status >= 400 && String(text) === String(r.status) ? 'amber' : 'default' })),
-];
+// Each carries the facet it can filter on (when the page has that facet).
+const chips = (r) => {
+    const out = [];
+    const add = (text, dim = null, value = text, tone = 'default') => text != null && text !== '' && out.push({ text: String(text), dim: dim && hasFacet(dim) ? dim : null, value: String(value), tone });
+    if (r.outcome === 'failed') add('failed', 'outcome', 'failed', 'red');
+    else if (r.error && r.error !== 'ok') add(String(r.error).slice(0, 40), null, null, 'red');
+    add(r.op, 'op');
+    add(r.preset, 'preset');
+    add(r.container, 'container');
+    add(r.form, 'form');
+    add(r.queue, 'queue');
+    add(r.attempts ? `attempt ${r.attempts}` : null);
+    add(r.connection, 'connection');
+    add(r.repeats > 1 ? `×${r.repeats}` : null, 'repeat', 'repeated');
+    add(r.host, 'host');
+    add(r.method, 'method');
+    add(r.status, 'status', r.status, r.status >= 500 ? 'red' : r.status >= 400 ? 'amber' : 'default');
+    return out;
+};
 const chipClass = (tone) => ({ red: 'bg-red-500/15 text-red-600 dark:text-red-400', amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-400' }[tone] || 'bg-gray-500/10 text-gray-500');
 const expandedLog = ref(null);
 const toggleLog = (id) => (expandedLog.value = expandedLog.value === id ? null : id);
 
 // A breakdown table from the server's column spec: mono, right-aligned numbers, share bars.
+// Rows are buttons when the parent listens for `select`; `active` marks the row that is the current filter.
 const BreakdownTable = defineComponent({
-    props: { table: { type: Object, required: true } },
-    setup(p) {
+    // (`selectable` is explicit: a declared emit is stripped from attrs, so `onSelect` cannot be sniffed.)
+    props: { table: { type: Object, required: true }, active: { type: String, default: null }, selectable: { type: Boolean, default: false } },
+    emits: ['select'],
+    setup(p, { emit }) {
+        const clickable = p.selectable;
         const cell = (col, row) => {
             const v = row[col.key];
             if (col.kind === 'share') {
@@ -207,7 +242,11 @@ const BreakdownTable = defineComponent({
         };
         return () => h(Table, null, () => [
             h(TableColumns, null, () => p.table.columns.map((c) => h(TableColumn, { key: c.key, class: c.align === 'end' ? 'text-end' : '' }, () => c.label))),
-            h(TableRows, null, () => p.table.rows.map((row, i) => h(TableRow, { key: i }, () => p.table.columns.map((c) =>
+            h(TableRows, null, () => p.table.rows.map((row, i) => h(TableRow, {
+                key: i,
+                class: [clickable ? 'cursor-pointer transition-colors hover:bg-gray-500/5' : '', p.active !== null && String(row[p.table.columns[0].key]) === p.active ? 'bg-blue-500/10' : ''],
+                onClick: clickable ? () => emit('select', row) : undefined,
+            }, () => p.table.columns.map((c) =>
                 h(TableCell, { key: c.key, class: [c.align === 'end' ? 'text-end tabular-nums' : '', c.kind === 'mono' ? 'font-mono text-xs' : ''] }, () => cell(c, row)),
             )))),
         ]);

@@ -18,6 +18,13 @@
                     <span v-if="trace.services.length">· {{ trace.services.join(' › ') }}</span>
                     <span v-if="trace.spans.length">· {{ trace.spans.length }} spans</span>
                 </div>
+                <!-- Where to go from here: the page it served, every request like it, the entry behind it. -->
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                    <Button v-if="rootAttrs['http.route']" size="xs" :href="pageHref('requests', { route: rootAttrs['http.route'] })" :text="`Requests for ${rootAttrs['http.route']}`" />
+                    <Button v-if="rootAttrs['url.path']" size="xs" :href="pageHref('explore', { signal: 'requests', path: rootAttrs['url.path'] })" :text="`Explore ${rootAttrs['url.path']}`" />
+                    <Button v-if="rootAttrs['statamic.content.edit_url']" size="xs" :href="rootAttrs['statamic.content.edit_url']" text="Edit entry" />
+                    <Button v-if="rootAttrs['statamic.content.url']" size="xs" variant="ghost" :href="rootAttrs['statamic.content.url']" target="_blank" text="View page" />
+                </div>
             </template>
             <div v-else class="text-sm text-gray-500">Trace {{ id.slice(0, 16) }}</div>
         </div>
@@ -101,6 +108,15 @@ async function load(manual = false) {
 
 onMounted(load);
 watch(() => props.id, () => { trace.value = null; retrying.value = false; load(); });
+
+// The request span's attributes — what the trace was about.
+const rootAttrs = computed(() => (trace.value?.spans || []).find((s) => s.depth === 0)?.attributes || {});
+// Links to sibling telemetry pages keep the CP prefix of the page we are on.
+const pageHref = (page, params) => {
+    const base = location.pathname.replace(/\/telemetry(\/.*)?$/, `/telemetry/${page}`);
+    const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')));
+    return `${base}?${qs}`;
+};
 
 const statusText = computed(() => (trace.value?.root?.error ? 'ERROR' : trace.value?.root?.status || 'OK'));
 const statusColor = computed(() => {

@@ -180,7 +180,9 @@ final class TelemetryPages
             default => throw new \InvalidArgumentException("Unknown telemetry page [{$page}]."),
         };
 
+        // Facets and groups count the whole window, so every value stays clickable while one is applied.
         $facets = $this->facets($page, $rows);
+        $groups = $page === 'static-cache' ? $this->cacheByCollection($rows) : null;
         $total = count($rows);
         $rows = $this->filter($rows, $q, $filters);
 
@@ -191,7 +193,7 @@ final class TelemetryPages
             'facetLabels' => self::FACETS[$page],
             'total' => $total,
             'capped' => $total >= self::LIMIT,
-            'groups' => $page === 'static-cache' ? $this->cacheByCollection($rows) : null,
+            'groups' => $groups,
         ];
     }
 

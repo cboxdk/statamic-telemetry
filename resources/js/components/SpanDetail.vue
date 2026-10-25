@@ -26,7 +26,8 @@
                         </template>
                         <DropdownMenu>
                             <DropdownItem text="Copy value" @click="copy(value)" />
-                            <DropdownItem v-if="facetFor(key)" :text="`Filter Explore by ${facetFor(key)}`" :href="exploreHref(key, value)" />
+                            <DropdownItem v-if="facetFor(key)" :text="`Requests with this ${facetFor(key)}`" :href="exploreHref(key, value)" />
+                            <DropdownItem v-if="isUrl(value)" :text="key.endsWith('edit_url') ? 'Edit in the CP' : 'Open'" :href="String(value)" />
                         </DropdownMenu>
                     </Dropdown>
                 </dd>
@@ -48,8 +49,12 @@ const copy = (text) => navigator.clipboard?.writeText(String(text));
 const toneClass = (v) => (v >= 1000 ? 'text-red-500' : v >= 300 ? 'text-orange-500' : 'text-green-600 dark:text-green-400');
 
 // Span attribute → Explore facet it can filter on.
-const FACETS = { 'http.route': 'route', 'http.request.method': 'method', 'http.response.status_code': 'status' };
+const FACETS = {
+    'http.route': 'route', 'http.request.method': 'method', 'http.response.status_code': 'status',
+    'statamic.collection': 'collection', 'statamic.taxonomy': 'taxonomy', 'statamic.type': 'type', 'statamic.site': 'site', 'statamic.static_cache': 'cache', 'url.path': 'path',
+};
 const facetFor = (key) => FACETS[key] || null;
+const isUrl = (value) => /^https?:\/\//.test(String(value));
 const exploreHref = (key, value) => {
     const base = location.pathname.replace(/\/telemetry(\/.*)?$/, '/telemetry/explore');
     const params = new URLSearchParams(location.search);
