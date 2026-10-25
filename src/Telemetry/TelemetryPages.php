@@ -10,26 +10,38 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * The purpose-built Statamic pages — Static cache, Stache, Glide, Forms,
- * Content. Each is the same shape: an aggregate on top (stat tiles, a time
- * chart, a breakdown table — from the addon's Prometheus metrics) and the
- * rows underneath (every request / span / change in the window, searchable
- * and facet-filterable, each openable as its trace). A number is never the
- * end of the road: the rows are what the number counts.
+ * The purpose-built pages — the application's activity (requests, jobs,
+ * queries, exceptions, outgoing HTTP) and Statamic's own areas (static
+ * cache, Stache, Glide, forms, content). Each is the same shape: an
+ * aggregate on top (stat tiles, a time chart, a breakdown table — from the
+ * Prometheus metrics) and the rows underneath (every request / span / log
+ * line / change in the window, searchable and facet-filterable, each
+ * openable as its trace). A number is never the end of the road: the rows
+ * are what the number counts.
  */
-final class StatamicPages
+final class TelemetryPages
 {
-    /** Page key → title, CP icon, one-line description. */
+    /** Page key → group, title, CP icon, one-line description. Order is nav order. */
     public const PAGES = [
-        'static-cache' => ['title' => 'Static cache', 'icon' => 'cache', 'description' => 'Every frontend request by static-cache outcome — hits, misses, writes — and the pages behind them.'],
-        'stache' => ['title' => 'Stache', 'icon' => 'flash-bolt-lightning', 'description' => 'Stache warms and clears: how often the content index rebuilds, how long it takes, and which requests paid for it.'],
-        'glide' => ['title' => 'Glide', 'icon' => 'folder-photos', 'description' => 'Image generations by preset, and the requests that triggered them.'],
-        'forms' => ['title' => 'Forms', 'icon' => 'fieldtype-form', 'description' => 'Form submissions by form, each with the request that posted it.'],
-        'content' => ['title' => 'Content', 'icon' => 'content-book-open', 'description' => 'Content changes by type and action, with the audit trail of who changed what.'],
+        'requests' => ['group' => 'activity', 'title' => 'Requests', 'icon' => 'chart-monitoring-indicator', 'description' => 'HTTP requests by status and latency, the routes that need attention, and every request in the window.'],
+        'jobs' => ['group' => 'activity', 'title' => 'Jobs', 'icon' => 'flash-bolt-lightning', 'description' => 'Queue jobs processed by job and queue, with every run and what it did.'],
+        'queries' => ['group' => 'activity', 'title' => 'Queries', 'icon' => 'cache', 'description' => 'Database queries by connection, N+1 and duplicate detection, and every query with the request that ran it.'],
+        'exceptions' => ['group' => 'activity', 'title' => 'Exceptions', 'icon' => 'folder-warning', 'description' => 'Error-level log records by exception type, each with its message and where it was thrown.'],
+        'outgoing' => ['group' => 'activity', 'title' => 'Outgoing HTTP', 'icon' => 'content-book-open', 'description' => 'Outbound HTTP calls by host, their errors and latency, and every call with the request that made it.'],
+        'static-cache' => ['group' => 'statamic', 'title' => 'Static cache', 'icon' => 'cache', 'description' => 'Every frontend request by static-cache outcome — hits, misses, writes — and the pages behind them.'],
+        'stache' => ['group' => 'statamic', 'title' => 'Stache', 'icon' => 'flash-bolt-lightning', 'description' => 'Stache warms and clears: how often the content index rebuilds, how long it takes, and which requests paid for it.'],
+        'glide' => ['group' => 'statamic', 'title' => 'Glide', 'icon' => 'folder-photos', 'description' => 'Image generations by preset, and the requests that triggered them.'],
+        'forms' => ['group' => 'statamic', 'title' => 'Forms', 'icon' => 'fieldtype-form', 'description' => 'Form submissions by form, each with the request that posted it.'],
+        'content' => ['group' => 'statamic', 'title' => 'Content', 'icon' => 'content-book-open', 'description' => 'Content changes by type and action, with the audit trail of who changed what.'],
     ];
 
     /** Page → the row keys it can facet on (key → label). */
     public const FACETS = [
+        'requests' => ['status' => 'Status', 'method' => 'Method', 'route' => 'Route', 'collection' => 'Collection', 'cache' => 'Static cache'],
+        'jobs' => ['job' => 'Job', 'queue' => 'Queue', 'outcome' => 'Outcome'],
+        'queries' => ['connection' => 'Connection', 'repeat' => 'Repeats'],
+        'exceptions' => ['type' => 'Exception', 'group' => 'Group'],
+        'outgoing' => ['host' => 'Host', 'method' => 'Method', 'status' => 'Status'],
         'static-cache' => ['cache' => 'Outcome', 'collection' => 'Collection', 'type' => 'Content type', 'site' => 'Site'],
         'stache' => ['op' => 'Operation'],
         'glide' => ['preset' => 'Preset', 'container' => 'Container'],
@@ -39,9 +51,13 @@ final class StatamicPages
 
     private const LIMIT = 300;
 
+    private const BUCKETS = 32;
+
     public function __construct(
         private readonly TelemetryMetrics $metrics,
+        private readonly ActivityMetrics $activity,
         private readonly Traces $traces,
+        private readonly Logs $logs,
         private readonly AuditLog $audit,
     ) {}
 
@@ -51,7 +67,7 @@ final class StatamicPages
     }
 
     /**
-     * @return array{key: string, title: string, icon: string, description: string}
+     * @return array{key: string, group: string, title: string, icon: string, description: string}
      */
     public function meta(string $page): array
     {
@@ -88,6 +104,11 @@ final class StatamicPages
         $at = $range->endsAt;
 
         return match ($page) {
+            'requests' => $this->requests($s, $at),
+            'jobs' => $this->jobs($s, $at),
+            'queries' => $this->queries($s, $at),
+            'exceptions' => $this->exceptions($range),
+            'outgoing' => $this->outgoing($s, $at),
             'static-cache' => $this->staticCache($s, $at),
             'stache' => $this->stache($s, $at),
             'glide' => $this->glide($s, $at),
@@ -99,8 +120,9 @@ final class StatamicPages
 
     /**
      * The rows: `kind` says how the client renders them — `requests` (trace
-     * rows), `spans` (one span each, in its request) or `audit` (the
-     * content-change trail). Facets are counted before the filters apply.
+     * rows), `spans` (one span each, in its request), `logs` (log records)
+     * or `audit` (the content-change trail). Facets are counted before the
+     * filters apply.
      *
      * @param  array<string, string>  $filters
      * @return array<string, mixed>
@@ -111,8 +133,37 @@ final class StatamicPages
             return $this->auditRows($range, $request);
         }
 
+        $kind = match ($page) {
+            'requests', 'static-cache' => 'requests',
+            'exceptions' => 'logs',
+            default => 'spans',
+        };
+
         $rows = match ($page) {
-            'static-cache' => array_map(static fn (TraceSummary $t): array => $t->toRow(), $this->traces->search($range->seconds, self::LIMIT, '{'.Traces::SERVER_SPANS.' && span.statamic.static_cache=~".+"}', $range->endsAt)),
+            'requests' => $this->requestRows('{'.Traces::SERVER_SPANS.'}', $range),
+            'static-cache' => $this->requestRows('{'.Traces::SERVER_SPANS.' && span.statamic.static_cache=~".+"}', $range),
+            'exceptions' => $this->exceptionRows($range),
+            'jobs' => $this->spanRows('{kind=consumer}', $range, static fn (array $span): array => [
+                'job' => self::shortClass($span['attributes']['laravel.job.class'] ?? $span['name']),
+                'queue' => $span['attributes']['messaging.destination.name'] ?? 'default',
+                'attempts' => $span['attributes']['laravel.job.attempts'] ?? null,
+                'outcome' => isset($span['attributes']['status']) ? 'failed' : 'ok',
+                'error' => $span['attributes']['status'] ?? null,
+                'label' => self::shortClass($span['attributes']['laravel.job.class'] ?? $span['name']),
+            ]),
+            'queries' => $this->spanRows('{span.db.system.name=~".+" && name="db.query"}', $range, static fn (array $span): array => [
+                'connection' => $span['attributes']['laravel.db.connection'] ?? ($span['attributes']['db.namespace'] ?? 'default'),
+                'repeat' => ((int) ($span['attributes']['laravel.db.query.repeat'] ?? 1)) > 1 ? 'repeated' : 'single',
+                'repeats' => (int) ($span['attributes']['laravel.db.query.repeat'] ?? 1),
+                'label' => mb_substr($span['attributes']['db.query.text'] ?? $span['name'], 0, 200),
+            ]),
+            'outgoing' => $this->spanRows('{kind=client && span.http.request.method=~".+"}', $range, static fn (array $span): array => [
+                'host' => $span['attributes']['server.address'] ?? '(unknown)',
+                'method' => $span['attributes']['http.request.method'] ?? null,
+                'status' => $span['attributes']['http.response.status_code'] ?? null,
+                'error' => $span['attributes']['error.type'] ?? ($span['attributes']['status'] ?? null),
+                'label' => ($span['attributes']['http.request.method'] ?? 'GET').' '.($span['attributes']['url.full'] ?? (($span['attributes']['server.address'] ?? '').($span['attributes']['url.path'] ?? ''))),
+            ]),
             'stache' => $this->spanRows('{name=~"statamic.stache.(warm|clear)"}', $range, static fn (array $span): array => [
                 'op' => str_starts_with($span['name'], 'statamic.stache.clear') ? 'clear' : 'warm',
                 'label' => str_starts_with($span['name'], 'statamic.stache.clear') ? 'Stache cleared' : 'Stache warmed',
@@ -134,7 +185,7 @@ final class StatamicPages
         $rows = $this->filter($rows, $q, $filters);
 
         return [
-            'kind' => $page === 'static-cache' ? 'requests' : 'spans',
+            'kind' => $kind,
             'items' => $rows,
             'facets' => $facets,
             'facetLabels' => self::FACETS[$page],
@@ -144,7 +195,130 @@ final class StatamicPages
         ];
     }
 
-    // ── Aggregates ────────────────────────────────────────────────────────────
+    // ── Aggregates: activity ──────────────────────────────────────────────────
+
+    /** @return array<string, mixed> */
+    private function requests(int $s, ?int $at): array
+    {
+        $o = $this->metrics->overview($s, $at);
+        $series = $o->statusSeries;
+
+        $routes = array_map(static fn (array $r): array => ['route' => $r['route'], 'total' => $r['total'], 'errors' => $r['errors'], 'p95' => $r['p95']], array_slice($o->routes, 0, 12));
+
+        return [
+            'stats' => [
+                ['label' => 'Requests', 'value' => number_format($o->requestTotal), 'delta' => $this->deltaText($o->delta['requests'] ?? null)],
+                ['label' => 'Error rate', 'value' => $this->pct($o->errorRate), 'tone' => $o->errorRate > 0.01 ? 'text-red-500' : '', 'delta' => $this->deltaText($o->delta['errorRate'] ?? null, true)],
+                ['label' => 'Avg', 'value' => $this->ms($o->avg)],
+                ['label' => 'p50', 'value' => $this->ms($o->p50), 'dim' => true],
+                ['label' => 'p95', 'value' => $this->ms($o->p95), 'tone' => $o->p95 >= 1000 ? 'text-red-500' : ($o->p95 >= 300 ? 'text-orange-500' : ''), 'delta' => $this->deltaText($o->delta['p95'] ?? null, true)],
+                ['label' => 'p99', 'value' => $this->ms($o->p99), 'dim' => true],
+            ],
+            'chart' => ['t' => $series['t'], 'unit' => 'count', 'stack' => true, 'series' => [
+                ['name' => '1/2/3XX', 'data' => $series['ok'], 'type' => 'bar', 'stack' => 'a', 'color' => 'var(--color-gray-400)'],
+                ['name' => '4XX', 'data' => $series['client'], 'type' => 'bar', 'stack' => 'a', 'color' => 'var(--color-amber-500)'],
+                ['name' => '5XX', 'data' => $series['server'], 'type' => 'bar', 'stack' => 'a', 'color' => 'var(--color-red-500)'],
+            ]],
+            'breakdown' => $routes === [] ? null : $this->table('Routes needing attention', 'Most server errors, then slowest p95', [
+                ['key' => 'route', 'label' => 'Route', 'kind' => 'mono'],
+                ['key' => 'total', 'label' => 'Requests', 'align' => 'end'],
+                ['key' => 'errors', 'label' => 'Errors', 'align' => 'end', 'kind' => 'errors'],
+                ['key' => 'p95', 'label' => 'p95', 'align' => 'end', 'kind' => 'ms'],
+            ], $routes),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function jobs(int $s, ?int $at): array
+    {
+        $j = $this->activity->area('jobs', $s, $at);
+
+        return [
+            'stats' => [
+                ['label' => 'Processed', 'value' => number_format($j['processed'])],
+                ['label' => 'Dispatched', 'value' => number_format($j['dispatched']), 'dim' => true],
+                ['label' => 'p95 duration', 'value' => $this->ms($j['durationP95']), 'tone' => $j['durationP95'] >= 1000 ? 'text-red-500' : ''],
+                ...($j['utilization'] !== null ? [['label' => 'Workers busy', 'value' => round($j['utilization']).'%', 'dim' => true]] : []),
+            ],
+            'chart' => $this->single($j['series'], 'processed', 'var(--color-green-500)'),
+            'breakdown' => $j['byJob'] === [] ? null : $this->table('By job', 'Processed per job and queue', [
+                ['key' => 'job', 'label' => 'Job', 'kind' => 'mono'],
+                ['key' => 'queue', 'label' => 'Queue'],
+                ['key' => 'count', 'label' => 'Processed', 'align' => 'end'],
+                ['key' => 'p95', 'label' => 'p95', 'align' => 'end', 'kind' => 'ms'],
+            ], $j['byJob']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function queries(int $s, ?int $at): array
+    {
+        $q = $this->activity->area('queries', $s, $at);
+        $total = max(1.0, (float) $q['total']);
+
+        return [
+            'stats' => [
+                ['label' => 'Queries', 'value' => number_format($q['total'])],
+                ['label' => 'N+1 detected', 'value' => number_format($q['nPlusOne']), 'tone' => $q['nPlusOne'] > 0 ? 'text-red-500' : '', 'dim' => $q['nPlusOne'] == 0],
+                ['label' => 'Duplicated', 'value' => number_format($q['duplicated']), 'tone' => $q['duplicated'] > 0 ? 'text-amber-600 dark:text-amber-400' : '', 'dim' => $q['duplicated'] == 0],
+            ],
+            'chart' => $this->single($q['series'], 'queries', 'var(--color-blue-500)'),
+            'breakdown' => $q['byConnection'] === [] ? null : $this->table('By connection', null, [
+                ['key' => 'connection', 'label' => 'Connection', 'kind' => 'mono'],
+                ['key' => 'count', 'label' => 'Queries', 'align' => 'end'],
+                ['key' => 'share', 'label' => 'Share', 'kind' => 'share'],
+            ], array_map(static fn (array $c): array => [...$c, 'share' => round($c['count'] / $total, 4)], $q['byConnection'])),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function exceptions(TimeRange $range): array
+    {
+        $rows = $this->exceptionRows($range);
+        $byType = [];
+        foreach ($rows as $row) {
+            $byType[$row['type']] = ($byType[$row['type']] ?? 0) + 1;
+        }
+        arsort($byType);
+
+        return [
+            'stats' => [
+                ['label' => 'Exceptions', 'value' => number_format(count($rows)).(count($rows) >= self::LIMIT ? '+' : ''), 'tone' => $rows !== [] ? 'text-red-500' : ''],
+                ['label' => 'Types', 'value' => number_format(count($byType)), 'dim' => true],
+                ['label' => 'Most frequent', 'value' => $byType === [] ? '—' : self::shortClass((string) array_key_first($byType)), 'sub' => $byType === [] ? '' : number_format(reset($byType)).' times'],
+            ],
+            'chart' => $this->bucketed(array_column($rows, 'timestamp'), $range, 'exceptions', 'var(--color-red-500)'),
+            'breakdown' => $byType === [] ? null : $this->table('By exception type', null, [
+                ['key' => 'type', 'label' => 'Exception', 'kind' => 'mono'],
+                ['key' => 'count', 'label' => 'Occurrences', 'align' => 'end'],
+                ['key' => 'share', 'label' => 'Share', 'kind' => 'share'],
+            ], $this->shares(array_map('floatval', $byType), 'type')),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function outgoing(int $s, ?int $at): array
+    {
+        $h = $this->activity->area('http', $s, $at);
+
+        return [
+            'stats' => [
+                ['label' => 'Requests', 'value' => number_format($h['total'])],
+                ['label' => 'Error rate', 'value' => $this->pct($h['errorRate']), 'tone' => $h['errorRate'] > 0.01 ? 'text-red-500' : ''],
+                ['label' => 'p95', 'value' => $this->ms($h['p95']), 'tone' => $h['p95'] >= 1000 ? 'text-red-500' : ''],
+                ['label' => 'Hosts', 'value' => number_format(count($h['byHost'])), 'dim' => true],
+            ],
+            'chart' => $this->single($h['series'], 'requests', 'var(--color-cyan-500)'),
+            'breakdown' => $h['byHost'] === [] ? null : $this->table('By host', null, [
+                ['key' => 'host', 'label' => 'Host', 'kind' => 'mono'],
+                ['key' => 'count', 'label' => 'Requests', 'align' => 'end'],
+                ['key' => 'errors', 'label' => 'Errors', 'align' => 'end', 'kind' => 'errors'],
+                ['key' => 'p95', 'label' => 'p95', 'align' => 'end', 'kind' => 'ms'],
+            ], $h['byHost']),
+        ];
+    }
+
+    // ── Aggregates: Statamic ─────────────────────────────────────────────────
 
     /** @return array<string, mixed> */
     private function staticCache(int $s, ?int $at): array
@@ -251,6 +425,14 @@ final class StatamicPages
     // ── Rows ─────────────────────────────────────────────────────────────────
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    private function requestRows(string $traceql, TimeRange $range): array
+    {
+        return array_map(static fn (TraceSummary $t): array => $t->toRow(), $this->traces->search($range->seconds, self::LIMIT, $traceql, $range->endsAt));
+    }
+
+    /**
      * Span rows for a page: the span, when, how long, in which request —
      * plus the page's own columns from `$fields`.
      *
@@ -272,6 +454,41 @@ final class StatamicPages
                 'request' => $span['rootName'] !== $span['name'] ? $span['rootName'] : null,
                 'service' => $span['rootService'],
                 ...$fields($span),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Error-level log records: the exception type, message and origin from
+     * laravel-telemetry's structured metadata, plus the trace when the
+     * backend indexed one.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function exceptionRows(TimeRange $range): array
+    {
+        $rows = [];
+
+        foreach ($this->logs->query($range->seconds, 'error', '', self::LIMIT, $range->endsAt) as $i => $log) {
+            $labels = $log['labels'];
+            $type = $labels['exception_type'] ?? $labels['exception'] ?? ($log['line'] === 'exception' ? 'Exception' : 'Error');
+            $file = $labels['exception_file'] ?? null;
+
+            $rows[] = [
+                'id' => 'e'.$i,
+                'timestamp' => $log['timestamp'],
+                'level' => $log['level'],
+                'type' => self::shortClass($type),
+                'fullType' => $type,
+                'group' => $labels['exception_group'] ?? null,
+                'message' => $labels['exception_message'] ?? ($log['line'] === 'exception' ? '' : $log['line']),
+                'origin' => $file !== null ? basename($file).(isset($labels['exception_line']) ? ':'.$labels['exception_line'] : '') : null,
+                'route' => $labels['http_route'] ?? null,
+                'path' => $labels['url_path'] ?? null,
+                'traceId' => $log['traceId'],
+                'labels' => array_filter($labels, static fn (string $k): bool => ! str_starts_with($k, 'exception_stacktrace'), ARRAY_FILTER_USE_KEY),
             ];
         }
 
@@ -325,15 +542,15 @@ final class StatamicPages
             $counts = [];
             foreach ($rows as $row) {
                 $value = $row[$key] ?? null;
-                if (is_string($value) && $value !== '') {
-                    $counts[$value] = ($counts[$value] ?? 0) + 1;
+                if ((is_string($value) && $value !== '') || is_int($value)) {
+                    $counts[(string) $value] = ($counts[(string) $value] ?? 0) + 1;
                 }
             }
             arsort($counts);
             $facets[$key] = array_map(
                 static fn (string $value, int $count): array => ['value' => $value, 'count' => $count],
-                array_keys($counts),
-                array_values($counts),
+                array_keys(array_slice($counts, 0, 15, true)),
+                array_values(array_slice($counts, 0, 15, true)),
             );
         }
 
@@ -427,6 +644,43 @@ final class StatamicPages
     }
 
     /**
+     * A single {t, values} series (ActivityMetrics' shape) as a chart.
+     *
+     * @param  array{t: list<int>, values: list<float>}  $series
+     * @return array{t: list<int>, series: list<array<string, mixed>>, unit: string, stack: bool}
+     */
+    private function single(array $series, string $name, string $color): array
+    {
+        return ['t' => $series['t'], 'series' => [['name' => $name, 'data' => $series['values'], 'type' => 'bar', 'color' => $color]], 'unit' => 'count', 'stack' => false];
+    }
+
+    /**
+     * Timestamps (ms) bucketed across the window as a bar series — for rows
+     * that have no metric behind them (log records).
+     *
+     * @param  list<int>  $timestamps
+     * @return array{t: list<int>, series: list<array<string, mixed>>, unit: string, stack: bool}
+     */
+    private function bucketed(array $timestamps, TimeRange $range, string $name, string $color): array
+    {
+        $start = $range->from();
+        $width = max(1, (int) ceil($range->seconds / self::BUCKETS));
+        $t = [];
+        $values = array_fill(0, self::BUCKETS, 0.0);
+        for ($i = 0; $i < self::BUCKETS; $i++) {
+            $t[] = $start + $i * $width;
+        }
+        foreach ($timestamps as $ms) {
+            $pos = (int) ((($ms / 1000) - $start) / $width);
+            if ($pos >= 0 && $pos < self::BUCKETS) {
+                $values[$pos]++;
+            }
+        }
+
+        return ['t' => $t, 'series' => [['name' => $name, 'data' => $values, 'type' => 'bar', 'color' => $color]], 'unit' => 'count', 'stack' => false];
+    }
+
+    /**
      * Several single-series results onto one time axis (their grids match
      * when the window and step match, but never assume it).
      *
@@ -481,8 +735,30 @@ final class StatamicPages
         return $rows;
     }
 
+    /** Period-over-period change as "+12%" / "−3%", or '' without a prior period. */
+    private function deltaText(?float $change, bool $lowerIsBetter = false): string
+    {
+        if ($change === null || abs($change) < 0.01) {
+            return '';
+        }
+
+        return ($change > 0 ? '+' : '−').round(abs($change) * 100).'% vs previous';
+    }
+
+    private function pct(float $ratio): string
+    {
+        return ($ratio * 100 < 10 ? round($ratio * 100, 1) : round($ratio * 100)).'%';
+    }
+
     private function ms(float $ms): string
     {
         return $ms >= 1000 ? round($ms / 1000, 2).' s' : round($ms).' ms';
+    }
+
+    private static function shortClass(string $class): string
+    {
+        $pos = strrpos($class, '\\');
+
+        return $pos === false ? $class : substr($class, $pos + 1);
     }
 }

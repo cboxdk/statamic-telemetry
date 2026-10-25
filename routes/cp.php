@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\DoctorController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\ExploreController;
-use Cbox\StatamicTelemetry\Http\Controllers\Cp\StatamicPageController;
+use Cbox\StatamicTelemetry\Http\Controllers\Cp\PageController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\TelemetryController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\TraceController;
-use Cbox\StatamicTelemetry\Telemetry\StatamicPages;
+use Cbox\StatamicTelemetry\Telemetry\TelemetryPages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -41,7 +41,7 @@ Route::get('telemetry/doctor', DoctorController::class)
     ->name('telemetry.doctor');
 
 // The purpose-built Statamic pages: static-cache, stache, glide, forms, content.
-Route::get('telemetry/{page}', StatamicPageController::class)
+Route::get('telemetry/{page}', PageController::class)
     ->middleware('can:view telemetry')
-    ->where('page', implode('|', array_keys(StatamicPages::PAGES)))
+    ->where('page', implode('|', array_keys(TelemetryPages::PAGES)))
     ->name('telemetry.page');

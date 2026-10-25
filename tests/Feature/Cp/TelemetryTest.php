@@ -131,3 +131,15 @@ it('denies the dashboard to a user without the permission', function () {
 
     $this->get(cp_route('telemetry.dashboard'))->assertRedirect();
 });
+
+it('does not trace its own CP pages — they would top every list they display', function () {
+    fakeTempo();
+    $fake = $this->fakeTelemetry();
+    $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
+
+    $this->get(cp_route('telemetry.doctor'))->assertOk();
+
+    $own = array_filter($fake->recordedSpans(), fn ($span) => str_contains($span->name, 'telemetry'));
+
+    expect($own)->toBeEmpty();
+});

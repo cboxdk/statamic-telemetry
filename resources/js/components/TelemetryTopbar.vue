@@ -10,7 +10,7 @@
             <template #trigger>
                 <Button size="sm" :variant="to ? 'primary' : 'default'" :text="to ? rangeLabel : 'Custom'" />
             </template>
-            <div class="w-72 space-y-3 p-1">
+            <div class="w-80 space-y-3 p-1">
                 <label class="block space-y-1">
                     <span class="text-xs font-medium text-gray-500">From</span>
                     <Input type="datetime-local" v-model="fromInput" />
@@ -44,7 +44,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Button, Input, Popover, Select, ToggleGroup, ToggleItem } from '@statamic/cms/ui';
 import { router } from '@statamic/cms/inertia';
-import { useTelemetryUrl } from '../lib/useTelemetryUrl.js';
+import { useTelemetryUrl, windowSeconds } from '../lib/useTelemetryUrl.js';
 import { clock } from '../lib/format.js';
 
 const props = defineProps({
@@ -78,6 +78,13 @@ const toInput = ref(props.to ? toLocal(props.to) : '');
 watch(() => [props.from, props.to], ([f, t]) => {
     fromInput.value = f ? toLocal(f) : '';
     toInput.value = t ? toLocal(t) : '';
+});
+// Opening the picker starts from the window you are looking at, not blank fields.
+watch(rangeOpen, (open) => {
+    if (!open || props.to) return;
+    const now = Math.floor(Date.now() / 1000);
+    fromInput.value = toLocal(now - windowSeconds(props.window));
+    toInput.value = toLocal(now);
 });
 const toSec = (s) => (s ? Math.round(new Date(s).getTime() / 1000) : null);
 const validRange = computed(() => {

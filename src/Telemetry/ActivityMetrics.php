@@ -42,6 +42,26 @@ final class ActivityMetrics
         ];
     }
 
+    /**
+     * One area on its own — the Jobs / Queries / Outgoing HTTP pages each need
+     * only theirs, not the four together.
+     *
+     * @return array<string, mixed>
+     */
+    public function area(string $area, int $windowSeconds, ?int $endsAt = null): array
+    {
+        $this->at = $endsAt;
+        $w = $windowSeconds.'s';
+
+        return match ($area) {
+            'jobs' => $this->jobs($windowSeconds, $w),
+            'queries' => $this->queries($windowSeconds, $w),
+            'storage' => $this->storage($w),
+            'http' => $this->http($windowSeconds, $w),
+            default => throw new \InvalidArgumentException("Unknown activity area [{$area}]."),
+        };
+    }
+
     public function hasData(array $activity): bool
     {
         return $activity['jobs']['processed'] > 0

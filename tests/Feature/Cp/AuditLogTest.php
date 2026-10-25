@@ -122,7 +122,7 @@ it('lists the changes as the rows of the Content page, with type and action face
     $this->get(cp_route('telemetry.page', ['page' => 'content']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('statamic-telemetry::StatamicPage')
+            ->component('statamic-telemetry::AreaPage')
             ->where('page.key', 'content')
             ->where('rows.kind', 'audit')
             ->where('rows.available', true)
