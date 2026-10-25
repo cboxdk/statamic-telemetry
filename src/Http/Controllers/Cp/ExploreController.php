@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Cbox\StatamicTelemetry\Http\Controllers\Cp;
 
+use Cbox\StatamicTelemetry\Cp\TelemetryNav;
 use Cbox\StatamicTelemetry\Telemetry\Deployments;
 use Cbox\StatamicTelemetry\Telemetry\LatencyHeatmap;
 use Cbox\StatamicTelemetry\Telemetry\Logs;
 use Cbox\StatamicTelemetry\Telemetry\TelemetryMetrics;
+use Cbox\StatamicTelemetry\Telemetry\TimeRange;
 use Cbox\StatamicTelemetry\Telemetry\Traces;
 use Cbox\StatamicTelemetry\Telemetry\TraceSummary;
 use Illuminate\Http\Request;
@@ -19,10 +21,11 @@ use Statamic\Http\Controllers\CP\CpController;
  * The native "Explore" CP page — a two-pane list + detail over the backend's
  * signals: requests and traces (Tempo), logs and errors (Loki). For requests
  * the page carries a stat header, a facet panel (status / method / route, with
- * counts, from metrics) and a throughput chart; clicking a facet narrows the
- * list through a TraceQL selector on the matching span attribute. The list and
- * detail are Inertia props the client reloads to filter and live-tail. Thin —
- * {@see Traces}/{@see Logs}/{@see TelemetryMetrics} do the reads.
+ * counts, from metrics) that filters the list through a TraceQL selector or
+ * aggregates it with a group-by, a throughput chart and a latency heatmap.
+ * The list and detail are Inertia props the client reloads to filter and
+ * live-tail. Thin — {@see Traces}/{@see Logs}/{@see TelemetryMetrics} do the
+ * reads, and {@see TimeRange} owns the window / custom range.
  */
 class ExploreController extends CpController
 {
@@ -34,17 +37,6 @@ class ExploreController extends CpController
         'errors' => 'Errors',
     ];
 
-    public const WINDOWS = [
-        '5m' => 'Last 5 min',
-        '15m' => 'Last 15 min',
-        '30m' => 'Last 30 min',
-        '1h' => 'Last hour',
-        '3h' => 'Last 3 hours',
-        '6h' => 'Last 6 hours',
-        '12h' => 'Last 12 hours',
-        '24h' => 'Last 24 hours',
-    ];
-
     /** Facet key → the span attribute its value filters on, and whether it is quoted. */
     private const FACETS = [
         'status' => ['attr' => 'span.http.response.status_code', 'quoted' => false],
@@ -52,27 +44,37 @@ class ExploreController extends CpController
         'route' => ['attr' => 'span.http.route', 'quoted' => true],
     ];
 
-    public function __invoke(Request $request, Traces $traces, Logs $logs, TelemetryMetrics $metrics, Deployments $deployments, LatencyHeatmap $heatmap): Response
+    /** Facet key → the metric label it aggregates on for a group-by. */
+    private const GROUP_LABELS = [
+        'status' => 'http_response_status_code',
+        'method' => 'http_request_method',
+        'route' => 'http_route',
+    ];
+
+    public function __invoke(Request $request, Traces $traces, Logs $logs, TelemetryMetrics $metrics, Deployments $deployments, LatencyHeatmap $heatmap, TelemetryNav $nav): Response
     {
         $signal = $this->signal($request);
-        $window = $this->window($request);
-        [$seconds, $endsAt] = $this->range($request, $window);
+        $range = TimeRange::fromRequest($request);
+        $seconds = $range->seconds;
+        $endsAt = $range->endsAt;
         $search = trim((string) $request->query('q', ''));
         $id = is_string($request->query('id')) ? (string) $request->query('id') : null;
         $filters = $this->filters($request);
         $isTrace = $signal === 'requests' || $signal === 'traces';
+        $groupBy = $request->query('groupBy');
+        $groupBy = is_string($groupBy) && isset(self::GROUP_LABELS[$groupBy]) ? $groupBy : null;
 
         return Inertia::render('statamic-telemetry::Explore', [
             'signal' => $signal,
             'signals' => self::SIGNALS,
-            'window' => $window,
-            'windows' => self::WINDOWS,
-            'from' => $endsAt !== null ? $endsAt - $seconds : null,
-            'to' => $endsAt,
+            'nav' => $nav->items('explore'),
+            ...$range->toProps(),
             'dashboardUrl' => cp_route('telemetry.dashboard'),
             'exploreUrl' => cp_route('telemetry.explore'),
             'q' => $search,
             'filters' => $filters,
+            'groupBy' => $groupBy,
+            'groups' => $isTrace && $groupBy !== null ? fn () => $metrics->groupBy(self::GROUP_LABELS[$groupBy], $seconds, $endsAt) : [],
             'selectedId' => $id,
             'items' => fn () => $this->items($signal, $seconds, $search, $filters, $traces, $logs, $endsAt),
             'detail' => fn () => $id !== null ? $this->detail($signal, $id, $traces) : null,
@@ -82,30 +84,6 @@ class ExploreController extends CpController
             'heatmap' => $isTrace ? fn () => $heatmap->build($seconds, $this->traceql($filters), $endsAt) : null,
             'deployments' => $isTrace ? fn () => $deployments->window($seconds, 50, $endsAt) : [],
         ]);
-    }
-
-    /**
-     * The time range to query: an explicit brushed `from`/`to` (unix seconds)
-     * when valid, otherwise the look-back window anchored at now.
-     *
-     * @return array{0: int, 1: ?int} [windowSeconds, endsAt|null]
-     */
-    private function range(Request $request, string $window): array
-    {
-        $from = $request->query('from');
-        $to = $request->query('to');
-
-        if (is_numeric($from) && is_numeric($to)) {
-            $from = (int) $from;
-            $to = (int) $to;
-            $span = $to - $from;
-
-            if ($span >= 60 && $span <= 7 * 86400 && $to <= time() + 300) {
-                return [$span, $to];
-            }
-        }
-
-        return [$this->seconds($window), null];
     }
 
     /**
@@ -140,12 +118,15 @@ class ExploreController extends CpController
     }
 
     /**
+     * The detail for the selected item, tagged with its id so the client can
+     * tell a fresh waterfall from the previous selection's.
+     *
      * @return array<string, mixed>|null
      */
     private function detail(string $signal, string $id, Traces $traces): ?array
     {
         if ($signal === 'requests' || $signal === 'traces') {
-            return ['spans' => $traces->trace($id)];
+            return ['id' => $id, 'spans' => $traces->trace($id)];
         }
 
         return null;
@@ -173,7 +154,8 @@ class ExploreController extends CpController
 
     /**
      * Build a TraceQL selector from the active facets, e.g.
-     * `{span.http.route="/cp" && span.http.response.status_code=500}`.
+     * `{span.http.route="/cp" && span.http.response.status_code=500}`. A
+     * status *class* ("4xx") filters the whole range.
      *
      * @param  array<string, string>  $filters
      */
@@ -185,7 +167,6 @@ class ExploreController extends CpController
             $facet = self::FACETS[$key];
 
             if ($key === 'status' && preg_match('/^([1-5])xx$/', $value, $m) === 1) {
-                // A status class (e.g. "4xx") filters the whole range.
                 $lo = (int) $m[1] * 100;
                 $terms[] = $facet['attr'].'>='.$lo.' && '.$facet['attr'].'<'.($lo + 100);
             } elseif ($facet['quoted']) {
@@ -203,21 +184,5 @@ class ExploreController extends CpController
         $signal = (string) $request->query('signal', 'requests');
 
         return isset(self::SIGNALS[$signal]) ? $signal : 'requests';
-    }
-
-    private function window(Request $request): string
-    {
-        $window = (string) $request->query('window', '1h');
-
-        return isset(self::WINDOWS[$window]) ? $window : '1h';
-    }
-
-    private function seconds(string $window): int
-    {
-        if (preg_match('/^(\d+)([mh])$/', $window, $m) !== 1) {
-            return 3600;
-        }
-
-        return (int) $m[1] * ($m[2] === 'h' ? 3600 : 60);
     }
 }

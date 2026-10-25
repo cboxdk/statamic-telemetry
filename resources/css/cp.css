@@ -1,0 +1,14 @@
+/*
+ * The addon's own Tailwind build, as Statamic's addon stub sets it up.
+ *
+ * The Control Panel compiles only the utilities it uses itself (`source(none)`),
+ * so an addon that leans on the CP's CSS silently loses every class the CP
+ * doesn't happen to ship. Importing the CP's Tailwind entry here, with our own
+ * templates as the `@source`, compiles exactly the classes these pages use —
+ * with the CP's theme tokens, layer order and `dark:` variant.
+ */
+@import '@statamic/cms/tailwind.css';
+@source '../js';
+
+/* Chart, waterfall and other bits Tailwind can't express. */
+@import './telemetry.css';

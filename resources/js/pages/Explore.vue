@@ -1,147 +1,157 @@
 <template>
-    <div>
-        <Head title="Explore" />
-        <Header title="Explore" icon="chart-monitoring-indicator">
-            <button v-if="to" @click="resetRange" class="tel-chip tel-chip--blue" style="cursor: pointer" :title="`Reset to ${windows[window]}`">{{ rangeLabel }} ✕</button>
-            <select :value="window" @change="changeWindow($event.target.value)" class="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm dark:border-gray-700 dark:bg-gray-800">
-                <option v-for="(label, value) in windows" :key="value" :value="value">{{ label }}</option>
-            </select>
-        </Header>
-
-        <TelemetryTabs active="explore" :window="window" :dashboard-url="dashboardUrl" :explore-url="exploreUrl" />
-
-        <!-- Stat header + throughput (requests / traces) -->
+    <TelemetryPage title="Explore" :nav="nav" :window="window" :windows="windows" :from="from" :to="to" :carry="carryPage">
+        <!-- Stat line + distribution charts (requests / traces) -->
         <template v-if="isTrace">
-            <StatHeader :items="statItems" style="margin-bottom: 0.75rem" />
-            <div v-if="hasThroughput || hasHeatmap" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); margin-bottom: 0.75rem">
-                <div v-if="hasThroughput" class="tel-panel" style="padding: 0.5rem 0.75rem 0.15rem">
-                    <div class="tel-label" style="padding: 0.15rem 0.1rem 0">Throughput over time</div>
-                    <TimeChart :time="throughputTime" :series="throughputChartSeries" :markers="chartMarkers" unit="count" :legend="false" :height="150" brush @zoom="onZoom" />
-                </div>
-                <div v-if="hasHeatmap" class="tel-panel" style="padding: 0.5rem 0.75rem 0.15rem">
-                    <div class="tel-label" style="padding: 0.15rem 0.1rem 0">Latency × time</div>
-                    <HeatChart :cols="heatmap.cols" :bands="heatmap.bands" :cells="heatmap.cells" :max="heatmap.max" :height="150" />
-                </div>
+            <StatHeader :items="statItems" />
+            <div v-if="hasThroughput || hasHeatmap" class="grid gap-6" :class="{ 'xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]': hasThroughput && hasHeatmap }">
+                <Card v-if="hasThroughput" class="space-y-2">
+                    <div class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Throughput over time</div>
+                    <TimeChart :time="throughputTime" :series="throughputChartSeries" :markers="chartMarkers" unit="count" :legend="false" :height="130" brush @zoom="onZoom" />
+                </Card>
+                <Card v-if="hasHeatmap" class="space-y-2">
+                    <div class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Latency × time</div>
+                    <HeatChart :cols="heatmap.cols" :bands="heatmap.bands" :cells="heatmap.cells" :max="heatmap.max" :height="130" />
+                </Card>
             </div>
         </template>
 
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <nav class="flex gap-1 rounded-lg bg-gray-500/10 p-1">
-                <button
-                    v-for="(label, key) in signals"
-                    :key="key"
-                    @click="changeSignal(key)"
-                    class="rounded-md px-3 py-1 text-sm font-medium"
-                    :class="key === signal ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white' : 'text-gray-500'"
-                >{{ label }}</button>
-            </nav>
-            <div class="flex items-center gap-2">
-                <input v-model="searchText" @keyup.enter="applySearch" type="search" placeholder="Search…" class="h-9 w-56 rounded-lg border border-gray-300 bg-white px-2.5 text-sm dark:border-gray-700 dark:bg-gray-800" />
-                <Button size="sm" variant="ghost" @click="applySearch">Search</Button>
-                <Button size="sm" :variant="tailing ? 'primary' : 'ghost'" @click="toggleTail">{{ tailing ? '● Live' : 'Live tail' }}</Button>
+        <Card inset>
+            <!-- Toolbar -->
+            <div class="flex flex-wrap items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                <ToggleGroup :model-value="signal" size="sm" @update:model-value="changeSignal">
+                    <ToggleItem v-for="(label, key) in signals" :key="key" :value="key" :label="label" />
+                </ToggleGroup>
+                <div class="ms-auto flex items-center gap-2">
+                    <Input v-model="searchText" type="search" placeholder="Search…" class="w-56" @keyup.enter="applySearch" />
+                    <Button size="sm" text="Search" @click="applySearch" />
+                    <Button v-if="signal !== 'traces'" size="sm" :variant="tailing ? 'primary' : 'default'" :text="tailing ? '● Live' : 'Live tail'" @click="toggleTail" />
+                </div>
             </div>
-        </div>
 
-        <div class="tel-split">
-            <!-- Facet rail (requests / traces) -->
-            <aside v-if="isTrace && facets" class="tel-facets">
-                <div v-for="dim in facetDims" :key="dim" v-show="facets[dim] && facets[dim].length" class="tel-facet-group">
-                    <div class="tel-facet-group__label tel-label">{{ dimLabel(dim) }}</div>
-                    <div>
+            <!-- Active filters -->
+            <div v-if="hasFilters || groupBy" class="flex flex-wrap items-center gap-2 border-b border-gray-200 px-4 py-2 dark:border-gray-800">
+                <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Where</span>
+                <button v-for="(value, dim) in filters" :key="dim" type="button" class="cursor-pointer" :title="`Remove ${dimLabel(dim)} filter`" @click="toggleFacet(dim, value)">
+                    <Badge :text="`${dimLabel(dim)} = ${value}`" append="✕" color="blue" size="sm" />
+                </button>
+                <Badge v-if="groupBy" :text="`grouped by ${dimLabel(groupBy)}`" color="violet" size="sm" />
+                <Button size="xs" variant="ghost" text="Clear" @click="clearFilters" />
+            </div>
+
+            <div class="grid" :class="{ 'md:grid-cols-[250px_minmax(0,1fr)]': isTrace && facets }">
+                <!-- Facets -->
+                <aside v-if="isTrace && facets" class="max-h-[70vh] space-y-5 overflow-y-auto border-gray-200 p-3 md:border-e dark:border-gray-800">
+                    <div v-for="dim in facetDims" :key="dim" v-show="facets[dim] && facets[dim].length">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">{{ dimLabel(dim) }}</span>
+                            <Button size="2xs" :variant="groupBy === dim ? 'primary' : 'ghost'" text="group by" @click="toggleGroup(dim)" />
+                        </div>
+                        <div class="space-y-0.5">
+                            <button
+                                v-for="f in facets[dim]"
+                                :key="f.value"
+                                type="button"
+                                class="relative flex w-full items-center justify-between gap-2 overflow-hidden rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                                :class="{ 'bg-blue-50 font-medium dark:bg-blue-500/15': filters[dim] === String(f.value) }"
+                                @click="toggleFacet(dim, f.value)"
+                            >
+                                <span class="absolute inset-y-0 start-0 bg-gray-500/10 dark:bg-gray-400/10" :style="{ width: barPct(dim, f.count) }" />
+                                <span class="relative z-10 truncate font-mono" :title="f.value">{{ f.value }}</span>
+                                <span class="relative z-10 shrink-0 tabular-nums text-gray-400">{{ fmt(f.count) }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Results -->
+                <section class="min-w-0">
+                    <!-- Group-by table -->
+                    <div v-if="grouped" class="text-sm">
+                        <div class="grid grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_5rem_5rem] gap-3 border-b border-gray-200 px-4 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800">
+                            <div>{{ dimLabel(groupBy) }}</div><div class="text-end">Requests</div><div class="text-end">Errors</div><div class="text-end">p50</div><div class="text-end">p95</div>
+                        </div>
                         <button
-                            v-for="f in facets[dim]"
-                            :key="f.value"
-                            @click="toggleFacet(dim, f.value)"
-                            class="tel-facet"
-                            :class="{ 'tel-facet--active': filters[dim] === String(f.value) }"
+                            v-for="g in groups"
+                            :key="g.value"
+                            type="button"
+                            class="grid w-full grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_5rem_5rem] items-center gap-3 border-b border-gray-100 px-4 py-2 text-left transition-colors hover:bg-gray-50 dark:border-gray-800/60 dark:hover:bg-gray-800/40"
+                            @click="drillInto(groupBy, g.value)"
                         >
-                            <span class="tel-facet__bar" :style="{ width: barPct(dim, f.count) }"></span>
-                            <span class="tel-facet__value" :title="f.value">{{ f.value }}</span>
-                            <span class="tel-facet__count">{{ fmt(f.count) }}</span>
+                            <span class="relative block overflow-hidden rounded px-1.5 py-0.5">
+                                <span class="absolute inset-y-0 start-0 bg-blue-500/10" :style="{ width: Math.round((g.count / groupMax) * 100) + '%' }" />
+                                <span class="relative z-10 truncate font-mono text-xs">{{ g.value }}</span>
+                            </span>
+                            <span class="text-end tabular-nums">{{ fmt(g.count) }}</span>
+                            <span class="text-end tabular-nums"><span :class="g.errors > 0 ? 'text-red-500' : ''">{{ fmt(g.errors) }}</span><span v-if="g.errors > 0" class="ms-1 text-xs text-gray-500">{{ pct(g.errorRate) }}</span></span>
+                            <span class="text-end tabular-nums" :class="toneClass(g.p50)">{{ ms(g.p50) }}</span>
+                            <span class="text-end tabular-nums" :class="toneClass(g.p95)">{{ ms(g.p95) }}</span>
                         </button>
                     </div>
-                </div>
-                <button v-if="hasFilters" @click="clearFilters" class="text-xs text-blue-500 hover:underline" style="margin-top: 0.75rem">Clear filters</button>
-            </aside>
 
-            <Panel inset class="min-w-0 flex-1" style="flex: 1; min-width: 0">
-                <SplitterGroup direction="horizontal" class="h-[32rem]">
-                    <SplitterPanel :default-size="45" :min-size="25">
-                        <div class="h-full overflow-auto">
-                            <div v-if="!items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
+                    <!-- Lists -->
+                    <div v-else class="max-h-[70vh] overflow-y-auto" scroll-region>
+                        <div v-if="!items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
 
-                            <!-- requests / traces -->
-                            <template v-else-if="isTrace">
-                                <button v-for="t in items" :key="t.id" @click="select(t)" class="tel-row" :class="{ 'tel-row--active': t.id === activeId }">
-                                    <span class="tel-row__time">{{ time(t.timestamp) }}</span>
-                                    <span class="tel-row__main">{{ t.name }}</span>
-                                    <span class="tel-num shrink-0" :style="{ color: tone(t.durationMs) }">{{ ms(t.durationMs) }}</span>
-                                </button>
-                            </template>
+                        <!-- requests / traces → trace drawer -->
+                        <template v-else-if="isTrace">
+                            <button
+                                v-for="t in items"
+                                :key="t.id"
+                                type="button"
+                                class="grid h-13 w-full grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 px-4 text-left text-sm transition-colors hover:bg-gray-50 dark:border-gray-800/60 dark:hover:bg-gray-800/40"
+                                :class="{ 'bg-blue-50 dark:bg-blue-500/10': openTraceId === t.id }"
+                                @click="openTrace(t.id)"
+                            >
+                                <span class="tabular-nums text-xs text-gray-500">{{ time(t.timestamp) }}</span>
+                                <span class="min-w-0">
+                                    <span class="block truncate font-mono text-[13px]">{{ t.name }}</span>
+                                    <span v-if="t.service" class="block truncate text-[11px] text-gray-500">{{ t.service }}</span>
+                                </span>
+                                <span class="tabular-nums" :class="toneClass(t.durationMs)">{{ ms(t.durationMs) }}</span>
+                            </button>
+                        </template>
 
-                            <!-- logs / errors -->
-                            <template v-else>
-                                <button v-for="l in items" :key="l.id" @click="select(l)" class="tel-row" style="align-items: flex-start" :class="{ 'tel-row--active': l.id === activeId }">
-                                    <span class="tel-row__time">{{ time(l.timestamp) }}</span>
+                        <!-- logs / errors → inline expand -->
+                        <template v-else>
+                            <div v-for="l in items" :key="l.id" class="border-b border-gray-100 dark:border-gray-800/60">
+                                <button type="button" class="grid w-full grid-cols-[4.5rem_auto_minmax(0,1fr)] items-start gap-3 px-4 py-2 text-left text-xs transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40" @click="toggleLog(l.id)">
+                                    <span class="tabular-nums text-gray-500">{{ time(l.timestamp) }}</span>
                                     <Badge :text="l.level" :color="levelColor(l.level)" size="sm" />
-                                    <span class="tel-row__main font-mono text-xs">{{ l.line }}</span>
+                                    <span class="min-w-0 font-mono" :class="expandedLog === l.id ? 'whitespace-pre-wrap break-words' : 'truncate'">{{ l.line }}</span>
                                 </button>
-                            </template>
-                        </div>
-                    </SplitterPanel>
-
-                    <SplitterResizeHandle class="w-px bg-gray-200 dark:bg-gray-700" />
-
-                    <SplitterPanel :min-size="30">
-                        <div class="h-full overflow-auto">
-                            <div v-if="!selected" class="flex h-full items-center justify-center text-sm text-gray-500">Select an item to inspect it.</div>
-
-                            <!-- trace waterfall -->
-                            <div v-else-if="isTrace">
-                                <div class="border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-                                    <div class="truncate font-medium">{{ selected.name }}</div>
-                                    <div class="mt-0.5 text-xs text-gray-500"><code class="font-mono">{{ selected.id }}</code> · {{ ms(selected.durationMs) }}</div>
-                                </div>
-                                <div v-if="detail && detail.spans && detail.spans.length"><Waterfall :spans="detail.spans" /></div>
-                                <div v-else class="p-8 text-center text-sm text-gray-500">No spans — the trace is outside the backend's retention window, or hasn't sealed yet.</div>
-                            </div>
-
-                            <!-- log detail -->
-                            <div v-else class="p-4">
-                                <div class="mb-3 flex items-center gap-2">
-                                    <Badge :text="selected.level" :color="levelColor(selected.level)" size="sm" />
-                                    <span class="text-xs text-gray-500">{{ new Date(selected.timestamp).toLocaleString() }}</span>
-                                </div>
-                                <pre class="mb-4 whitespace-pre-wrap break-words rounded-lg bg-gray-500/10 p-3 font-mono text-xs">{{ selected.line }}</pre>
-                                <div class="gap-x-3 gap-y-1 text-xs" style="display: grid; grid-template-columns: 10rem 1fr">
-                                    <template v-for="(v, k) in selected.labels" :key="k">
+                                <div v-if="expandedLog === l.id" class="grid grid-cols-[10rem_1fr] gap-x-3 gap-y-1 bg-gray-50 px-4 py-3 text-xs dark:bg-gray-900/60">
+                                    <template v-for="(v, k) in l.labels" :key="k">
                                         <div class="truncate text-gray-500">{{ k }}</div>
                                         <div class="break-words font-mono">{{ v }}</div>
                                     </template>
+                                    <div v-if="l.traceId" class="col-span-2 pt-1">
+                                        <Button size="xs" text="Open trace" @click="openTrace(l.traceId)" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </SplitterPanel>
-                </SplitterGroup>
-            </Panel>
-        </div>
-    </div>
+                        </template>
+                    </div>
+                </section>
+            </div>
+        </Card>
+    </TelemetryPage>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { Header, Panel, Badge, Button, SplitterGroup, SplitterPanel, SplitterResizeHandle } from '@statamic/cms/ui';
-import { Head, router, usePoll } from '@statamic/cms/inertia';
-import Waterfall from '../components/Waterfall.vue';
-import TelemetryTabs from '../components/TelemetryTabs.vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { Badge, Button, Card, Input, ToggleGroup, ToggleItem } from '@statamic/cms/ui';
+import { usePoll } from '@statamic/cms/inertia';
+import TelemetryPage from '../components/TelemetryPage.vue';
 import StatHeader from '../components/StatHeader.vue';
 import TimeChart from '../components/TimeChart.vue';
 import HeatChart from '../components/HeatChart.vue';
+import { useTelemetryUrl, rangeBounds } from '../lib/useTelemetryUrl.js';
 import { count as fmt, ms, percent as pct, clock as time } from '../lib/format.js';
 
 const props = defineProps({
     signal: String,
     signals: Object,
+    nav: { type: Array, default: () => [] },
     window: String,
     windows: Object,
     from: Number,
@@ -150,6 +160,8 @@ const props = defineProps({
     exploreUrl: String,
     q: String,
     filters: { type: Object, default: () => ({}) },
+    groupBy: String,
+    groups: { type: Array, default: () => [] },
     selectedId: String,
     items: { type: Array, default: () => [] },
     detail: Object,
@@ -161,36 +173,81 @@ const props = defineProps({
 });
 
 const searchText = ref(props.q || '');
-const activeId = ref(props.selectedId || null);
-const selectedLog = ref(null);
-const tailing = ref(false);
+watch(() => props.q, (q) => (searchText.value = q || ''));
 
 const facetDims = ['status', 'method', 'route'];
 const dimLabel = (d) => ({ status: 'Status', method: 'Method', route: 'Route' })[d] || d;
-
 const isTrace = computed(() => props.signal === 'requests' || props.signal === 'traces');
 const hasFilters = computed(() => Object.keys(props.filters || {}).length > 0);
-const selected = computed(() => {
-    if (!activeId.value) return null;
-    if (isTrace.value) return props.items.find((i) => i.id === activeId.value) || null;
-    return selectedLog.value;
+const grouped = computed(() => !!props.groupBy && props.groups.length > 0);
+
+// ── URL / state: everything the page owns rides along on every navigation ─────
+const carryPage = () => ({
+    window: props.window, from: props.from, to: props.to,
+    signal: props.signal, q: searchText.value, ...(props.filters || {}), groupBy: props.groupBy,
 });
+const { go, replaceDrawer, topDrawer } = useTelemetryUrl(carryPage);
 
-const tone = (v) => (v >= 1000 ? 'var(--color-red-500)' : v >= 300 ? 'var(--color-orange-500)' : 'var(--color-green-500)');
+const changeSignal = (s) => s && go({ signal: s, q: null, status: null, method: null, route: null, groupBy: null, drawer: null });
+const applySearch = () => go({ q: searchText.value || null });
+const toggleFacet = (dim, value) => go({ [dim]: props.filters[dim] === String(value) ? null : String(value) });
+const clearFilters = () => go({ status: null, method: null, route: null, groupBy: null });
+const toggleGroup = (dim) => go({ groupBy: props.groupBy === dim ? null : dim });
+const drillInto = (dim, value) => go({ [dim]: String(value), groupBy: null });
+const onZoom = ([fromMs, toMs]) => go({ from: Math.round(fromMs / 1000), to: Math.round(toMs / 1000) });
+
+// Opening a trace only changes the drawer param — no page props re-fetch.
+const openTrace = (id) => replaceDrawer({ kind: 'trace', id }, { only: [] });
+const openTraceId = computed(() => (topDrawer.value?.kind === 'trace' ? topDrawer.value.id : null));
+
+// j / k (or arrows) step the open trace through the list.
+function onKey(e) {
+    if (!openTraceId.value || !isTrace.value || e.target.closest('input, textarea, select')) return;
+    const dir = e.key === 'j' || e.key === 'ArrowDown' ? 1 : e.key === 'k' || e.key === 'ArrowUp' ? -1 : 0;
+    if (!dir) return;
+    const i = props.items.findIndex((t) => t.id === openTraceId.value);
+    const next = props.items[i + dir];
+    if (next) { e.preventDefault(); openTrace(next.id); }
+}
+onMounted(() => window.addEventListener('keydown', onKey));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
+
+// ── Logs inline detail ─────────────────────────────────────────────────────────
+const expandedLog = ref(null);
+const toggleLog = (id) => (expandedLog.value = expandedLog.value === id ? null : id);
 const levelColor = (l) => ({ error: 'red', critical: 'red', alert: 'red', warning: 'orange', warn: 'orange', notice: 'blue', info: 'blue', debug: 'default' }[(l || '').toLowerCase()] || 'default');
+const toneClass = (v) => (v >= 1000 ? 'text-red-500' : v >= 300 ? 'text-orange-500' : 'text-green-600 dark:text-green-400');
 
+// ── Live tail: just the list, every 5s ─────────────────────────────────────────
+const tailing = ref(false);
+const poll = usePoll(5000, { only: ['items'], preserveScroll: true, preserveState: true }, { autoStart: false });
+function toggleTail() {
+    tailing.value = !tailing.value;
+    tailing.value ? poll.start() : poll.stop();
+}
+
+// ── Stats, facets, charts ──────────────────────────────────────────────────────
 const statItems = computed(() => {
     const s = props.summary;
     if (!s) return [];
     return [
         { label: 'Requests', value: fmt(s.requests) },
-        { label: 'Error rate', value: pct(s.errorRate), tone: s.errorRate > 0 ? 'var(--color-red-500)' : undefined },
-        { label: 'P50', value: ms(s.p50), tone: tone(s.p50) },
-        { label: 'P95', value: ms(s.p95), tone: tone(s.p95) },
-        { label: 'Traces', value: fmt(props.items.length) },
+        { label: 'Error rate', value: pct(s.errorRate), tone: s.errorRate > 0.01 ? 'var(--color-red-500)' : undefined },
+        { label: 'P50', value: ms(s.p50) },
+        { label: 'P95', value: ms(s.p95), tone: s.p95 >= 1000 ? 'var(--color-orange-500)' : undefined },
+        { label: 'Showing', value: fmt(props.items.length) },
     ];
 });
+const facetMax = (dim) => Math.max(1, ...(props.facets?.[dim] || []).map((f) => f.count));
+const barPct = (dim, c) => Math.round((c / facetMax(dim)) * 100) + '%';
+const groupMax = computed(() => Math.max(1, ...(props.groups || []).map((g) => g.count)));
 
+const bounds = computed(() => rangeBounds(props));
+const chartMarkers = computed(() =>
+    (props.deployments || [])
+        .filter((d) => d.timestamp >= bounds.value[0] && d.timestamp <= bounds.value[1])
+        .map((d) => ({ time: d.timestamp, label: `${time(d.timestamp)} · ${d.notes || d.id}` })),
+);
 const throughputTime = computed(() => (props.throughput?.t || []).map((t) => t * 1000));
 const throughputChartSeries = computed(() => {
     const t = props.throughput || {};
@@ -202,67 +259,4 @@ const throughputChartSeries = computed(() => {
 });
 const hasThroughput = computed(() => throughputChartSeries.value.some((b) => b.data.some((v) => v > 0)));
 const hasHeatmap = computed(() => (props.heatmap?.cells?.length || 0) > 0);
-const bounds = computed(() => {
-    if (props.to) return { start: props.from * 1000, end: props.to * 1000 };
-    const m = /^(\d+)([mh])$/.exec(props.window || '1h');
-    const secs = m ? +m[1] * (m[2] === 'h' ? 3600 : 60) : 3600;
-    const end = Date.now();
-    return { start: end - secs * 1000, end };
-});
-const chartMarkers = computed(() =>
-    (props.deployments || [])
-        .filter((d) => d.timestamp >= bounds.value.start && d.timestamp <= bounds.value.end)
-        .map((d) => ({ time: d.timestamp, label: `${time(d.timestamp)} · ${d.notes || d.id}` })),
-);
-const rangeLabel = computed(() => (props.to ? `${time(props.from * 1000)}–${time(props.to * 1000)}` : ''));
-const facetMax = (dim) => Math.max(1, ...(props.facets?.[dim] || []).map((f) => f.count));
-const barPct = (dim, c) => Math.round((c / facetMax(dim)) * 100) + '%';
-
-const go = (data, options = {}) => router.get(location.pathname, data, { preserveScroll: true, ...options });
-// A brushed from/to range sticks across facet/search/select; a preset window is
-// carried otherwise.
-const base = () => {
-    const b = { signal: props.signal, window: props.window, q: searchText.value, ...(props.filters || {}) };
-    if (props.to) {
-        b.from = props.from;
-        b.to = props.to;
-    }
-    return b;
-};
-
-function changeSignal(s) { activeId.value = null; selectedLog.value = null; go({ signal: s, window: props.window, q: searchText.value }); }
-function changeWindow(w) { go({ signal: props.signal, q: searchText.value, ...(props.filters || {}), window: w }); }
-function applySearch() { go(base()); }
-
-function onZoom([fromMs, toMs]) {
-    go({ signal: props.signal, window: props.window, q: searchText.value, ...(props.filters || {}), from: Math.round(fromMs / 1000), to: Math.round(toMs / 1000) });
-}
-function resetRange() { go({ signal: props.signal, window: props.window, q: searchText.value, ...(props.filters || {}) }); }
-
-function toggleFacet(dim, value) {
-    const f = { ...(props.filters || {}) };
-    if (f[dim] === String(value)) delete f[dim];
-    else f[dim] = String(value);
-    activeId.value = null;
-    selectedLog.value = null;
-    go({ signal: props.signal, window: props.window, q: searchText.value, ...f });
-}
-function clearFilters() { go({ signal: props.signal, window: props.window, q: searchText.value }); }
-
-function select(item) {
-    activeId.value = item.id;
-    if (isTrace.value) {
-        go({ ...base(), id: item.id });
-    } else {
-        selectedLog.value = item;
-    }
-}
-
-const poll = usePoll(2000, { preserveScroll: true }, { autoStart: false });
-function toggleTail() {
-    tailing.value = !tailing.value;
-    tailing.value ? poll.start() : poll.stop();
-}
-
-watch(() => props.signal, () => { searchText.value = props.q || ''; });
 </script>

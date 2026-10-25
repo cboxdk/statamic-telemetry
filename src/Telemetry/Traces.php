@@ -125,9 +125,11 @@ final class Traces
             return [];
         }
 
-        // First pass: collect raw spans and the parent map.
+        // First pass: collect raw spans (with attributes) and the parent map.
         $raw = [];
         foreach ($batches as $batch) {
+            $service = $this->serviceOf($batch);
+
             foreach ((is_array($batch['scopeSpans'] ?? null) ? $batch['scopeSpans'] : []) as $scope) {
                 foreach ((is_array($scope['spans'] ?? null) ? $scope['spans'] : []) as $span) {
                     if (! is_array($span)) {
@@ -143,6 +145,9 @@ final class Traces
                         'name' => is_string($span['name'] ?? null) ? $span['name'] : '(span)',
                         'start' => $start,
                         'duration' => $endNano > $start ? ($endNano - $start) / 1_000_000 : 0.0,
+                        'service' => $service,
+                        'kind' => $this->kindOf($span['kind'] ?? null),
+                        'attributes' => $this->attributes($span['attributes'] ?? null, $span['status'] ?? null),
                     ];
                 }
             }
@@ -164,10 +169,93 @@ final class Traces
                 startNano: $span['start'],
                 durationMs: $span['duration'],
                 depth: $this->depth($span, $byId),
+                service: $span['service'],
+                kind: $span['kind'],
+                attributes: $span['attributes'],
             );
         }
 
         return $spans;
+    }
+
+    /** The `service.name` resource attribute of a batch, if any. */
+    private function serviceOf(mixed $batch): ?string
+    {
+        if (! is_array($batch)) {
+            return null;
+        }
+
+        $attrs = $this->attributes($batch['resource']['attributes'] ?? null, null);
+
+        return $attrs['service.name'] ?? null;
+    }
+
+    /** OTLP SpanKind enum → a short label. */
+    private function kindOf(mixed $kind): ?string
+    {
+        return match ($kind) {
+            2, 'SPAN_KIND_SERVER' => 'server',
+            3, 'SPAN_KIND_CLIENT' => 'client',
+            4, 'SPAN_KIND_PRODUCER' => 'producer',
+            5, 'SPAN_KIND_CONSUMER' => 'consumer',
+            1, 'SPAN_KIND_INTERNAL' => 'internal',
+            default => null,
+        };
+    }
+
+    /**
+     * Flatten an OTLP attribute list into a {key: value} string map, newest
+     * key wins. A non-OK status is surfaced as a synthetic `status` attribute.
+     *
+     * @return array<string, string>
+     */
+    private function attributes(mixed $attributes, mixed $status): array
+    {
+        $out = [];
+
+        if (is_array($attributes)) {
+            foreach ($attributes as $attr) {
+                if (is_array($attr) && is_string($attr['key'] ?? null)) {
+                    $out[$attr['key']] = $this->attrValue($attr['value'] ?? null);
+                }
+            }
+        }
+
+        $code = is_array($status) ? ($status['code'] ?? null) : null;
+        if ($code === 2 || $code === 'STATUS_CODE_ERROR') {
+            $message = isset($status['message']) && is_string($status['message']) ? $status['message'] : '';
+            $out['status'] = $message !== '' ? 'error: '.$message : 'error';
+        }
+
+        ksort($out);
+
+        return $out;
+    }
+
+    /** One OTLP any-value → a readable string. */
+    private function attrValue(mixed $value): string
+    {
+        if (! is_array($value)) {
+            return (string) (is_scalar($value) ? $value : '');
+        }
+
+        if (isset($value['stringValue']) && is_scalar($value['stringValue'])) {
+            return (string) $value['stringValue'];
+        }
+        if (isset($value['intValue']) && is_scalar($value['intValue'])) {
+            return (string) $value['intValue'];
+        }
+        if (isset($value['doubleValue']) && is_scalar($value['doubleValue'])) {
+            return (string) $value['doubleValue'];
+        }
+        if (isset($value['boolValue'])) {
+            return $value['boolValue'] ? 'true' : 'false';
+        }
+        if (isset($value['arrayValue']['values']) && is_array($value['arrayValue']['values'])) {
+            return implode(', ', array_map(fn ($v): string => $this->attrValue($v), $value['arrayValue']['values']));
+        }
+
+        return '';
     }
 
     /**

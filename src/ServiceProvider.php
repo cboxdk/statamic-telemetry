@@ -229,18 +229,31 @@ class ServiceProvider extends AddonServiceProvider
     }
 
     /**
-     * A "Telemetry" CP nav item linking to the telemetry UI — the in-app
-     * laravel-telemetry-ui dashboard when installed, or a configured
-     * Grafana URL. Resolved inside the callback so all routes are
-     * registered by the time the nav is built.
+     * The "Telemetry" CP nav item: the native dashboard, with the telemetry
+     * pages as its children (Overview, Explore, Content audit, doctor), or a
+     * link-out when an explicit `cp.url` (Grafana / a remote UI) is set.
+     * Resolved inside the callback so all routes are registered by the time
+     * the nav is built.
      */
     private function bootCpNav(): void
     {
         Nav::extend(function ($nav) {
-            // Overview and Explore are main tabs inside the dashboard itself;
-            // the sub-nav carries only the config/tools pages — Content audit
-            // and the doctor — so the main features are never buried in it.
-            $children = [];
+            // The CP only renders a parent's children while the parent is
+            // active, and a parent *with* children is active only on an exact
+            // URL match or an active child — there is no `->active()` to set.
+            // So, like core's Preferences › General, the first child shares the
+            // parent's URL: its auto pattern `telemetry(/(.*)?|$)` then keeps
+            // the section expanded on every /cp/telemetry/* page.
+            $children = [
+                Nav::item('Overview')
+                    ->route('telemetry.dashboard')
+                    ->icon('chart-monitoring-indicator')
+                    ->can('view telemetry'),
+                Nav::item('Explore')
+                    ->route('telemetry.explore')
+                    ->icon('magnifying-glass')
+                    ->can('view telemetry'),
+            ];
 
             if (app(AuditLog::class)->enabled()) {
                 $children[] = Nav::item('Content audit')

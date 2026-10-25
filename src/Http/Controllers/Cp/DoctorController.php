@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cbox\StatamicTelemetry\Http\Controllers\Cp;
 
+use Cbox\StatamicTelemetry\Cp\TelemetryNav;
 use Cbox\StatamicTelemetry\Diagnostics\Diagnostics;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,9 +16,10 @@ use Statamic\Http\Controllers\CP\CpController;
  */
 class DoctorController extends CpController
 {
-    public function __invoke(Diagnostics $diagnostics): Response
+    public function __invoke(Diagnostics $diagnostics, TelemetryNav $nav): Response
     {
         return Inertia::render('statamic-telemetry::Doctor', [
+            'nav' => $nav->items('doctor'),
             'result' => $diagnostics->gather(),
         ]);
     }

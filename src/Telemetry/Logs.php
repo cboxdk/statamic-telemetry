@@ -9,8 +9,9 @@ use Throwable;
 
 /**
  * Reads log lines back from the telemetry backend's Loki API — the general
- * log/error stream for the Explore page, as opposed to the audit-specific
- * reader. Guarded; a missing or unreachable backend returns an empty list.
+ * log/error stream for the Explore page and the per-trace lines for the trace
+ * drawer, as opposed to the audit-specific reader. Guarded; a missing or
+ * unreachable backend returns an empty list.
  */
 final class Logs
 {
@@ -25,17 +26,37 @@ final class Logs
      */
     public function query(int $windowSeconds, string $level = '', string $search = '', int $limit = 200, ?int $endsAt = null): array
     {
+        $query = $this->selector($level);
+
+        if ($search !== '') {
+            $query .= ' |= "'.addslashes($search).'"';
+        }
+
+        return $this->fetch($query, $windowSeconds, $limit, $endsAt);
+    }
+
+    /**
+     * The log lines emitted during one trace, matched on the `trace_id`
+     * structured-metadata label laravel-telemetry stamps on every record.
+     *
+     * @return list<array{timestamp: int, level: string, line: string, labels: array<string, string>, traceId: ?string}>
+     */
+    public function forTrace(string $traceId, int $windowSeconds = 86400, int $limit = 200): array
+    {
+        return $this->fetch($this->selector('').' | trace_id="'.addslashes($traceId).'"', $windowSeconds, $limit, null);
+    }
+
+    /**
+     * @return list<array{timestamp: int, level: string, line: string, labels: array<string, string>, traceId: ?string}>
+     */
+    private function fetch(string $query, int $windowSeconds, int $limit, ?int $endsAt): array
+    {
         if (! $this->backend->configured()) {
             return [];
         }
 
         $end = $endsAt ?? time();
         $start = $end - $windowSeconds;
-        $query = $this->selector($level);
-
-        if ($search !== '') {
-            $query .= ' |= "'.addslashes($search).'"';
-        }
 
         try {
             $response = $this->backend->request()->get($this->backend->endpoint('loki/api/v1/query_range'), [
