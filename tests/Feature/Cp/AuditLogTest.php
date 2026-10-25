@@ -6,6 +6,7 @@ use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Audit\AuditQuery;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
+use Statamic\Facades\Role;
 use Statamic\Facades\User;
 
 /**
@@ -114,16 +115,42 @@ it('swallows a backend failure into an error result, never throwing', function (
         ->and($result->rows)->toBe([]);
 });
 
-it('shows the page to a permitted user and lists the changes', function () {
+it('lists the changes as the rows of the Content page, with type and action facets', function () {
     fakeAudit(twoChanges());
     $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
 
-    $this->get(cp_route('telemetry.audit'))
+    $this->get(cp_route('telemetry.page', ['page' => 'content']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('statamic-telemetry::ContentAudit')
-            ->where('result.total', 2)
-            ->where('result.rows.0.title', 'photo.jpg'));
+            ->component('statamic-telemetry::StatamicPage')
+            ->where('page.key', 'content')
+            ->where('rows.kind', 'audit')
+            ->where('rows.available', true)
+            ->where('rows.result.total', 2)
+            ->where('rows.result.rows.0.title', 'photo.jpg')
+            ->has('rows.facets.type')
+            ->has('rows.facets.action'));
+});
+
+it('sends the old audit URL to the Content page, filters included', function () {
+    fakeAudit(twoChanges());
+    $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
+
+    $this->get(cp_route('telemetry.audit').'?type=asset')
+        ->assertRedirect(cp_route('telemetry.page', ['page' => 'content', 'type' => 'asset']));
+});
+
+it('tells a user without the audit permission why the rows are missing, but still shows the aggregate', function () {
+    fakeAudit(twoChanges());
+    $user = tap(User::make()->email('viewer@example.com'))->save();
+    $user->assignRole(tap(Role::make('viewer')->permissions(['access cp', 'view telemetry']))->save());
+    $this->actingAs($user);
+
+    $this->get(cp_route('telemetry.page', ['page' => 'content']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rows.available', false)
+            ->has('aggregate.stats'));
 });
 
 it('denies a user without the permission', function () {
@@ -137,9 +164,13 @@ it('denies a user without the permission', function () {
         ->assertDontSee('Hello World');
 });
 
-it('is not found when no logs backend is configured', function () {
+it('says the audit log needs a backend when none is configured', function () {
     config()->set('statamic-telemetry.cp.audit.url', null);
     $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
 
-    $this->get(cp_route('telemetry.audit'))->assertNotFound();
+    $this->get(cp_route('telemetry.page', ['page' => 'content']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rows.available', false)
+            ->where('rows.reason', fn ($reason) => str_contains($reason, 'logs backend')));
 });

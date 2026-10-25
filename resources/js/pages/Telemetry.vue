@@ -138,65 +138,7 @@
         </template>
 
         <!-- ───────────── Activity ───────────── -->
-        <ActivitySection v-else-if="section === 'activity'" :activity="activity" :markers="chartMarkers" />
-
-        <!-- ───────────── Statamic ───────────── -->
-        <template v-else>
-            <div class="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
-                <Card>
-                    <Tile label="Static cache hit ratio" :value="metrics?.cacheHitRatio == null ? '—' : Math.round(metrics.cacheHitRatio * 100) + '%'" :tone="ratioTone" sub="served from cache" />
-                    <div v-if="metrics?.cacheHitRatio != null" class="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
-                        <div class="h-full rounded-full" :class="ratioBar" :style="{ width: Math.round(metrics.cacheHitRatio * 100) + '%' }" />
-                    </div>
-                </Card>
-                <Card><Tile label="Stache warms" :value="fmt(metrics?.stacheWarms)" :sub="`p95 warm ${metrics?.stacheWarmP95 ? ms(metrics.stacheWarmP95) : '—'} · ${fmt(metrics?.stacheClears)} clears`" /></Card>
-                <Card><Tile label="Glide generations" :value="fmt(glideTotal)" :sub="`${fmt(metrics?.glideClears)} cache clears`" /></Card>
-                <Card><Tile label="Form submissions" :value="fmt(formsTotal)" :sub="`${fmt(changesTotal)} content changes`" /></Card>
-            </div>
-
-            <div class="grid gap-6 lg:grid-cols-2">
-                <CardPanel v-if="cacheOps.length" heading="Static cache operations" class="mb-0!">
-                    <div class="flex flex-wrap gap-2">
-                        <Badge v-for="[op, n] in cacheOps" :key="op" :text="op" :append="fmt(n)" />
-                    </div>
-                </CardPanel>
-
-                <CardPanel v-if="metrics?.contentChanges?.length" heading="Content changes" class="mb-0!">
-                    <Table>
-                        <TableColumns><TableColumn>Type</TableColumn><TableColumn>Action</TableColumn><TableColumn>Count</TableColumn></TableColumns>
-                        <TableRows>
-                            <TableRow v-for="c in metrics.contentChanges" :key="c.type + c.action">
-                                <TableCell>{{ c.type }}</TableCell>
-                                <TableCell><Badge :text="c.action" color="blue" size="sm" /></TableCell>
-                                <TableCell class="tabular-nums">{{ fmt(c.count) }}</TableCell>
-                            </TableRow>
-                        </TableRows>
-                    </Table>
-                </CardPanel>
-
-                <CardPanel v-if="metrics?.glide?.length" heading="Glide by preset" class="mb-0!">
-                    <Table>
-                        <TableColumns><TableColumn>Preset</TableColumn><TableColumn>Images</TableColumn></TableColumns>
-                        <TableRows>
-                            <TableRow v-for="g in metrics.glide" :key="g.preset"><TableCell>{{ g.preset }}</TableCell><TableCell class="tabular-nums">{{ fmt(g.count) }}</TableCell></TableRow>
-                        </TableRows>
-                    </Table>
-                </CardPanel>
-
-                <CardPanel v-if="metrics?.forms?.length" heading="Form submissions" class="mb-0!">
-                    <Table>
-                        <TableColumns><TableColumn>Form</TableColumn><TableColumn>Submissions</TableColumn></TableColumns>
-                        <TableRows>
-                            <TableRow v-for="f in metrics.forms" :key="f.form"><TableCell>{{ f.form }}</TableCell><TableCell class="tabular-nums">{{ fmt(f.count) }}</TableCell></TableRow>
-                        </TableRows>
-                    </Table>
-                </CardPanel>
-            </div>
-
-            <Card v-if="!hasStatamicData">
-                <p class="py-10 text-center text-sm text-gray-500">No Statamic metrics in this window yet. They fill as the cache, Stache, Glide, forms and content are used (needs a shared TELEMETRY_STORE + telemetry:flush).</p>
-            </Card>
-        </template>
+        <ActivitySection v-else :activity="activity" :markers="chartMarkers" />
     </TelemetryPage>
 </template>
 
@@ -319,19 +261,4 @@ const deltaTone = (d, badWhenUp = false) => {
     return (badWhenUp ? d > 0 : d < 0) ? 'text-red-500' : 'text-green-600 dark:text-green-400';
 };
 
-// ── Statamic section ───────────────────────────────────────────────────────────
-const cacheOps = computed(() => Object.entries(props.metrics?.cacheOperations || {}));
-const glideTotal = computed(() => (props.metrics?.glide || []).reduce((s, g) => s + g.count, 0));
-const formsTotal = computed(() => (props.metrics?.forms || []).reduce((s, f) => s + f.count, 0));
-const changesTotal = computed(() => (props.metrics?.contentChanges || []).reduce((s, c) => s + c.count, 0));
-const hasStatamicData = computed(() => cacheOps.value.length || props.metrics?.stacheWarms > 0 || glideTotal.value > 0 || formsTotal.value > 0 || changesTotal.value > 0);
-const ratioTone = computed(() => {
-    const r = props.metrics?.cacheHitRatio;
-    if (r == null) return 'text-gray-500';
-    return r >= 0.8 ? 'text-green-600 dark:text-green-400' : r >= 0.4 ? 'text-orange-500' : 'text-red-500';
-});
-const ratioBar = computed(() => {
-    const r = props.metrics?.cacheHitRatio ?? 0;
-    return r >= 0.8 ? 'bg-green-500' : r >= 0.4 ? 'bg-orange-500' : 'bg-red-500';
-});
 </script>

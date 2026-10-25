@@ -38,7 +38,7 @@ it('puts Telemetry under Tools with every page as a child, Overview first', func
     $item = builtTelemetryNavItem();
 
     expect($item->url())->toBe(cp_route('telemetry.dashboard'))
-        ->and($item->children()->map->display()->all())->toBe(['Overview', 'Explore', 'Telemetry doctor']);
+        ->and($item->children()->map->display()->all())->toBe(['Overview', 'Explore', 'Content', 'Telemetry doctor']);
 });
 
 it('keeps the sidebar section active on every telemetry route, not only the dashboard', function () {
@@ -58,7 +58,7 @@ it('builds the in-page nav from the user\'s permissions and marks the active pag
 
     $items = app(TelemetryNav::class)->items('explore');
 
-    expect(collect($items)->pluck('key')->all())->toContain('overview', 'explore', 'activity', 'statamic', 'doctor')
+    expect(collect($items)->pluck('key')->all())->toContain('overview', 'explore', 'activity', 'static-cache', 'stache', 'glide', 'forms', 'content', 'doctor')
         ->and(collect($items)->firstWhere('key', 'explore')['active'])->toBeTrue()
         ->and(collect($items)->firstWhere('key', 'overview')['active'])->toBeFalse()
         ->and(collect($items)->firstWhere('key', 'activity')['params'])->toBe(['section' => 'activity']);
