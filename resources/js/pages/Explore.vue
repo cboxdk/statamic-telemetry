@@ -52,10 +52,10 @@
                                 :key="f.value"
                                 type="button"
                                 class="relative flex w-full items-center justify-between gap-2 overflow-hidden rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-                                :class="{ 'bg-blue-50 font-medium dark:bg-blue-500/15': filters[dim] === String(f.value) }"
+                                :class="{ 'bg-blue-500/10 font-medium': filters[dim] === String(f.value) }"
                                 @click="toggleFacet(dim, f.value)"
                             >
-                                <span class="absolute inset-y-0 start-0 bg-gray-500/10 dark:bg-gray-400/10" :style="{ width: barPct(dim, f.count) }" />
+                                <span class="absolute inset-y-0 start-0 bg-gray-500/10" :style="{ width: barPct(dim, f.count) }" />
                                 <span class="relative z-10 truncate font-mono" :title="f.value">{{ f.value }}</span>
                                 <span class="relative z-10 shrink-0 tabular-nums text-gray-400">{{ fmt(f.count) }}</span>
                             </button>
@@ -74,7 +74,7 @@
                             v-for="g in groups"
                             :key="g.value"
                             type="button"
-                            class="grid w-full grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_5rem_5rem] items-center gap-3 border-b border-gray-100 px-4 py-2 text-left transition-colors hover:bg-gray-50 dark:border-gray-800/60 dark:hover:bg-gray-800/40"
+                            class="grid w-full grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_5rem_5rem] items-center gap-3 border-b border-gray-100 px-4 py-2 text-left transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
                             @click="drillInto(groupBy, g.value)"
                         >
                             <span class="relative block overflow-hidden rounded px-1.5 py-0.5">
@@ -98,8 +98,8 @@
                                 v-for="t in items"
                                 :key="t.id"
                                 type="button"
-                                class="grid h-13 w-full grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 px-4 text-left text-sm transition-colors hover:bg-gray-50 dark:border-gray-800/60 dark:hover:bg-gray-800/40"
-                                :class="{ 'bg-blue-50 dark:bg-blue-500/10': openTraceId === t.id }"
+                                class="grid h-13 w-full grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 px-4 text-left text-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                                :class="{ 'bg-blue-500/10': openTraceId === t.id }"
                                 @click="openTrace(t.id)"
                             >
                                 <span class="tabular-nums text-xs text-gray-500">{{ time(t.timestamp) }}</span>
@@ -113,13 +113,13 @@
 
                         <!-- logs / errors → inline expand -->
                         <template v-else>
-                            <div v-for="l in items" :key="l.id" class="border-b border-gray-100 dark:border-gray-800/60">
-                                <button type="button" class="grid w-full grid-cols-[4.5rem_auto_minmax(0,1fr)] items-start gap-3 px-4 py-2 text-left text-xs transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40" @click="toggleLog(l.id)">
+                            <div v-for="l in items" :key="l.id" class="border-b border-gray-100 dark:border-gray-800">
+                                <button type="button" class="grid w-full grid-cols-[4.5rem_auto_minmax(0,1fr)] items-start gap-3 px-4 py-2 text-left text-xs transition-colors hover:bg-gray-500/10" @click="toggleLog(l.id)">
                                     <span class="tabular-nums text-gray-500">{{ time(l.timestamp) }}</span>
                                     <Badge :text="l.level" :color="levelColor(l.level)" size="sm" />
                                     <span class="min-w-0 font-mono" :class="expandedLog === l.id ? 'whitespace-pre-wrap break-words' : 'truncate'">{{ l.line }}</span>
                                 </button>
-                                <div v-if="expandedLog === l.id" class="grid grid-cols-[10rem_1fr] gap-x-3 gap-y-1 bg-gray-50 px-4 py-3 text-xs dark:bg-gray-900/60">
+                                <div v-if="expandedLog === l.id" class="grid grid-cols-[10rem_1fr] gap-x-3 gap-y-1 bg-gray-500/5 px-4 py-3 text-xs">
                                     <template v-for="(v, k) in l.labels" :key="k">
                                         <div class="truncate text-gray-500">{{ k }}</div>
                                         <div class="break-words font-mono">{{ v }}</div>

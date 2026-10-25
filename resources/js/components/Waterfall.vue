@@ -14,8 +14,8 @@
             :key="row.key"
             role="button"
             tabindex="0"
-            class="grid min-h-7 cursor-pointer grid-cols-[minmax(0,46%)_minmax(0,1fr)] items-center border-b border-gray-100 transition-colors hover:bg-gray-50 dark:border-gray-800/60 dark:hover:bg-gray-800/40"
-            :class="{ 'bg-blue-50 dark:bg-blue-500/10': selected === row.key }"
+            class="grid min-h-7 cursor-pointer grid-cols-[minmax(0,46%)_minmax(0,1fr)] items-center border-b border-gray-100 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+            :class="{ 'bg-blue-500/10': selected === row.key }"
             @click="select(row)"
             @keydown.enter.prevent="select(row)"
         >
@@ -38,13 +38,16 @@
             </div>
         </div>
 
-        <!-- Selected span -->
-        <SpanDetail v-if="selectedRow" :span="selectedRow" class="sticky bottom-0 z-10" @close="selected = null" />
+        <!-- Selected span: a nested Stack, so the waterfall stays put and × / Esc comes straight back. -->
+        <Stack :open="!!selectedRow" size="narrow" :title="selectedRow?.name || 'Span'" @update:open="(open) => !open && (selected = null)">
+            <SpanDetail v-if="selectedRow" :span="selectedRow" />
+        </Stack>
     </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { Stack } from '@statamic/cms/ui';
 import SpanDetail from './SpanDetail.vue';
 import { ms } from '../lib/format.js';
 
