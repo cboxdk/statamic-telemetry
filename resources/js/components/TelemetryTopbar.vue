@@ -23,6 +23,7 @@
                     <Button size="sm" variant="ghost" text="Clear" :disabled="!to" @click="clearRange" />
                     <Button size="sm" variant="primary" text="Apply" :disabled="!validRange" @click="applyRange" />
                 </div>
+                <p class="text-[11px] text-gray-500">Entered in your browser's time ({{ localLabel }}).</p>
             </div>
         </Popover>
 
@@ -37,6 +38,11 @@
             />
         </div>
         <Button size="sm" text="Refresh" :loading="refreshing" @click="refreshNow" />
+
+        <!-- Time zone every timestamp on these pages is shown in -->
+        <div class="w-28 shrink-0" v-tooltip="'Time zone for every time shown — your browser\'s or UTC'">
+            <Select size="sm" :options="zoneOptions" :model-value="zone" @update:model-value="setZone" />
+        </div>
     </div>
 </template>
 
@@ -45,7 +51,21 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Button, Input, Popover, Select, ToggleGroup, ToggleItem } from '@statamic/cms/ui';
 import { router } from '@statamic/cms/inertia';
 import { useTelemetryUrl, windowSeconds } from '../lib/useTelemetryUrl.js';
-import { clock } from '../lib/format.js';
+import { clock, timeZoneChoice, setTimeZoneChoice, timeZoneLabel } from '../lib/format.js';
+
+// ── Time zone ─────────────────────────────────────────────────────────────────
+const localLabel = timeZoneLabel('local');
+const zone = ref(timeZoneChoice());
+const zoneOptions = [
+    { label: localLabel, value: 'local' },
+    { label: 'UTC', value: 'UTC' },
+];
+function setZone(v) {
+    if (!v || v === zone.value) return;
+    setTimeZoneChoice(v);
+    // Formatting is not reactive on purpose (it runs inside chart callbacks too); a reload is the honest refresh.
+    window.location.reload();
+}
 
 const props = defineProps({
     window: { type: String, default: '1h' },

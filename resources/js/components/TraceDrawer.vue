@@ -28,6 +28,9 @@
                 <Skeleton v-for="i in 6" :key="i" class="h-6 w-full" />
             </div>
 
+            <!-- Logs only earn a tab when the backend linked some to this trace. -->
+            <Waterfall v-else-if="trace && trace.spans.length && !trace.logs.length" :spans="trace.spans" />
+
             <div v-else-if="trace && trace.spans.length">
                 <Tabs v-model="tab">
                     <TabList class="px-5">

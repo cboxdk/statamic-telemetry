@@ -8,11 +8,8 @@
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <!-- Requests -->
-                <Card class="flex flex-col gap-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <h3 class="text-sm font-semibold">Requests</h3>
-                        <span class="text-xs text-gray-500">per step, by response class</span>
-                    </div>
+                <Section heading="Requests">
+                    <template #actions>per step, by response class</template>
                     <div class="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
                         <Tile label="Requests" :value="fmt(requestCount)" :delta="deltaFmt(delta.requests)" :tone="deltaTone(delta.requests)" />
                         <Tile label="1/2/3XX" :value="fmt(okCount)" dim />
@@ -24,14 +21,11 @@
                         <TimeChart v-if="hasReqSeries" :time="reqTime" :series="reqChartSeries" :markers="chartMarkers" unit="count" :smooth="false" :height="208" brush @zoom="onZoom" />
                         <Empty v-else>No request series in this window.</Empty>
                     </div>
-                </Card>
+                </Section>
 
                 <!-- Duration -->
-                <Card class="flex flex-col gap-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <h3 class="text-sm font-semibold">Duration</h3>
-                        <span class="text-xs text-gray-500">server-side latency</span>
-                    </div>
+                <Section heading="Duration">
+                    <template #actions>server-side latency</template>
                     <div class="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
                         <Tile label="Avg" :value="ms(avgMs)" :delta="deltaFmt(delta.avg)" :tone="deltaTone(delta.avg, true)" />
                         <Tile label="p50" :value="ms(metrics?.p50 || overview?.p50)" dim />
@@ -42,14 +36,11 @@
                         <TimeChart v-if="hasDurSeries" :time="durTime" :series="durChartSeries" :markers="chartMarkers" unit="ms" :height="208" brush @zoom="onZoom" />
                         <Empty v-else>No latency series in this window.</Empty>
                     </div>
-                </Card>
+                </Section>
 
                 <!-- Exceptions -->
-                <Card class="flex flex-col gap-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <h3 class="text-sm font-semibold">Exceptions</h3>
-                        <Link :href="hrefTime(exploreUrl, { signal: 'errors' })" class="text-xs text-blue-600 no-underline hover:underline dark:text-blue-400">Open errors →</Link>
-                    </div>
+                <Section heading="Exceptions">
+                    <template #actions><Link :href="hrefTime(exploreUrl, { signal: 'errors' })" class="text-blue-600 no-underline hover:underline dark:text-blue-400">Open errors →</Link></template>
                     <div class="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
                         <Tile label="Error-level logs" :value="fmt(exceptionCount)" :tone="exceptionCount > 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'" />
                         <Tile v-if="exceptions && exceptions.capped" label="Sample" value="capped" dim />
@@ -58,14 +49,11 @@
                         <TimeChart v-if="exceptions && exceptions.trend.length" :time="excTime" :series="excChartSeries" unit="count" :legend="false" :height="96" />
                         <Empty v-else>No errors in this window.</Empty>
                     </div>
-                </Card>
+                </Section>
 
                 <!-- Deploys -->
-                <Card class="flex flex-col gap-3">
-                    <div class="flex items-start justify-between gap-3">
-                        <h3 class="text-sm font-semibold">Deploys</h3>
-                        <span class="text-xs text-gray-500">php artisan telemetry:deploy</span>
-                    </div>
+                <Section heading="Deploys" class="space-y-3!">
+                    <template #actions>php artisan telemetry:deploy</template>
                     <ul v-if="deployments.length" class="divide-y divide-gray-200 text-sm dark:divide-gray-800">
                         <li v-for="d in deployments.slice(0, 6)" :key="'dep' + d.timestamp + d.id" class="flex items-center gap-3 py-2">
                             <span class="h-2 w-2 shrink-0 rounded-full bg-violet-500" />
@@ -75,11 +63,11 @@
                         </li>
                     </ul>
                     <Empty v-else class="h-24">No deployments in this window — run <code class="font-mono">telemetry:deploy</code> from your pipeline to mark releases.</Empty>
-                </Card>
+                </Section>
 
                 <!-- Routes needing attention -->
-                <CardPanel v-if="metrics?.routes?.length" heading="Routes needing attention" subheading="Most server errors, then slowest p95" class="mb-0! lg:col-span-2">
-                    <Table>
+                <Section v-if="metrics?.routes?.length" heading="Routes needing attention" subheading="Most server errors, then slowest p95" inset class="lg:col-span-2">
+                    <div class="px-4 sm:px-4.5"><Table>
                         <TableColumns>
                             <TableColumn>Route</TableColumn><TableColumn>Requests</TableColumn><TableColumn>Errors</TableColumn><TableColumn>p95</TableColumn><TableColumn>Trend</TableColumn>
                         </TableColumns>
@@ -95,22 +83,22 @@
                                 <TableCell><div class="h-6 w-24"><Chart :points="r.trend" :height="24" color="var(--color-gray-500)" /></div></TableCell>
                             </TableRow>
                         </TableRows>
-                    </Table>
-                </CardPanel>
+                    </Table></div>
+                </Section>
 
                 <!-- Recent exceptions -->
-                <CardPanel v-if="exceptions?.recent?.length" heading="Recent exceptions" class="mb-0! lg:col-span-2">
+                <Section v-if="exceptions?.recent?.length" heading="Recent exceptions" class="lg:col-span-2">
                     <ul class="divide-y divide-gray-200 dark:divide-gray-800">
                         <li v-for="(e, i) in exceptions.recent" :key="i" class="flex items-start gap-3 py-2 text-xs">
                             <span class="w-16 shrink-0 tabular-nums text-gray-500">{{ time(e.timestamp) }}</span>
                             <span class="min-w-0 flex-1 break-words font-mono text-red-500">{{ e.line }}</span>
                         </li>
                     </ul>
-                </CardPanel>
+                </Section>
 
                 <!-- Recent requests → trace drawer -->
-                <CardPanel v-if="overview?.recent?.length" heading="Recent requests" subheading="Click a request to open its trace" class="mb-0! lg:col-span-2">
-                    <Table>
+                <Section v-if="overview?.recent?.length" heading="Recent requests" subheading="Click a request to open its trace" inset class="lg:col-span-2">
+                    <div class="px-4 sm:px-4.5"><Table>
                         <TableColumns><TableColumn>When</TableColumn><TableColumn>Request</TableColumn><TableColumn>Duration</TableColumn></TableColumns>
                         <TableRows>
                             <TableRow v-for="t in overview.recent" :key="t.id" class="cursor-pointer" @click="openTrace(t.id)">
@@ -127,8 +115,8 @@
                                 <TableCell class="tabular-nums" :class="toneClass(t.durationMs)">{{ ms(t.durationMs) }}</TableCell>
                             </TableRow>
                         </TableRows>
-                    </Table>
-                </CardPanel>
+                    </Table></div>
+                </Section>
             </div>
 
             <Card v-if="isOverviewEmpty">
@@ -141,9 +129,10 @@
 
 <script setup>
 import { computed, defineComponent, h } from 'vue';
-import { Badge, Card, CardPanel, Table, TableColumns, TableColumn, TableRows, TableRow, TableCell } from '@statamic/cms/ui';
+import { Badge, Card, Table, TableColumns, TableColumn, TableRows, TableRow, TableCell } from '@statamic/cms/ui';
 import { Link } from '@statamic/cms/inertia';
 import TelemetryPage from '../components/TelemetryPage.vue';
+import Section from '../components/Section.vue';
 import Tile from '../components/Tile.vue';
 import Chart from '../components/Chart.vue';
 import TimeChart from '../components/TimeChart.vue';

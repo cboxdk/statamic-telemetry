@@ -21,8 +21,9 @@
         >
             <div class="flex min-w-0 items-center gap-1.5 pe-2" :style="{ paddingLeft: 6 + row.depth * 12 + 'px' }">
                 <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="row.error ? 'bg-red-500' : categoryDot(row.category)" />
-                <span class="truncate font-mono" :title="row.name">{{ row.name }}</span>
-                <span v-if="row.summary" class="truncate font-mono text-gray-400" :title="row.summary">{{ row.summary }}</span>
+                <!-- The name keeps its width; only the dim summary (SQL, route) gives way. -->
+                <span class="max-w-[70%] shrink-0 truncate font-mono" :title="row.name">{{ row.name }}</span>
+                <span v-if="row.summary" class="min-w-0 truncate font-mono text-gray-400" :title="row.summary">{{ row.summary }}</span>
             </div>
             <div class="relative h-7 border-s border-gray-200 bg-[linear-gradient(to_right,transparent_calc(25%-1px),var(--color-gray-200)_25%,transparent_calc(25%+1px),transparent_calc(50%-1px),var(--color-gray-200)_50%,transparent_calc(50%+1px),transparent_calc(75%-1px),var(--color-gray-200)_75%,transparent_calc(75%+1px))] dark:border-gray-800 dark:bg-[linear-gradient(to_right,transparent_calc(25%-1px),var(--color-gray-800)_25%,transparent_calc(25%+1px),transparent_calc(50%-1px),var(--color-gray-800)_50%,transparent_calc(50%+1px),transparent_calc(75%-1px),var(--color-gray-800)_75%,transparent_calc(75%+1px))]">
                 <span
@@ -98,7 +99,8 @@ const rows = computed(() =>
         return {
             key: `${i}-${s.startNano}`,
             name: s.name,
-            summary: summaryOf(attrs) !== s.name ? summaryOf(attrs) : '',
+            // No summary when the name already says it ("GET entry:pages" + "entry:pages").
+            summary: summaryOf(attrs) && !s.name.includes(summaryOf(attrs)) ? summaryOf(attrs) : '',
             depth: Math.min(s.depth || 0, 12),
             durationMs: s.durationMs,
             offset: r(offset),

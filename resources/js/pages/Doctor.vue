@@ -18,7 +18,7 @@
             </Card>
         </div>
 
-        <CardPanel heading="Pipeline" class="mb-0!">
+        <Section heading="Pipeline">
             <div v-for="row in rows" :key="row.label" class="grid grid-cols-[12rem_1fr] items-baseline gap-4 border-b border-gray-200 py-3 last:border-0 dark:border-gray-800">
                 <div class="flex items-center gap-2 font-medium"><Dot :tone="row.tone" />{{ row.label }}</div>
                 <div>
@@ -26,7 +26,7 @@
                     <div class="mt-0.5 text-xs text-gray-500">{{ row.note }}</div>
                 </div>
             </div>
-        </CardPanel>
+        </Section>
 
         <p class="text-xs text-gray-500">For the full end-to-end check — store round trip, series budget, redaction, Prometheus and OTLP reachability — run <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">php artisan telemetry:doctor</code>.</p>
     </TelemetryPage>
@@ -34,8 +34,9 @@
 
 <script setup>
 import { computed, h } from 'vue';
-import { Card, CardPanel } from '@statamic/cms/ui';
+import { Card } from '@statamic/cms/ui';
 import TelemetryPage from '../components/TelemetryPage.vue';
+import Section from '../components/Section.vue';
 
 const props = defineProps({ nav: { type: Array, default: () => [] }, result: Object });
 
