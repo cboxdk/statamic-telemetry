@@ -76,6 +76,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { Badge, Button, Skeleton, Tabs, TabList, TabTrigger, TabContent } from '@statamic/cms/ui';
 import Waterfall from './Waterfall.vue';
 import { ms, clock } from '../lib/format.js';
+import { telemetryUrl, currentTime } from '../lib/cp.js';
 
 const props = defineProps({ id: { type: String, required: true } });
 
@@ -84,9 +85,9 @@ const loading = ref(false);
 const retrying = ref(false);
 const tab = ref('waterfall');
 
-// Every telemetry page lives under …/telemetry[/…]; the trace JSON sits at
-// …/telemetry/trace/{id}, so derive it from the current path (CP prefix-safe).
-const endpoint = (id) => `${location.pathname.replace(/\/telemetry(\/.*)?$/, '/telemetry/trace/')}${encodeURIComponent(id)}`;
+// The trace JSON lives at <cp>/telemetry/trace/{id} — resolved from the CP's own
+// URL, so the drawer works from an entry editor as well as a telemetry page.
+const endpoint = (id) => telemetryUrl(`trace/${encodeURIComponent(id)}`);
 
 async function load(manual = false) {
     loading.value = true;
@@ -111,12 +112,8 @@ watch(() => props.id, () => { trace.value = null; retrying.value = false; load()
 
 // The request span's attributes — what the trace was about.
 const rootAttrs = computed(() => (trace.value?.spans || []).find((s) => s.depth === 0)?.attributes || {});
-// Links to sibling telemetry pages keep the CP prefix of the page we are on.
-const pageHref = (page, params) => {
-    const base = location.pathname.replace(/\/telemetry(\/.*)?$/, `/telemetry/${page}`);
-    const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')));
-    return `${base}?${qs}`;
-};
+// Links to the telemetry pages carry the current time state along.
+const pageHref = (page, params) => telemetryUrl(page, { ...currentTime(), ...params });
 
 const statusText = computed(() => (trace.value?.root?.error ? 'ERROR' : trace.value?.root?.status || 'OK'));
 const statusColor = computed(() => {

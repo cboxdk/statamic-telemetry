@@ -41,6 +41,7 @@
 import { computed } from 'vue';
 import { Badge, Button, Dropdown, DropdownMenu, DropdownItem } from '@statamic/cms/ui';
 import { ms } from '../lib/format.js';
+import { telemetryUrl, currentTime } from '../lib/cp.js';
 
 const props = defineProps({ span: { type: Object, required: true } });
 
@@ -55,12 +56,5 @@ const FACETS = {
 };
 const facetFor = (key) => FACETS[key] || null;
 const isUrl = (value) => /^https?:\/\//.test(String(value));
-const exploreHref = (key, value) => {
-    const base = location.pathname.replace(/\/telemetry(\/.*)?$/, '/telemetry/explore');
-    const params = new URLSearchParams(location.search);
-    ['drawer', 'groupBy'].forEach((k) => params.delete(k));
-    params.set('signal', 'requests');
-    params.set(facetFor(key), String(value));
-    return `${base}?${params.toString()}`;
-};
+const exploreHref = (key, value) => telemetryUrl('explore', { ...currentTime(), signal: 'requests', [facetFor(key)]: String(value) });
 </script>

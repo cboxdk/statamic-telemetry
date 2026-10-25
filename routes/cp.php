@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\DoctorController;
+use Cbox\StatamicTelemetry\Http\Controllers\Cp\EntryController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\ExploreController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\PageController;
 use Cbox\StatamicTelemetry\Http\Controllers\Cp\TelemetryController;
@@ -40,7 +41,12 @@ Route::get('telemetry/doctor', DoctorController::class)
     ->middleware('can:view telemetry diagnostics')
     ->name('telemetry.doctor');
 
-// The purpose-built Statamic pages: static-cache, stache, glide, forms, content.
+// One entry's telemetry story as JSON, for the Telemetry tab in the entry editor.
+Route::get('telemetry/entry/{id}', EntryController::class)
+    ->middleware('can:view telemetry')
+    ->name('telemetry.entry');
+
+// The purpose-built pages: requests, jobs, …, static-cache, stache, glide, forms, content.
 Route::get('telemetry/{page}', PageController::class)
     ->middleware('can:view telemetry')
     ->where('page', implode('|', array_keys(TelemetryPages::PAGES)))

@@ -29,6 +29,7 @@ final class TimeRange
         '12h' => 'Last 12 hours',
         '24h' => 'Last 24 hours',
         '7d' => 'Last 7 days',
+        '30d' => 'Last 30 days',
     ];
 
     public const DEFAULT = '1h';

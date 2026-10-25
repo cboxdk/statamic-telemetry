@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Telemetry\EntryTelemetry;
+use Cbox\StatamicTelemetry\Telemetry\TimeRange;
 use Cbox\StatamicTelemetry\Telemetry\Traces;
 use Illuminate\Support\Facades\Http;
+use Statamic\Facades\Collection;
+use Statamic\Facades\Entry;
+use Statamic\Facades\User;
 
 function entryBackend(): void
 {
@@ -52,25 +56,79 @@ it('filters the audit log to one entry by content id', function () {
         ->and($rows[0]->action)->toBe('published');
 });
 
-it('gathers per-entry requests and change history', function () {
+it('tells the entry\'s story: requests, status mix, cache, exceptions on its path and its change history', function () {
     entryBackend();
 
-    $t = app(EntryTelemetry::class)->for('e123', 86400);
+    $t = app(EntryTelemetry::class)->story('e123', '/about', TimeRange::window('24h'));
 
     expect($t['requests']['count'])->toBe(2)
         ->and($t['requests']['p95'])->toBeGreaterThan(0.0)
         ->and($t['requests']['recent'])->toHaveCount(2)
-        ->and($t['changes'])->toHaveCount(1)
-        ->and($t['changes'][0]['action'])->toBe('published')
-        ->and($t['changes'][0]['who'])->toBe('Jane');
+        ->and($t['requests']['series']['t'])->toHaveCount(24)
+        ->and(array_sum($t['requests']['series']['ok']))->toBe(2)
+        ->and($t['cache'])->toHaveKeys(['hit', 'miss', 'write', 'ratio'])
+        ->and($t['changes']['count'])->toBe(1)
+        ->and($t['changes']['rows'][0]->action)->toBe('published')
+        ->and($t['changes']['rows'][0]->who)->toBe('Jane');
+
+    // The request span is matched explicitly (its attributes carry status and cache outcome),
+    // and the exceptions come from error records on the entry's own path.
+    Http::assertSent(fn ($r) => str_contains(urldecode($r->url()), 'kind=server && span.statamic.entry.id="e123"'));
+    Http::assertSent(fn ($r) => str_contains(urldecode($r->url()), 'level="error"} | url_path="/about"'));
 });
 
 it('returns empty, never throws, when the backend is down', function () {
     config()->set('statamic-telemetry.cp.audit.url', 'http://b.test');
     Http::fake(['http://b.test/*' => Http::response('down', 500)]);
 
-    $t = app(EntryTelemetry::class)->for('e123');
+    $t = app(EntryTelemetry::class)->story('e123', '/about', TimeRange::window('7d'));
 
     expect($t['requests']['count'])->toBe(0)
-        ->and($t['changes'])->toBe([]);
+        ->and($t['changes']['rows'])->toBe([])
+        ->and($t['exceptions']['count'])->toBe(0);
+});
+
+it('serves the story as JSON for a real entry, a week by default', function () {
+    entryBackend();
+    Collection::make('pages')->routes('{slug}')->save();
+    $entry = tap(Entry::make()->collection('pages')->slug('about')->data(['title' => 'About']))->save();
+    $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
+
+    $this->getJson(cp_route('telemetry.entry', ['id' => $entry->id()]))
+        ->assertOk()
+        ->assertJsonPath('entry.uri', '/about')
+        ->assertJsonPath('entry.title', 'About')
+        ->assertJsonPath('window', '7d')
+        ->assertJsonPath('requests.count', 2);
+
+    $this->getJson(cp_route('telemetry.entry', ['id' => 'nope']))->assertNotFound();
+});
+
+it('adds a full-width Telemetry tab to entry blueprints for users who may view telemetry', function () {
+    // The blueprint is resolved (and Blink-cached) with the current user's
+    // permissions, as in a CP request: sign in first, then load the entry.
+    $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
+    Collection::make('pages')->save();
+    $entry = tap(Entry::make()->collection('pages')->slug('about'))->save();
+
+    $field = $entry->blueprint()->field('telemetry');
+
+    expect($field)->not->toBeNull()
+        ->and($field->type())->toBe('telemetry')
+        ->and($field->config()['width'])->toBe(100)
+        ->and($field->config()['visibility'])->toBe('computed')
+        ->and($entry->blueprint()->tabs()->keys()->all())->toContain('telemetry');
+});
+
+it('does not add the tab for a user without telemetry access, or when disabled', function () {
+    Collection::make('pages')->save();
+
+    $this->actingAs(tap(User::make()->email('nobody@example.com'))->save());
+    $entry = tap(Entry::make()->collection('pages')->slug('about'))->save();
+    expect($entry->blueprint()->field('telemetry'))->toBeNull();
+
+    config()->set('statamic-telemetry.cp.entry_tab', false);
+    $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
+    $other = tap(Entry::make()->collection('pages')->slug('other'))->save();
+    expect($other->blueprint()->field('telemetry'))->toBeNull();
 });
