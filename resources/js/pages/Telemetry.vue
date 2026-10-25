@@ -33,7 +33,7 @@
                         <Tile label="p99" :value="ms(metrics?.p99)" dim />
                     </div>
                     <div class="h-52">
-                        <TimeChart v-if="hasDurSeries" :time="durTime" :series="durChartSeries" :markers="chartMarkers" unit="ms" :height="208" brush @zoom="onZoom" />
+                        <TimeChart v-if="hasDurSeries" :time="durTime" :series="durChartVisible" :markers="chartMarkers" unit="ms" :height="208" brush @zoom="onZoom" />
                         <Empty v-else>No latency series in this window.</Empty>
                     </div>
                 </Section>
@@ -208,7 +208,10 @@ const durChartSeries = computed(() => {
         { name: 'p95', data: d.p95 || [], color: 'var(--color-amber-500)' },
     ];
 });
-const hasDurSeries = computed(() => durChartSeries.value.some((b) => b.data.some((v) => v > 0)));
+// A series the backend could not compute (telemetryd caps the p95 histogram scan beyond a few hours)
+// is left out rather than drawn as a flat zero line.
+const durChartVisible = computed(() => durChartSeries.value.filter((b) => b.data.some((v) => v > 0)));
+const hasDurSeries = computed(() => durChartVisible.value.length > 0);
 
 // ── Exceptions (bucketed on the real range, so brushing stays honest) ─────────
 const exceptionCount = computed(() => props.exceptions?.count || 0);
