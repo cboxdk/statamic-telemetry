@@ -27,7 +27,7 @@ final class TelemetryPages
         'jobs' => ['group' => 'activity', 'title' => 'Jobs', 'icon' => 'flash-bolt-lightning', 'description' => 'Queue jobs processed by job and queue, with every run and what it did.'],
         'queries' => ['group' => 'activity', 'title' => 'Queries', 'icon' => 'cache', 'description' => 'Database queries by connection, N+1 and duplicate detection, and every query with the request that ran it.'],
         'exceptions' => ['group' => 'activity', 'title' => 'Exceptions', 'icon' => 'folder-warning', 'description' => 'Error-level log records by exception type, each with its message and where it was thrown.'],
-        'outgoing' => ['group' => 'activity', 'title' => 'Outgoing HTTP', 'icon' => 'content-book-open', 'description' => 'Outbound HTTP calls by host, their errors and latency, and every call with the request that made it.'],
+        'outgoing' => ['group' => 'activity', 'title' => 'Outgoing HTTP', 'short' => 'Outgoing', 'icon' => 'content-book-open', 'description' => 'Outbound HTTP calls by host, their errors and latency, and every call with the request that made it.'],
         'static-cache' => ['group' => 'statamic', 'title' => 'Static cache', 'icon' => 'cache', 'description' => 'Every frontend request by static-cache outcome — hits, misses, writes — and the pages behind them.'],
         'stache' => ['group' => 'statamic', 'title' => 'Stache', 'icon' => 'flash-bolt-lightning', 'description' => 'Stache warms and clears: how often the content index rebuilds, how long it takes, and which requests paid for it.'],
         'glide' => ['group' => 'statamic', 'title' => 'Glide', 'icon' => 'folder-photos', 'description' => 'Image generations by preset, and the requests that triggered them.'],

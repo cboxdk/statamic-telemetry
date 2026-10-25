@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Gate;
  * "Telemetry" item, rendered by every telemetry page so it never disappears.
  * Concrete pages, not buckets, in groups: Overview and Explore; the
  * application's activity (requests, jobs, queries, exceptions, outgoing);
- * Statamic's own areas (static cache, Stache, Glide, forms, content); the
- * doctor. The server owns the list; the client adds the carried time state
- * to each href and draws a divider between groups.
+ * Statamic's own areas (static cache, Stache, Glide, forms, content). The
+ * server owns the list; the client adds the carried time state to each href
+ * and draws a divider between groups.
  */
 final class TelemetryNav
 {
@@ -30,14 +30,12 @@ final class TelemetryNav
             $items[] = $this->item('explore', 'Explore', cp_route('telemetry.explore'), 'main', $active);
 
             foreach (TelemetryPages::PAGES as $key => $page) {
-                $items[] = $this->item($key, $page['title'], cp_route('telemetry.page', ['page' => $key]), $page['group'], $active);
+                $items[] = $this->item($key, $page['short'] ?? $page['title'], cp_route('telemetry.page', ['page' => $key]), $page['group'], $active);
             }
         }
 
-        if (Gate::allows('view telemetry diagnostics')) {
-            $items[] = $this->item('doctor', 'Doctor', cp_route('telemetry.doctor'), 'tools', $active);
-        }
-
+        // The doctor is diagnostics, not data: it lives in the sidebar only,
+        // which also keeps the data pages on one line at 1280px.
         return $items;
     }
 
