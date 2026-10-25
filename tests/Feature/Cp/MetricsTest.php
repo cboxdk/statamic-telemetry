@@ -188,6 +188,18 @@ it('computes period-over-period deltas from the previous window', function () {
         ->and($o->delta)->toHaveKeys(['requests', 'errorRate', 'avg', 'p95']);
 });
 
+it('aggregates requests by a dimension for the Explore group-by', function () {
+    fakeProm();
+
+    $rows = app(TelemetryMetrics::class)->groupBy('http_route', 3600);
+
+    expect($rows[0]['value'])->toBe('entry:blog.article')   // busiest first
+        ->and($rows[0]['count'])->toBe(42.0)
+        ->and($rows[0]['errors'])->toBe(2.0)
+        ->and($rows[0]['errorRate'])->toBe(round(2 / 42, 4))
+        ->and($rows[0]['p95'])->toBe(200.0);
+});
+
 it('builds the Explore summary and facets from metrics', function () {
     fakeProm();
 

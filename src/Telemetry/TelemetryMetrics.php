@@ -116,6 +116,49 @@ final class TelemetryMetrics
     }
 
     /**
+     * Aggregate requests by a dimension (an http metric label) over the window:
+     * per value, the request count, server errors and rate, and p50/p95. This
+     * is the Explore "group by" — telemetry-ui's GroupTable — busiest first.
+     *
+     * @return list<array{value: string, count: float, errors: float, errorRate: float, p50: float, p95: float}>
+     */
+    public function groupBy(string $label, int $windowSeconds, ?int $endsAt = null): array
+    {
+        $this->at = $endsAt;
+        $w = $windowSeconds.'s';
+
+        $counts = $this->mapBy($label, "sum by ({$label}) (increase(".self::COUNT."[{$w}]))");
+        if ($counts === []) {
+            return [];
+        }
+
+        $errors = $this->mapBy($label, "sum by ({$label}) (increase(".self::COUNT.'{http_response_status_code=~"5.."}'."[{$w}]))");
+        $p50 = $this->mapBy($label, "histogram_quantile(0.5, sum by ({$label}, le) (increase(".self::BUCKET."[{$w}])))", 1000);
+        $p95 = $this->mapBy($label, "histogram_quantile(0.95, sum by ({$label}, le) (increase(".self::BUCKET."[{$w}])))", 1000);
+
+        $rows = [];
+        foreach ($counts as $value => $count) {
+            if ($count <= 0) {
+                continue;
+            }
+
+            $err = $errors[$value] ?? 0.0;
+            $rows[] = [
+                'value' => $value,
+                'count' => round($count),
+                'errors' => round($err),
+                'errorRate' => round($err / $count, 4),
+                'p50' => round($p50[$value] ?? 0.0, 1),
+                'p95' => round($p95[$value] ?? 0.0, 1),
+            ];
+        }
+
+        usort($rows, static fn (array $a, array $b): int => $b['count'] <=> $a['count']);
+
+        return array_slice($rows, 0, 50);
+    }
+
+    /**
      * One facet's values with counts, busiest first.
      *
      * @return list<array{value: string, count: float}>

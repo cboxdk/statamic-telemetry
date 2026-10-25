@@ -96,15 +96,22 @@ it('renders the dashboard for a permitted user with real numbers', function () {
             ->has('metrics'));
 });
 
-it('renders a single trace waterfall page', function () {
+it('serves one trace as JSON for the trace drawer', function () {
     fakeTempo();
     $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
 
-    $this->get(cp_route('telemetry.dashboard').'?trace=aaaa')
+    $this->getJson(cp_route('telemetry.trace', ['id' => 'aaaa']))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('statamic-telemetry::Trace')
-            ->where('spans.1.name', 'db.query'));
+        ->assertJsonPath('id', 'aaaa')
+        ->assertJsonPath('root.name', 'GET /')
+        ->assertJsonPath('spans.1.name', 'db.query')
+        ->assertJsonPath('spans.1.depth', 1);
+});
+
+it('denies the trace JSON to a user without the permission', function () {
+    $this->actingAs(tap(User::make()->email('nobody@example.com'))->save());
+
+    $this->getJson(cp_route('telemetry.trace', ['id' => 'aaaa']))->assertForbidden();
 });
 
 it('shows the empty state when the backend has no traces, without throwing', function () {

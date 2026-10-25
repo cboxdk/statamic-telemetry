@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Cbox\StatamicTelemetry\Telemetry\Logs;
+use Cbox\StatamicTelemetry\Telemetry\Traces;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Statamic\Facades\User;
@@ -121,6 +122,36 @@ it('filters by a status class as a TraceQL numeric range', function () {
         return str_contains($url, 'span.http.response.status_code>=400')
             && str_contains($url, 'span.http.response.status_code<500');
     });
+});
+
+it('parses span attributes, service and kind for the waterfall detail', function () {
+    config()->set('statamic-telemetry.cp.audit.url', 'http://b.test');
+
+    $span = [
+        'spanId' => 'a',
+        'parentSpanId' => '',
+        'name' => 'GET not_found',
+        'kind' => 2,
+        'startTimeUnixNano' => '1700000000000000000',
+        'endTimeUnixNano' => '1700000000041000000',
+        'attributes' => [
+            ['key' => 'http.route', 'value' => ['stringValue' => 'not_found']],
+            ['key' => 'http.response.status_code', 'value' => ['intValue' => '404']],
+        ],
+    ];
+    $batch = [
+        'resource' => ['attributes' => [['key' => 'service.name', 'value' => ['stringValue' => 'cbox-web']]]],
+        'scopeSpans' => [['spans' => [$span]]],
+    ];
+    Http::fake(['http://b.test/api/traces/*' => Http::response(['batches' => [$batch]])]);
+
+    $spans = app(Traces::class)->trace('t1');
+
+    expect($spans)->toHaveCount(1)
+        ->and($spans[0]->service)->toBe('cbox-web')
+        ->and($spans[0]->kind)->toBe('server')
+        ->and($spans[0]->attributes['http.route'])->toBe('not_found')
+        ->and($spans[0]->attributes['http.response.status_code'])->toBe('404');
 });
 
 it('denies explore to a user without the permission', function () {
