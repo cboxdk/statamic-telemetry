@@ -107,6 +107,70 @@ final class TelemetryMetrics
         ];
     }
 
+    /** Total increase of a counter over the window. */
+    public function increase(string $metric, int $windowSeconds, ?int $endsAt = null): float
+    {
+        $this->at = $endsAt;
+
+        return $this->total($metric, $windowSeconds.'s');
+    }
+
+    /**
+     * A counter's increase over the window split by one label, busiest
+     * first — the breakdown table behind a stat tile.
+     *
+     * @return array<string, float>
+     */
+    public function countsBy(string $metric, string $label, int $windowSeconds, ?int $endsAt = null): array
+    {
+        $this->at = $endsAt;
+
+        $counts = $this->mapBy($label, "sum by ({$label}) (increase({$metric}[{$windowSeconds}s]))");
+        arsort($counts);
+
+        return array_map(static fn (float $value): float => round($value), $counts);
+    }
+
+    /**
+     * A counter over time on the chart grid, optionally split by a label
+     * (one series per value, stackable).
+     *
+     * @return array{t: list<int>, series: array<string, list<float>>}
+     */
+    public function increaseSeries(string $metric, ?string $by, int $windowSeconds, ?int $endsAt = null): array
+    {
+        $this->at = $endsAt;
+        $step = $this->step($windowSeconds);
+        $query = $by === null
+            ? "sum(increase({$metric}[{$step}s]))"
+            : "sum by ({$by}) (increase({$metric}[{$step}s]))";
+
+        $range = $this->metrics->range($query, $windowSeconds, $step, $this->at);
+        $grid = $this->grid($range);
+
+        $series = [];
+        foreach ($range as $s) {
+            $name = $by === null ? 'total' : ($s['labels'][$by] ?? '(unknown)');
+            $byTs = [];
+            foreach ($s['points'] as [$ts, $value]) {
+                $byTs[(int) $ts] = ($byTs[(int) $ts] ?? 0.0) + (float) $value;
+            }
+            $series[$name] = $this->onGrid($byTs, $grid);
+        }
+        ksort($series);
+
+        return ['t' => $grid, 'series' => $series];
+    }
+
+    /** p95 of a histogram over the window, in ms — null without samples. */
+    public function p95Ms(string $bucketMetric, int $windowSeconds, ?int $endsAt = null): ?float
+    {
+        $this->at = $endsAt;
+        $value = $this->metrics->scalar("histogram_quantile(0.95, sum by (le) (increase({$bucketMetric}[{$windowSeconds}s])))", $this->at);
+
+        return $value > 0 ? round($value * 1000, 1) : null;
+    }
+
     /** Stacked request throughput over the window, for the Explore chart. */
     public function throughput(int $windowSeconds, ?int $endsAt = null): array
     {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Cbox\StatamicTelemetry;
 
-use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Cp\NavLink;
 use Cbox\StatamicTelemetry\Listeners\AddSiteContext;
 use Cbox\StatamicTelemetry\Listeners\CaptureResponseData;
@@ -255,12 +254,11 @@ class ServiceProvider extends AddonServiceProvider
                     ->can('view telemetry'),
             ];
 
-            if (app(AuditLog::class)->enabled()) {
-                $children[] = Nav::item('Content audit')
-                    ->route('telemetry.audit')
-                    ->icon('list-ul')
-                    ->can('view content audit log');
-            }
+            // Content changes + the audit trail — the page most editors want.
+            $children[] = Nav::item('Content')
+                ->route('telemetry.page', ['page' => 'content'])
+                ->icon('content-book-open')
+                ->can('view telemetry');
 
             // The doctor is always available — a diagnostics page is most
             // useful precisely when the backend is down.

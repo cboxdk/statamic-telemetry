@@ -54,10 +54,49 @@ final class Traces
     }
 
     /**
-     * @param  array<string, scalar>  $params
-     * @return list<TraceSummary>
+     * The spans a TraceQL query matched, newest first — one row per span with
+     * its attributes and the request (trace) it ran in. This is the row-level
+     * view behind an aggregate: every Glide generation, every Stache warm,
+     * every form submission, each openable as its trace.
+     *
+     * @return list<array{traceId: string, rootName: string, rootService: ?string, name: string, timestampMs: int, durationMs: float, attributes: array<string, string>}>
      */
-    private function query(array $params, int $windowSeconds, ?int $endsAt = null): array
+    public function spans(string $traceql, int $windowSeconds, int $limit = 200, ?int $endsAt = null): array
+    {
+        $rows = [];
+
+        foreach ($this->raw(['q' => $traceql, 'limit' => $limit], $windowSeconds, $endsAt) as $trace) {
+            foreach ((is_array($trace['spanSets'] ?? null) ? $trace['spanSets'] : []) as $set) {
+                foreach ((is_array($set) && is_array($set['spans'] ?? null) ? $set['spans'] : []) as $span) {
+                    if (! is_array($span) || ! is_string($span['name'] ?? null)) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'traceId' => $trace['traceID'],
+                        'rootName' => is_string($trace['rootTraceName'] ?? null) ? $trace['rootTraceName'] : '(unnamed)',
+                        'rootService' => is_string($trace['rootServiceName'] ?? null) ? $trace['rootServiceName'] : null,
+                        'name' => $span['name'],
+                        'timestampMs' => (int) ((int) ($span['startTimeUnixNano'] ?? $trace['startTimeUnixNano'] ?? 0) / 1_000_000),
+                        'durationMs' => round(((int) ($span['durationNanos'] ?? 0)) / 1e6, 2),
+                        'attributes' => $this->attributes($span['attributes'] ?? null, $span['status'] ?? null),
+                    ];
+                }
+            }
+        }
+
+        usort($rows, static fn (array $a, array $b): int => $b['timestampMs'] <=> $a['timestampMs']);
+
+        return $rows;
+    }
+
+    /**
+     * The decoded traces of one search call (each with a string traceID).
+     *
+     * @param  array<string, scalar>  $params
+     * @return list<array<string, mixed>>
+     */
+    private function raw(array $params, int $windowSeconds, ?int $endsAt = null): array
     {
         if (! $this->backend->configured()) {
             return [];
@@ -81,17 +120,20 @@ final class Traces
 
         $traces = $response->json('traces');
 
-        if (! is_array($traces)) {
-            return [];
-        }
+        return is_array($traces)
+            ? array_values(array_filter($traces, static fn ($trace): bool => is_array($trace) && is_string($trace['traceID'] ?? null)))
+            : [];
+    }
 
+    /**
+     * @param  array<string, scalar>  $params
+     * @return list<TraceSummary>
+     */
+    private function query(array $params, int $windowSeconds, ?int $endsAt = null): array
+    {
         $rows = [];
 
-        foreach ($traces as $trace) {
-            if (! is_array($trace) || ! is_string($trace['traceID'] ?? null)) {
-                continue;
-            }
-
+        foreach ($this->raw($params, $windowSeconds, $endsAt) as $trace) {
             $rows[] = new TraceSummary(
                 id: $trace['traceID'],
                 name: is_string($trace['rootTraceName'] ?? null) ? $trace['rootTraceName'] : '(unnamed)',

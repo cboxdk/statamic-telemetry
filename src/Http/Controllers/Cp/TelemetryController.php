@@ -21,8 +21,9 @@ use Statamic\Http\Controllers\CP\CpController;
  * laravel-telemetry-ui. The Overview is a card grid built from metrics
  * (requests split by status class, latency, exceptions and the routes that
  * need attention) with deploy markers overlaid; Activity covers queue / DB /
- * storage / outgoing-HTTP work; the Statamic section covers the addon's own
- * signals. Traces open in a drawer (see {@see TraceController}). Thin — the
+ * storage / outgoing-HTTP work. Statamic's own areas have their own pages
+ * (see {@see StatamicPageController}). Traces open in a drawer (see
+ * {@see TraceController}). Thin — the
  * assemblers compute everything, {@see TimeRange} owns the window / custom
  * range and {@see TelemetryNav} the in-page navigation.
  */
@@ -32,7 +33,6 @@ class TelemetryController extends CpController
     public const SECTIONS = [
         'overview' => 'Overview',
         'activity' => 'Activity',
-        'statamic' => 'Statamic',
     ];
 
     public function __invoke(Request $request, Requests $requests, TelemetryMetrics $metrics, Exceptions $exceptions, Deployments $deployments, ActivityMetrics $activity, TelemetryNav $nav): Response
@@ -53,10 +53,10 @@ class TelemetryController extends CpController
             'overview' => $overview ? $requests->overview($seconds, $endsAt) : null,
             'exceptions' => $overview ? $exceptions->overview($seconds, $endsAt) : null,
             // Deploy markers belong on every timeline, Activity's included.
-            'deployments' => $section !== 'statamic' ? $deployments->window($seconds, 50, $endsAt) : [],
-            'activity' => $section === 'activity' ? $activity->overview($seconds, $endsAt) : null,
+            'deployments' => $deployments->window($seconds, 50, $endsAt),
+            'activity' => $overview ? null : $activity->overview($seconds, $endsAt),
             // ~20 PromQL queries — not for a section that shows none of them.
-            'metrics' => $section === 'activity' ? null : $metrics->overview($seconds, $endsAt),
+            'metrics' => $overview ? $metrics->overview($seconds, $endsAt) : null,
         ]);
     }
 
