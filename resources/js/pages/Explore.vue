@@ -94,30 +94,7 @@
 
                         <!-- requests / traces → trace drawer -->
                         <template v-else-if="isTrace">
-                            <button
-                                v-for="t in items"
-                                :key="t.id"
-                                type="button"
-                                class="grid h-13 w-full grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 px-4 text-left text-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
-                                :class="{ 'bg-blue-500/10': openTraceId === t.id }"
-                                @click="openTrace(t.id)"
-                            >
-                                <span class="tabular-nums text-xs text-gray-500">{{ time(t.timestamp) }}</span>
-                                <span class="min-w-0">
-                                    <span class="flex items-center gap-2">
-                                        <span class="truncate font-mono text-[13px]">{{ requestLabel(t) }}</span>
-                                        <span v-if="t.status" class="shrink-0 rounded px-1 font-mono text-[10.5px] font-semibold" :class="statusClass(t.status)">{{ t.status }}</span>
-                                    </span>
-                                    <span class="flex min-w-0 items-center gap-2 text-[11px] text-gray-500">
-                                        <span v-if="t.title" class="truncate">{{ t.title }}</span>
-                                        <span v-if="contentLabel(t)" class="shrink-0 font-mono">{{ contentLabel(t) }}</span>
-                                        <span v-else-if="t.route && t.route !== t.path" class="truncate font-mono">{{ t.route }}</span>
-                                        <span v-if="t.cache" class="shrink-0" :class="t.cache === 'hit' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'">cache {{ t.cache }}</span>
-                                        <span v-if="t.site && t.site !== 'default'" class="shrink-0">{{ t.site }}</span>
-                                    </span>
-                                </span>
-                                <span class="tabular-nums" :class="toneClass(t.durationMs)">{{ ms(t.durationMs) }}</span>
-                            </button>
+                            <RequestRow v-for="t in items" :key="t.id" :row="t" :active="openTraceId === t.id" :filters="filters" @open="openTrace" @facet="toggleFacet" />
                         </template>
 
                         <!-- logs / errors → inline expand -->
@@ -155,6 +132,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Badge, Button, Card, Input, ToggleGroup, ToggleItem } from '@statamic/cms/ui';
 import { usePoll } from '@statamic/cms/inertia';
 import TelemetryPage from '../components/TelemetryPage.vue';
+import RequestRow from '../components/RequestRow.vue';
 import StatHeader from '../components/StatHeader.vue';
 import TimeChart from '../components/TimeChart.vue';
 import HeatChart from '../components/HeatChart.vue';
@@ -195,10 +173,6 @@ const FILTER_KEYS = [...facetDims, 'path'];
 const dimLabel = (d) => ({ collection: 'Collection', taxonomy: 'Taxonomy', type: 'Content type', cache: 'Static cache', site: 'Site', status: 'Status', method: 'Method', route: 'Route', path: 'Path' })[d] || d;
 const noFilters = () => Object.fromEntries(FILTER_KEYS.map((k) => [k, null]));
 
-// A row reads as the page that was hit: "GET /about", then title · entry:pages · cache hit.
-const requestLabel = (t) => (t.path ? `${t.method ? t.method + ' ' : ''}${t.path}` : t.name);
-const contentLabel = (t) => (t.collection ? `entry:${t.collection}` : t.taxonomy ? `${t.type || 'term'}:${t.taxonomy}` : t.type === 'glide' ? 'glide' : '');
-const statusClass = (s) => (s >= 500 ? 'bg-red-500/15 text-red-600 dark:text-red-400' : s >= 400 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : 'bg-gray-500/10 text-gray-500');
 const isTrace = computed(() => props.signal === 'requests' || props.signal === 'traces');
 const hasFilters = computed(() => Object.keys(props.filters || {}).length > 0);
 const grouped = computed(() => !!props.groupBy && props.groups.length > 0);
