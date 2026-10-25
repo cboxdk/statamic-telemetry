@@ -6,8 +6,10 @@ namespace Cbox\StatamicTelemetry\Support;
 
 use Illuminate\Http\Request;
 use Statamic\Entries\Entry;
+use Statamic\Facades\Data;
 use Statamic\Facades\Site;
 use Statamic\Http\Controllers\FrontendController;
+use Statamic\Http\Controllers\GlideController;
 use Statamic\Structures\Page;
 use Statamic\Taxonomies\LocalizedTerm;
 use Statamic\Taxonomies\Taxonomy;
@@ -15,19 +17,24 @@ use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Derives the root span name and attributes from the content object
- * Statamic bound to the response.
+ * Derives the root span name and attributes from the content Statamic served.
  *
  * All frontend requests share one catch-all route, so the default
  * "METHOD /route/{pattern}" name collapses to a single value. The
- * ResponseCreated listener stashes the resolved data on the request;
- * the nameRequestsUsing/enrichRequestsUsing resolvers read it back at
- * terminate. Names stay bounded: collection and blueprint handles,
- * never ids or slugs.
+ * ResponseCreated listener stashes the resolved data on the request; the
+ * resolvers read it back at terminate. A static-cache hit answers before
+ * the controller resolves anything, so for those the content is looked up
+ * by URL instead — the page is the same page whether it came from cache or
+ * not, and the CP should say so. Names stay bounded: collection and
+ * blueprint handles, never ids or slugs; the specifics (title, url, edit
+ * url) ride along as span attributes.
  */
 final class Content
 {
     public const REQUEST_ATTRIBUTE = 'statamic_telemetry_data';
+
+    /** Set once the URL lookup ran, so the three resolvers share one Stache hit. */
+    private const LOOKED_UP = 'statamic_telemetry_looked_up';
 
     public static function capture(Request $request, mixed $data): void
     {
@@ -58,16 +65,12 @@ final class Content
     }
 
     /**
-     * The logical route for a Statamic frontend request, given the final
-     * response — the content route when one resolved, else `not_found`
-     * for a 404 (a URL that matched no entry/term/taxonomy: broken links,
-     * bots, stale sitemaps). Keeps 404 traffic out of the `/{segments?}`
-     * bucket so it can be seen and sized. Returns null for anything else
-     * (cache hits, non-frontend routes) — the base keeps their route.
-     *
-     * Cache hits stay `/{segments?}`: served straight from the cache
-     * before the controller resolves content, so there is nothing to name
-     * them by. They are fast and carry `statamic.static_cache: hit`.
+     * The logical route for a Statamic request, given the final response:
+     * the content route when one resolved (or was found at the URL — cache
+     * hits included), `glide:{container}` for image generation, else
+     * `not_found` for a frontend 404 (a URL that matched no entry/term/
+     * taxonomy: broken links, bots, stale sitemaps). Returns null for
+     * anything else — the base keeps their route.
      */
     public static function route(Request $request, Response $response): ?string
     {
@@ -75,6 +78,10 @@ final class Content
 
         if ($label !== null) {
             return $label;
+        }
+
+        if (self::isGlideRequest($request)) {
+            return 'glide:'.self::glideSource($request);
         }
 
         if ($response->getStatusCode() === 404 && self::isFrontendRequest($request)) {
@@ -87,15 +94,36 @@ final class Content
     /**
      * Was this request handled by Statamic's frontend catch-all
      * (FrontendController), versus a real Laravel route or the CP? Guards
-     * the `not_found` fallback so a 404 on a genuine route keeps its own
-     * `http.route`.
+     * the URL lookup and the `not_found` fallback so a 404 on a genuine
+     * route keeps its own `http.route`.
      */
     private static function isFrontendRequest(Request $request): bool
     {
+        return self::handledBy($request, FrontendController::class);
+    }
+
+    private static function isGlideRequest(Request $request): bool
+    {
+        return self::handledBy($request, GlideController::class);
+    }
+
+    private static function handledBy(Request $request, string $controller): bool
+    {
         $route = $request->route();
 
-        return $route !== null
-            && str_contains((string) $route->getActionName(), FrontendController::class);
+        return $route !== null && str_contains((string) $route->getActionName(), $controller);
+    }
+
+    /** The asset container a Glide URL renders from, or `path` / `url` for the other two routes. */
+    private static function glideSource(Request $request): string
+    {
+        $container = $request->route('container');
+
+        if (is_string($container) && $container !== '') {
+            return $container;
+        }
+
+        return str_contains((string) $request->route()?->getActionName(), 'generateByUrl') ? 'url' : 'path';
     }
 
     /**
@@ -104,6 +132,15 @@ final class Content
     public static function attributes(Request $request): array
     {
         $attributes = self::descriptor($request)['attributes'] ?? [];
+
+        if ($attributes === [] && self::isGlideRequest($request)) {
+            $preset = $request->query('p');
+            $attributes = array_filter([
+                'statamic.type' => 'glide',
+                'statamic.asset.container' => is_string($c = $request->route('container')) ? $c : null,
+                'statamic.glide.preset' => is_string($preset) && $preset !== '' ? $preset : null,
+            ], fn ($value) => $value !== null);
+        }
 
         if (config('statamic-telemetry.instrument.site_context', true)) {
             $attributes['statamic.site'] ??= Site::current()->handle();
@@ -118,6 +155,14 @@ final class Content
     private static function descriptor(Request $request): ?array
     {
         $data = $request->attributes->get(self::REQUEST_ATTRIBUTE);
+
+        // Nothing captured: a static-cache hit (served before the controller
+        // ran) or a 404. Find what lives at the URL, once per request.
+        if ($data === null && ! $request->attributes->get(self::LOOKED_UP) && self::isFrontendRequest($request)) {
+            $request->attributes->set(self::LOOKED_UP, true);
+            $data = self::lookup($request);
+            $request->attributes->set(self::REQUEST_ATTRIBUTE, $data);
+        }
 
         // Structured collections (and nav-mounted URLs) resolve to a Page
         // wrapper around the entry, not the entry itself.
@@ -137,7 +182,10 @@ final class Content
                     'statamic.collection' => $collection,
                     'statamic.blueprint' => $blueprint,
                     'statamic.site' => $data->locale(),
-                ], fn ($value) => $value !== null),
+                    'statamic.content.title' => self::guard(fn () => $data->value('title')),
+                    'statamic.content.url' => self::guard(fn () => $data->url()),
+                    'statamic.content.edit_url' => self::guard(fn () => $data->editUrl()),
+                ], fn ($value) => $value !== null && $value !== ''),
             ];
         }
 
@@ -151,7 +199,10 @@ final class Content
                     'statamic.term.id' => (string) $data->id(),
                     'statamic.taxonomy' => $taxonomy,
                     'statamic.site' => $data->locale(),
-                ], fn ($value) => $value !== null),
+                    'statamic.content.title' => self::guard(fn () => $data->title()),
+                    'statamic.content.url' => self::guard(fn () => $data->url()),
+                    'statamic.content.edit_url' => self::guard(fn () => $data->editUrl()),
+                ], fn ($value) => $value !== null && $value !== ''),
             ];
         }
 
@@ -171,6 +222,27 @@ final class Content
         }
 
         return null;
+    }
+
+    /** What Statamic would serve at this URL — an entry, term, taxonomy or page, or null. One Stache uri-index hit. */
+    private static function lookup(Request $request): mixed
+    {
+        try {
+            return Data::findByRequestUrl($request->url());
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private static function guard(callable $read): ?string
+    {
+        try {
+            $value = $read();
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_scalar($value) ? (string) $value : null;
     }
 
     private static function blueprintHandle(Entry $entry): ?string

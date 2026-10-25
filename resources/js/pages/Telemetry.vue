@@ -116,7 +116,15 @@
                         <TableRows>
                             <TableRow v-for="t in overview.recent" :key="t.id" class="cursor-pointer" @click="openTrace(t.id)">
                                 <TableCell class="whitespace-nowrap text-gray-500">{{ time(t.timestampMs) }}</TableCell>
-                                <TableCell><span class="hover:underline">{{ t.name }}</span></TableCell>
+                                <TableCell>
+                                    <span class="font-mono text-[13px] hover:underline">{{ attr(t, 'http.request.method') ? attr(t, 'http.request.method') + ' ' : '' }}{{ attr(t, 'url.path') || t.name }}</span>
+                                    <span class="ms-2 text-[11px] text-gray-500">
+                                        <span v-if="attr(t, 'statamic.content.title')">{{ attr(t, 'statamic.content.title') }} · </span>
+                                        <span v-if="attr(t, 'statamic.collection')" class="font-mono">entry:{{ attr(t, 'statamic.collection') }}</span>
+                                        <span v-else-if="attr(t, 'http.route') && attr(t, 'http.route') !== attr(t, 'url.path')" class="font-mono">{{ attr(t, 'http.route') }}</span>
+                                        <span v-if="attr(t, 'statamic.static_cache')" :class="attr(t, 'statamic.static_cache') === 'hit' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'"> · cache {{ attr(t, 'statamic.static_cache') }}</span>
+                                    </span>
+                                </TableCell>
                                 <TableCell class="tabular-nums" :class="toneClass(t.durationMs)">{{ ms(t.durationMs) }}</TableCell>
                             </TableRow>
                         </TableRows>
@@ -233,6 +241,7 @@ const Empty = defineComponent({
 const { go, href, pushDrawer } = useTelemetryUrl(() => ({ section: props.section, window: props.window, from: props.from, to: props.to }));
 const hrefTime = (path, extra = {}) => href(path, { section: null, ...extra });
 const routeHref = (route) => hrefTime(props.exploreUrl, { signal: 'requests', route });
+const attr = (t, key) => t.attributes?.[key] || null;
 const statusHref = (cls) => hrefTime(props.exploreUrl, { signal: 'requests', status: cls });
 const onZoom = ([fromMs, toMs]) => go({ from: Math.round(fromMs / 1000), to: Math.round(toMs / 1000) });
 const openTrace = (id) => pushDrawer({ kind: 'trace', id }, { only: [] });

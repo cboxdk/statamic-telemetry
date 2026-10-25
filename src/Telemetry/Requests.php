@@ -21,7 +21,7 @@ final class Requests
 
     public function overview(int $windowSeconds, ?int $endsAt = null): RequestsOverview
     {
-        $traces = $this->traces->search($windowSeconds, self::FETCH, null, $endsAt);
+        $traces = $this->traces->search($windowSeconds, self::FETCH, '{'.Traces::SERVER_SPANS.'}', $endsAt);
 
         if ($traces === []) {
             return new RequestsOverview(0, 0.0, 0.0, 0.0, 0.0, [], [], [], []);
@@ -79,26 +79,32 @@ final class Requests
     }
 
     /**
-     * Slowest endpoints by average latency, with their call count.
+     * Slowest pages by average latency, with their call count — grouped by
+     * the request path (the page), with the logical route and collection
+     * alongside, so `/about` and `/pricing` are two rows, not one
+     * `/{segments?}`.
      *
      * @param  list<TraceSummary>  $traces
-     * @return list<array{name: string, count: int, avgMs: float, maxMs: float}>
+     * @return list<array{name: string, route: ?string, collection: ?string, count: int, avgMs: float, maxMs: float}>
      */
     private function endpoints(array $traces): array
     {
         $groups = [];
 
         foreach ($traces as $trace) {
-            $groups[$trace->name] ??= ['sum' => 0.0, 'max' => 0.0, 'count' => 0];
-            $groups[$trace->name]['sum'] += $trace->durationMs;
-            $groups[$trace->name]['max'] = max($groups[$trace->name]['max'], $trace->durationMs);
-            $groups[$trace->name]['count']++;
+            $key = $trace->path();
+            $groups[$key] ??= ['sum' => 0.0, 'max' => 0.0, 'count' => 0, 'route' => $trace->attr('http.route'), 'collection' => $trace->attr('statamic.collection')];
+            $groups[$key]['sum'] += $trace->durationMs;
+            $groups[$key]['max'] = max($groups[$key]['max'], $trace->durationMs);
+            $groups[$key]['count']++;
         }
 
         $rows = [];
         foreach ($groups as $name => $g) {
             $rows[] = [
                 'name' => (string) $name,
+                'route' => $g['route'],
+                'collection' => $g['collection'],
                 'count' => $g['count'],
                 'avgMs' => round($g['sum'] / $g['count'], 1),
                 'maxMs' => round($g['max'], 1),

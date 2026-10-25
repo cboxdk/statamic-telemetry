@@ -42,6 +42,26 @@ class ExploreController extends CpController
         'status' => ['attr' => 'span.http.response.status_code', 'quoted' => false],
         'method' => ['attr' => 'span.http.request.method', 'quoted' => true],
         'route' => ['attr' => 'span.http.route', 'quoted' => true],
+        // Statamic's own dimensions — what was served, from where.
+        'type' => ['attr' => 'span.statamic.type', 'quoted' => true],
+        'collection' => ['attr' => 'span.statamic.collection', 'quoted' => true],
+        'taxonomy' => ['attr' => 'span.statamic.taxonomy', 'quoted' => true],
+        'site' => ['attr' => 'span.statamic.site', 'quoted' => true],
+        'cache' => ['attr' => 'span.statamic.static_cache', 'quoted' => true],
+        'path' => ['attr' => 'span.url.path', 'quoted' => true],
+    ];
+
+    /**
+     * Facets counted from the listed traces' root-span attributes rather
+     * than from metrics (they are not metric labels). Bounded sets, so a
+     * count over the window's traces is honest enough for a side rail.
+     */
+    private const TRACE_FACETS = [
+        'type' => 'statamic.type',
+        'collection' => 'statamic.collection',
+        'taxonomy' => 'statamic.taxonomy',
+        'site' => 'statamic.site',
+        'cache' => 'statamic.static_cache',
     ];
 
     /** Facet key → the metric label it aggregates on for a group-by. */
@@ -57,12 +77,18 @@ class ExploreController extends CpController
         $range = TimeRange::fromRequest($request);
         $seconds = $range->seconds;
         $endsAt = $range->endsAt;
-        $search = trim((string) $request->query('q', ''));
+        $q = trim((string) $request->query('q', ''));
         $id = is_string($request->query('id')) ? (string) $request->query('id') : null;
         $filters = $this->filters($request);
         $isTrace = $signal === 'requests' || $signal === 'traces';
         $groupBy = $request->query('groupBy');
         $groupBy = is_string($groupBy) && isset(self::GROUP_LABELS[$groupBy]) ? $groupBy : null;
+
+        // One Tempo search feeds both the list and the Statamic facets.
+        $found = null;
+        $search = function () use (&$found, $isTrace, $signal, $traces, $seconds, $filters, $endsAt): array {
+            return $found ??= $isTrace ? $traces->search($seconds, 300, $this->traceql($filters, $signal === 'requests'), $endsAt) : [];
+        };
 
         return Inertia::render('statamic-telemetry::Explore', [
             'signal' => $signal,
@@ -71,15 +97,15 @@ class ExploreController extends CpController
             ...$range->toProps(),
             'dashboardUrl' => cp_route('telemetry.dashboard'),
             'exploreUrl' => cp_route('telemetry.explore'),
-            'q' => $search,
+            'q' => $q,
             'filters' => $filters,
             'groupBy' => $groupBy,
             'groups' => $isTrace && $groupBy !== null ? fn () => $metrics->groupBy(self::GROUP_LABELS[$groupBy], $seconds, $endsAt) : [],
             'selectedId' => $id,
-            'items' => fn () => $this->items($signal, $seconds, $search, $filters, $traces, $logs, $endsAt),
+            'items' => fn () => $this->items($signal, $seconds, $q, $search(), $logs, $endsAt),
             'detail' => fn () => $id !== null ? $this->detail($signal, $id, $traces) : null,
             'summary' => $isTrace ? fn () => $metrics->summary($seconds, $endsAt) : null,
-            'facets' => $isTrace ? fn () => $metrics->facets($seconds, $endsAt) : null,
+            'facets' => $isTrace ? fn () => [...$metrics->facets($seconds, $endsAt), ...$this->traceFacets($search())] : null,
             'throughput' => $isTrace ? fn () => $metrics->throughput($seconds, $endsAt) : null,
             'heatmap' => $isTrace ? fn () => $heatmap->build($seconds, $this->traceql($filters), $endsAt) : null,
             'deployments' => $isTrace ? fn () => $deployments->window($seconds, 50, $endsAt) : [],
@@ -87,34 +113,58 @@ class ExploreController extends CpController
     }
 
     /**
-     * @param  array<string, string>  $filters
+     * @param  list<TraceSummary>  $found
      * @return list<array<string, mixed>>
      */
-    private function items(string $signal, int $seconds, string $search, array $filters, Traces $traces, Logs $logs, ?int $endsAt = null): array
+    private function items(string $signal, int $seconds, string $q, array $found, Logs $logs, ?int $endsAt = null): array
     {
         if ($signal === 'logs' || $signal === 'errors') {
             $out = [];
-            foreach ($logs->query($seconds, $signal === 'errors' ? 'error' : '', $search, 200, $endsAt) as $i => $r) {
+            foreach ($logs->query($seconds, $signal === 'errors' ? 'error' : '', $q, 200, $endsAt) as $i => $r) {
                 $out[] = ['id' => 'l'.$i] + $r;
             }
 
             return $out;
         }
 
-        $list = $traces->search($seconds, 300, $this->traceql($filters), $endsAt);
-
-        if ($search !== '') {
-            $needle = mb_strtolower($search);
-            $list = array_values(array_filter($list, static fn (TraceSummary $t): bool => str_contains(mb_strtolower($t->name), $needle)));
+        if ($q !== '') {
+            $needle = mb_strtolower($q);
+            $found = array_values(array_filter($found, static fn (TraceSummary $t): bool => str_contains(
+                mb_strtolower(implode(' ', [$t->name, $t->path(), $t->attr('statamic.content.title') ?? '', $t->attr('http.route') ?? ''])),
+                $needle,
+            )));
         }
 
-        return array_map(static fn (TraceSummary $t): array => [
-            'id' => $t->id,
-            'name' => $t->name,
-            'service' => $t->service,
-            'durationMs' => $t->durationMs,
-            'timestamp' => $t->timestampMs,
-        ], array_slice($list, 0, 300));
+        return array_map(static fn (TraceSummary $t): array => $t->toRow(), array_slice($found, 0, 300));
+    }
+
+    /**
+     * Count the Statamic dimensions across the listed traces, busiest first.
+     *
+     * @param  list<TraceSummary>  $found
+     * @return array<string, list<array{value: string, count: int}>>
+     */
+    private function traceFacets(array $found): array
+    {
+        $facets = [];
+
+        foreach (self::TRACE_FACETS as $facet => $attribute) {
+            $counts = [];
+            foreach ($found as $trace) {
+                if (($value = $trace->attr($attribute)) !== null) {
+                    $counts[$value] = ($counts[$value] ?? 0) + 1;
+                }
+            }
+            arsort($counts);
+
+            $facets[$facet] = array_map(
+                static fn (string $value, int $count): array => ['value' => $value, 'count' => $count],
+                array_keys(array_slice($counts, 0, 12, true)),
+                array_values(array_slice($counts, 0, 12, true)),
+            );
+        }
+
+        return $facets;
     }
 
     /**
@@ -155,13 +205,16 @@ class ExploreController extends CpController
     /**
      * Build a TraceQL selector from the active facets, e.g.
      * `{span.http.route="/cp" && span.http.response.status_code=500}`. A
-     * status *class* ("4xx") filters the whole range.
+     * status *class* ("4xx") filters the whole range. Requests match the
+     * server span: the search API returns the *matched* span's attributes,
+     * and without a selector that is whichever span started first
+     * (laravel.bootstrap), which knows nothing about the page.
      *
      * @param  array<string, string>  $filters
      */
-    private function traceql(array $filters): ?string
+    private function traceql(array $filters, bool $requests = false): ?string
     {
-        $terms = [];
+        $terms = $requests ? [Traces::SERVER_SPANS] : [];
 
         foreach ($filters as $key => $value) {
             $facet = self::FACETS[$key];
