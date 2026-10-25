@@ -10,6 +10,7 @@ use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Site;
 use Statamic\Http\Controllers\FrontendController;
+use Statamic\Http\Controllers\GlideController;
 
 test('a frontend entry request gets a bounded span name and entry attributes', function () {
     Collection::make('pages')->routes('{slug}')->save();
@@ -138,4 +139,40 @@ test('a 404 is never named as content', function () {
     );
 
     expect($named)->toBeEmpty();
+});
+
+test('a static-cache hit is still named by the entry at its URL, with the page attributes', function () {
+    Collection::make('pages')->routes('{slug}')->save();
+    $entry = tap(Entry::make()->collection('pages')->slug('about')->data(['title' => 'About']))->save();
+
+    // Served from the static cache: the controller never ran, so nothing was
+    // captured on the request — only the matched catch-all route is there.
+    $request = Request::create('/about');
+    $request->setRouteResolver(fn () => new Route(
+        ['GET'], '/{segments?}', ['controller' => FrontendController::class.'@index'],
+    ));
+
+    expect(Content::route($request, new Response('', 200)))->toBe('entry:pages.page')
+        ->and(Content::spanName($request))->toBe('GET entry:pages.page');
+
+    $attributes = Content::attributes($request);
+
+    expect($attributes['statamic.collection'])->toBe('pages')
+        ->and($attributes['statamic.entry.id'])->toBe((string) $entry->id())
+        ->and($attributes['statamic.content.title'])->toBe('About')
+        ->and($attributes['statamic.content.url'])->toBe('/about')
+        ->and($attributes['statamic.content.edit_url'])->toContain('/cp/collections/pages/entries/');
+});
+
+test('a Glide image request is routed by its asset container', function () {
+    $request = Request::create('/img/asset/assets/photo.jpg?p=small');
+    $route = new Route(['GET'], '/img/asset/{container}/{path?}', ['controller' => GlideController::class.'@generateByAsset']);
+    $request->setRouteResolver(fn () => $route->bind($request));
+
+    expect(Content::route($request, new Response('', 200)))->toBe('glide:assets')
+        ->and(Content::attributes($request))->toMatchArray([
+            'statamic.type' => 'glide',
+            'statamic.asset.container' => 'assets',
+            'statamic.glide.preset' => 'small',
+        ]);
 });

@@ -44,7 +44,7 @@
                     <div v-for="dim in facetDims" :key="dim" v-show="facets[dim] && facets[dim].length">
                         <div class="mb-1 flex items-center justify-between">
                             <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">{{ dimLabel(dim) }}</span>
-                            <Button size="2xs" :variant="groupBy === dim ? 'primary' : 'ghost'" text="group by" @click="toggleGroup(dim)" />
+                            <Button v-if="GROUPABLE.includes(dim)" size="2xs" :variant="groupBy === dim ? 'primary' : 'ghost'" text="group by" @click="toggleGroup(dim)" />
                         </div>
                         <div class="space-y-0.5">
                             <button
@@ -104,8 +104,17 @@
                             >
                                 <span class="tabular-nums text-xs text-gray-500">{{ time(t.timestamp) }}</span>
                                 <span class="min-w-0">
-                                    <span class="block truncate font-mono text-[13px]">{{ t.name }}</span>
-                                    <span v-if="t.service" class="block truncate text-[11px] text-gray-500">{{ t.service }}</span>
+                                    <span class="flex items-center gap-2">
+                                        <span class="truncate font-mono text-[13px]">{{ requestLabel(t) }}</span>
+                                        <span v-if="t.status" class="shrink-0 rounded px-1 font-mono text-[10.5px] font-semibold" :class="statusClass(t.status)">{{ t.status }}</span>
+                                    </span>
+                                    <span class="flex min-w-0 items-center gap-2 text-[11px] text-gray-500">
+                                        <span v-if="t.title" class="truncate">{{ t.title }}</span>
+                                        <span v-if="contentLabel(t)" class="shrink-0 font-mono">{{ contentLabel(t) }}</span>
+                                        <span v-else-if="t.route && t.route !== t.path" class="truncate font-mono">{{ t.route }}</span>
+                                        <span v-if="t.cache" class="shrink-0" :class="t.cache === 'hit' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'">cache {{ t.cache }}</span>
+                                        <span v-if="t.site && t.site !== 'default'" class="shrink-0">{{ t.site }}</span>
+                                    </span>
                                 </span>
                                 <span class="tabular-nums" :class="toneClass(t.durationMs)">{{ ms(t.durationMs) }}</span>
                             </button>
@@ -175,8 +184,17 @@ const props = defineProps({
 const searchText = ref(props.q || '');
 watch(() => props.q, (q) => (searchText.value = q || ''));
 
-const facetDims = ['status', 'method', 'route'];
-const dimLabel = (d) => ({ status: 'Status', method: 'Method', route: 'Route' })[d] || d;
+// Statamic's dimensions first — what was served — then the HTTP ones.
+const facetDims = ['collection', 'taxonomy', 'type', 'cache', 'site', 'status', 'method', 'route'];
+const GROUPABLE = ['status', 'method', 'route']; // backed by metric labels
+const FILTER_KEYS = [...facetDims, 'path'];
+const dimLabel = (d) => ({ collection: 'Collection', taxonomy: 'Taxonomy', type: 'Content type', cache: 'Static cache', site: 'Site', status: 'Status', method: 'Method', route: 'Route', path: 'Path' })[d] || d;
+const noFilters = () => Object.fromEntries(FILTER_KEYS.map((k) => [k, null]));
+
+// A row reads as the page that was hit: "GET /about", then title · entry:pages · cache hit.
+const requestLabel = (t) => (t.path ? `${t.method ? t.method + ' ' : ''}${t.path}` : t.name);
+const contentLabel = (t) => (t.collection ? `entry:${t.collection}` : t.taxonomy ? `${t.type || 'term'}:${t.taxonomy}` : t.type === 'glide' ? 'glide' : '');
+const statusClass = (s) => (s >= 500 ? 'bg-red-500/15 text-red-600 dark:text-red-400' : s >= 400 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : 'bg-gray-500/10 text-gray-500');
 const isTrace = computed(() => props.signal === 'requests' || props.signal === 'traces');
 const hasFilters = computed(() => Object.keys(props.filters || {}).length > 0);
 const grouped = computed(() => !!props.groupBy && props.groups.length > 0);
@@ -188,10 +206,10 @@ const carryPage = () => ({
 });
 const { go, replaceDrawer, topDrawer } = useTelemetryUrl(carryPage);
 
-const changeSignal = (s) => s && go({ signal: s, q: null, status: null, method: null, route: null, groupBy: null, drawer: null });
+const changeSignal = (s) => s && go({ ...noFilters(), signal: s, q: null, groupBy: null, drawer: null });
 const applySearch = () => go({ q: searchText.value || null });
 const toggleFacet = (dim, value) => go({ [dim]: props.filters[dim] === String(value) ? null : String(value) });
-const clearFilters = () => go({ status: null, method: null, route: null, groupBy: null });
+const clearFilters = () => go({ ...noFilters(), groupBy: null });
 const toggleGroup = (dim) => go({ groupBy: props.groupBy === dim ? null : dim });
 const drillInto = (dim, value) => go({ [dim]: String(value), groupBy: null });
 const onZoom = ([fromMs, toMs]) => go({ from: Math.round(fromMs / 1000), to: Math.round(toMs / 1000) });

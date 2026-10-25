@@ -14,6 +14,14 @@ use Throwable;
  */
 final class Traces
 {
+    /**
+     * TraceQL term for HTTP request (server) spans. The search API returns
+     * the attributes of the span a query *matched*; this makes that the
+     * request span, so a list row knows its path, status and Statamic
+     * content. Without a selector the first span by start time is matched.
+     */
+    public const SERVER_SPANS = 'kind=server';
+
     public function __construct(private readonly Backend $backend) {}
 
     /**
@@ -90,6 +98,7 @@ final class Traces
                 service: is_string($trace['rootServiceName'] ?? null) ? $trace['rootServiceName'] : null,
                 durationMs: (float) ($trace['durationMs'] ?? 0),
                 timestampMs: (int) ((int) ($trace['startTimeUnixNano'] ?? 0) / 1_000_000),
+                attributes: $this->rootAttributes($trace),
             );
         }
 
@@ -201,6 +210,28 @@ final class Traces
             1, 'SPAN_KIND_INTERNAL' => 'internal',
             default => null,
         };
+    }
+
+    /**
+     * The search API returns the matched (root) span with its attributes in
+     * `spanSets`; keep the request and Statamic ones for the list row.
+     *
+     * @param  array<string, mixed>  $trace
+     * @return array<string, string>
+     */
+    private function rootAttributes(array $trace): array
+    {
+        $root = $trace['spanSets'][0]['spans'][0] ?? null;
+
+        if (! is_array($root)) {
+            return [];
+        }
+
+        return array_filter(
+            $this->attributes($root['attributes'] ?? null, $root['status'] ?? null),
+            static fn (string $key): bool => in_array($key, TraceSummary::KEEP, true) || str_starts_with($key, 'statamic.'),
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 
     /**
