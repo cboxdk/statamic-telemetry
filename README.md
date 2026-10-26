@@ -290,7 +290,17 @@ answer, is in [docs/production/control-panel.md](docs/production/control-panel.m
 ```bash
 composer install
 composer check   # pint + phpstan + pest
+composer qa      # check + dependency license gate + composer audit
+composer sbom    # regenerate sbom.json (CycloneDX 1.5) after a dependency change
 ```
+
+`sbom.json` lists every runtime Composer dependency and the npm packages
+bundled into the compiled Control Panel assets (ECharts and what it pulls
+in); it is generated deterministically from the committed lock files, and CI
+fails when it is stale. `composer license-check` requires a permissive
+license on every dependency, Composer and bundled npm alike; the two
+exceptions (`statamic/cms` itself and its `getid3`) are recorded with their
+justification in `bin/check-licenses.php`.
 
 The test suite uses Statamic's `AddonTestCase` and `Telemetry::fake()`. Note
 for addon/package authors: after swapping in the fake, re-register the hooks

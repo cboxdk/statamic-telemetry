@@ -60,6 +60,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `statamic.content.title`, `statamic.content.url` and
   `statamic.content.edit_url`. Glide requests become `glide:{container}`
   with `statamic.glide.preset`.
+- **Supply-chain gate.** `composer license-check` (a permissive license on
+  every dependency — Composer and the npm packages bundled into the CP
+  assets; exceptions are recorded with a justification), `composer sbom`
+  (a deterministic CycloneDX 1.5 `sbom.json` from the committed lock files,
+  checked for drift in CI) and `composer qa` running the whole gate.
+  `composer.lock` and `package-lock.json` are now committed for that.
 - `Traces::spans()` (the spans a TraceQL query matched, with their trace),
   `Logs::withLabel()` / `Logs::forTrace()`, `TelemetryMetrics::increase()`
   / `countsBy()` / `increaseSeries()` / `p95Ms()`, `TimeRange` (window or
