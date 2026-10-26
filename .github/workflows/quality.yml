@@ -1,0 +1,44 @@
+name: quality
+
+# The supply-chain half of the release gate: every dependency (Composer, and
+# the npm packages bundled into the compiled CP assets) carries a permissive
+# license, sbom.json matches the lock files it was generated from, and no
+# runtime dependency has a known advisory. Runs from the committed lock files
+# so the SBOM is checked against exactly what ships.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  supply-chain:
+    runs-on: ubuntu-latest
+    name: licenses · sbom · audit
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install dependencies from the lock file
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Dependency licenses
+        run: composer license-check
+
+      - name: SBOM is current
+        run: |
+          composer sbom
+          git diff --exit-code -- sbom.json || { echo "::error::sbom.json is stale — run 'composer sbom' and commit it"; exit 1; }
+
+      - name: Security advisories (runtime dependencies)
+        run: composer audit --no-dev
