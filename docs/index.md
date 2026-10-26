@@ -32,6 +32,10 @@ package is configured with (OTLP, Prometheus).
   is: the catch-all routing problem, subclassed cachers, the header-strip
   fix, Blink and Antlers instrumentation, and the invariants that keep
   telemetry from ever breaking a Statamic operation.
+- **[Control Panel](production/control-panel.md)** — the native telemetry
+  pages inside the CP: every area's aggregate over its rows, the trace
+  drawer, the entry's own Telemetry tab, permissions, and what the backend
+  must answer.
 - **[Browser tracing in Antlers](production/browser-tracing.md)** — the
   `{{ telemetry:browser }}` / `{{ telemetry:traceparent }}` tags and how
   they stay correct under half- and full-measure static caching.

@@ -158,11 +158,7 @@ it('builds the metrics overview: status split, latency, routes, hit ratio', func
         ->and($o->routes[0]['total'])->toBe(42.0)
         ->and($o->routes[0]['errors'])->toBe(2.0)
         ->and($o->routes[0]['p95'])->toBe(200.0)
-        ->and($o->routes[0]['trend'])->toBe([3.0, 4.0, 2.0])
-        // Statamic signals.
-        ->and($o->cacheHitRatio)->toBe(0.8)
-        ->and($o->stacheWarmP95)->toBe(300.0)
-        ->and($o->contentChanges[0]['type'])->toBe('entry');
+        ->and($o->routes[0]['trend'])->toBe([3.0, 4.0, 2.0]);
 });
 
 it('builds aligned over-time series for the stacked and latency charts', function () {
@@ -215,13 +211,6 @@ it('builds the Explore summary and facets from metrics', function () {
         ->and($facets['route'][0]['value'])->toBe('entry:blog.article');
 });
 
-it('returns an empty hit ratio when the cache has no hits or misses', function () {
-    config()->set('statamic-telemetry.cp.audit.url', 'http://prom.test');
-    Http::fake(['http://prom.test/*' => Http::response(vector([]))]);
-
-    expect(app(TelemetryMetrics::class)->overview(3600)->cacheHitRatio)->toBeNull();
-});
-
 it('renders the metric section on the dashboard', function () {
     fakeProm();
     $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
@@ -233,13 +222,6 @@ it('renders the metric section on the dashboard', function () {
             ->component('statamic-telemetry::Telemetry')
             ->where('metrics.statusClasses.2xx', 100)
             ->where('metrics.routes.0.route', 'entry:blog.article'));
-
-    // Statamic tab: the addon's own signals.
-    $this->get(cp_route('telemetry.dashboard').'?section=statamic')
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('metrics.cacheHitRatio', 0.8)
-            ->where('metrics.contentChanges.0.type', 'entry'));
 });
 
 it('honours a brushed from/to range over the look-back window', function () {

@@ -10,8 +10,9 @@ more. This addon teaches those traces Statamic's vocabulary:
 - **Request span naming** — every Statamic frontend request goes through one
   catch-all route, so the default `METHOD /route/{pattern}` name collapses to
   a single useless value. Entry requests become `GET entry:{collection}.{blueprint}`,
-  term requests `GET term:{taxonomy}` — bounded names, while `http.route`
-  keeps the raw pattern.
+  term requests `GET term:{taxonomy}` — bounded names, static-cache hits
+  included — and `http.route` carries the same logical route (the raw
+  pattern is kept as `http.route.template`).
 - **Content attributes** — `statamic.entry.id`, `statamic.collection`,
   `statamic.blueprint`, `statamic.taxonomy`, `statamic.term.id` and
   `statamic.site` on the request root span.
@@ -41,7 +42,7 @@ more. This addon teaches those traces Statamic's vocabulary:
 composer require cboxdk/statamic-telemetry
 ```
 
-Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry ^2.4. Everything is
+Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry ^3.0. Everything is
 on by default except Antlers view/tag spans and the gauges. Publish the
 config to change toggles:
 
@@ -225,102 +226,64 @@ Telemetry::resolveRouteUsing(fn ($request, $response) =>
 More detail — the full metric/attribute/config catalog and the rationale
 behind each design decision — lives in [docs/](docs/index.md).
 
-## UI
+## Control Panel
 
-Control-Panel-native pages that read back from the telemetry backend
-(telemetryd or an LGTM stack, over its Loki / Tempo / Prometheus query APIs) —
-no React, no `laravel-telemetry-ui`. The CP surfaces are Vue/Inertia built with
-`@statamic/cms/ui`; the compiled assets live in `resources/dist` and are
-committed, so an install needs no Node. Time-series charts are rendered with
-Apache ECharts — readable axes, hover tooltips, legends and deploy markers — and
-the headline metrics carry a period-over-period delta.
+Native telemetry pages inside the Statamic Control Panel — Vue/Inertia on
+`@statamic/cms/ui`, assets compiled and committed (no Node on install) —
+reading back from the backend you already send to (**telemetryd** or an
+**LGTM** stack, over the Loki / Tempo / Prometheus query APIs). One rule
+throughout: **a number is never the end of the road.** Every tile, chart and
+breakdown sits above the rows it counts, every row opens its trace in a
+slide-in drawer, and breakdown rows and chips filter the rows below them.
 
-The **Telemetry** item carries the main features as top tabs — **Overview**,
-**Explore**, **Activity** and **Statamic** — and keeps only the config/tools
-pages (Content audit, Telemetry doctor) in its sub-nav, so nothing you reach for
-daily is buried there. Drag a range on any chart to **zoom** the whole surface
-to that window.
+- **Overview** — requests by status class and latency with period deltas,
+  exceptions, deploy markers, routes needing attention, recent requests.
+- **Explore** — requests / traces / logs / errors with facets (status, method,
+  route, collection, content type, static cache, site), group-by, search,
+  a latency × time heatmap and live tail.
+- **Activity pages** — *Requests, Jobs, Queries, Exceptions, Outgoing HTTP*:
+  each an aggregate over its rows — every job run with its queue and
+  attempt, every query with its SQL and repeat count, every exception with
+  message and `file:line`, every outgoing call with host and status.
+- **Statamic pages** — *Static cache, Stache, Glide, Forms, Content*: hit
+  ratio and outcomes per page, warms and clears, generations per preset,
+  submissions per form, and the **content audit trail** (who changed what,
+  click to edit) under the change counts.
+- **The drawer** — Statamic's own `Stack`: waterfall with category-coloured
+  spans, span attributes in a nested stack with a menu per value (copy,
+  filter Explore, open), and the next steps from the request: requests for
+  its route, Explore its path, edit the entry, view the page. Deep-linkable
+  (`?drawer=trace:<id>`), `Esc` pops, `j`/`k` step.
+- **An entry's own Telemetry tab** — every entry blueprint gets a full-width
+  tab with that page's traffic, latency against the site's p95, static-cache
+  treatment, exceptions on its path, change history and recent requests
+  (each opening its trace, in the editor). Off with
+  `STATAMIC_TELEMETRY_ENTRY_TAB=false`.
+- **Time** — period presets, a custom range, auto-refresh, and the time zone
+  every timestamp is shown in (your browser's or UTC). Drag a chart to zoom.
+- **Telemetry doctor** — the pipeline's health: switches, endpoint,
+  exporters, spool depth, backend probe.
 
-### Overview
+Requests are named by the content they served — `GET entry:pages.page`,
+`GET not_found`, `GET glide:assets` — static-cache hits included, so a cached
+and an uncached page are the same route in every table, and rows read as
+*GET /about · About · entry:pages · cache hit*.
 
-A dashboard of cards, from metrics over the chosen window: a **Requests** card
-with the 1/2/3XX · 4XX · 5XX split and a stacked throughput chart; a
-**Duration** card with avg + p95 and their over-time lines (falling back to
-trace-derived percentiles so the tiles are never blank while metrics lag); an
-**Exceptions** card; and a **Routes needing attention** table — per route, its
-requests, server errors and rate, p95 and a trend sparkline, most errors /
-slowest first, each linking into a filtered Explore. Recent requests sit below,
-each opening a single-trace **waterfall**. Gated by the **View the telemetry
-dashboard** permission.
-
-### Explore
-
-A two-pane list + detail over the backend's signals — requests and traces
-(Tempo), logs and errors (Loki). Requests carry a **stat header** (requests,
-error rate, p50, p95, traces), a **facet rail** (status / method / route, with
-counts, from metrics) that narrows the list through a TraceQL selector, and a
-throughput chart; selecting a request shows its waterfall. **Live tail** polls
-the window. Gated by the same permission.
-
-### Activity
-
-Application activity beyond HTTP, from laravel-telemetry's own metrics: **queue
-jobs** (processed / dispatched, worker utilisation, a per-job table with p95),
-**database queries** (total with N+1 and duplicate-query counts, by connection),
-**storage operations** (by disk, with share bars) and **outgoing HTTP** (by
-host, with error rate and p95). Each panel fills as the app does that work, and
-a quiet one simply shows nothing.
-
-### Release checkpoints
-
-Run `php artisan telemetry:deploy --notes="v1.2.3"` from your deploy pipeline
-and each release emits an `app.deployment` marker. The dashboard reads them back
-and overlays them as vertical lines on the Overview timelines, with a
-**Releases** strip above — so a latency or error regression maps to the release
-that started it at a glance.
-
-Setting `STATAMIC_TELEMETRY_UI_URL` (a Grafana dashboard or a remote
-`laravel-telemetry-ui`) turns the **Telemetry** item back into a link-out — an
-explicit opt-out from the native pages.
-
-### Native Content audit page
-
-**Content audit**, in the Telemetry sub-nav, is a Control-Panel-native page
-— no telemetry-ui, no React — that reads the `statamic.content.change` records
-back from the telemetry backend and lists them in the CP itself: who changed
-what, when, the transition (created / published / deleted / …), the fields an
-edit touched and a link into the CP. Filter by type, action and site, search,
-and pick the window.
-
-The store is the telemetry backend you already send to — **telemetryd** (the
-single-binary `cboxdk/telemetryd`) or a full **LGTM** stack. Both answer the
-Loki HTTP query API, so the page runs one LogQL range query and filters the
-window in PHP; nothing new to run, and a backend that is down never breaks the
-page (it shows an error state).
-
-Point it at that backend's logs URL and the item appears, for users with the
-**View content audit log** permission:
+Point the pages at the backend's query URL (an existing `laravel-telemetry-ui`
+setup needs nothing new — the URL and token fall back to its variables):
 
 ```dotenv
-STATAMIC_TELEMETRY_AUDIT_LOGS_URL=http://localhost:3100   # telemetryd / Loki
-# optional, as your backend needs them:
+STATAMIC_TELEMETRY_AUDIT_LOGS_URL=http://localhost:4319   # telemetryd / LGTM gateway
 # STATAMIC_TELEMETRY_AUDIT_LOGS_TOKEN=...                 # bearer token
 # STATAMIC_TELEMETRY_AUDIT_LOGS_TENANT=...                # X-Scope-OrgID
 ```
 
-A site already running `laravel-telemetry-ui` needs nothing new — the URL and
-token fall back to its `TELEMETRY_UI_LOGS_URL` / `TELEMETRY_UI_TOKEN`. See the
-[reference](docs/configuration/reference.md#content-audit-page) for every key.
-
-### Telemetry doctor
-
-**Telemetry doctor**, also in the Telemetry sub-nav, is a read-only health page
-for the pipeline: is telemetry enabled, where does it ship (OTLP endpoint,
-metric store, exporters), how deep is the **spool** (entries still waiting to
-ship), and does the audit log's backend answer. It is always available — most
-useful precisely when something is down — and mirrors the key signals of
-`php artisan telemetry:doctor`. Gated by the **View telemetry doctor**
-permission.
+The pages' own requests are kept out of the app's telemetry
+(`STATAMIC_TELEMETRY_CP_IGNORE_OWN_ROUTES`), and
+`STATAMIC_TELEMETRY_UI_URL` turns the Telemetry item back into a link-out.
+Permissions: **View the telemetry dashboard**, **View content audit log**,
+**View telemetry doctor**. The full guide, including what the backend must
+answer, is in [docs/production/control-panel.md](docs/production/control-panel.md).
 
 ## Testing
 
