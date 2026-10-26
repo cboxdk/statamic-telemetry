@@ -138,6 +138,10 @@ it('sends the old audit URL to the Content page, filters included', function () 
 
     $this->get(cp_route('telemetry.audit').'?type=asset')
         ->assertRedirect(cp_route('telemetry.page', ['page' => 'content', 'type' => 'asset']));
+
+    // An old paginated link must not let its `page=2` become the route's page segment.
+    $this->get(cp_route('telemetry.audit').'?page=2')
+        ->assertRedirect(cp_route('telemetry.page', ['page' => 'content']));
 });
 
 it('tells a user without the audit permission why the rows are missing, but still shows the aggregate', function () {

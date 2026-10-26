@@ -6,6 +6,7 @@ namespace Cbox\StatamicTelemetry\Listeners;
 
 use Illuminate\Support\Facades\Gate;
 use Statamic\Events\EntryBlueprintFound;
+use Statamic\Statamic;
 
 /**
  * Gives every entry blueprint a full-width "Telemetry" tab — the entry's own
@@ -19,7 +20,10 @@ final class AddTelemetryTab
 
     public function handle(EntryBlueprintFound $event): void
     {
-        if (! config('statamic-telemetry.cp.entry_tab', true) || ! Gate::allows('view telemetry')) {
+        // Only inside the Control Panel: a signed-in editor browsing the site,
+        // the REST/GraphQL API or a console command must see the blueprint as
+        // everyone else does — no extra `telemetry` key in augmented data.
+        if (! config('statamic-telemetry.cp.entry_tab', true) || ! Statamic::isCpRoute() || ! Gate::allows('view telemetry')) {
             return;
         }
 

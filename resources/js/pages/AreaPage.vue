@@ -15,7 +15,7 @@
 
         <!-- Breakdown tables: the aggregate's, and (static cache) the one grouped from the rows. A row filters the rows below. -->
         <Section v-for="table in breakdownTables" :key="table.heading" :heading="table.heading" :subheading="hint(table)" inset>
-            <div class="px-4 pb-2 sm:px-4.5"><BreakdownTable :table="table" :active="activeIn(table)" :selectable="!!dimOf(table)" @select="(v) => filterFrom(table, v)" /></div>
+            <div class="px-4 pb-2 sm:px-4.5"><BreakdownTable :table="table" :is-active="(row) => isActiveRow(table, row)" :selectable="!!dimOf(table)" @select="(v) => filterFrom(table, v)" /></div>
         </Section>
 
         <!-- Rows: what the numbers count -->
@@ -178,10 +178,20 @@ const chartSeries = computed(() => (props.aggregate?.chart?.series || []).map((s
 const hasChart = computed(() => chartSeries.value.some((s) => (s.data || []).some((v) => v > 0)));
 const breakdownTables = computed(() => [props.aggregate?.breakdown, props.rows?.groups].filter((t) => t?.rows?.length));
 // A breakdown row filters the rows below when its first column is one of the page's facets.
-const dimOf = (table) => (hasFacet(table.columns[0]?.key) ? table.columns[0].key : null);
+// A row may name its own facet (`row.facet`) when the table mixes dimensions (collection vs route).
+const dimOf = (table, row = null) => {
+    const dim = row?.facet || table.columns[0]?.key;
+    return hasFacet(dim) ? dim : null;
+};
 const hint = (table) => [table.subheading, dimOf(table) ? 'click a row to filter the list below' : ''].filter(Boolean).join(' · ');
-const activeIn = (table) => (dimOf(table) ? props.filters[dimOf(table)] ?? null : null);
-const filterFrom = (table, row) => dimOf(table) && toggleFacet(dimOf(table), row[dimOf(table)]);
+const isActiveRow = (table, row) => {
+    const dim = dimOf(table, row);
+    return !!dim && String(props.filters[dim] ?? '') === String(row[table.columns[0].key]);
+};
+const filterFrom = (table, row) => {
+    const dim = dimOf(table, row);
+    if (dim) toggleFacet(dim, row[table.columns[0].key]);
+};
 
 // ── Rows ───────────────────────────────────────────────────────────────────────
 const HEADINGS = { requests: 'Requests', 'static-cache': 'Requests', jobs: 'Job runs', queries: 'Queries', exceptions: 'Exceptions', outgoing: 'Outgoing requests', stache: 'Warms and clears', glide: 'Generations', forms: 'Submissions', content: 'Changes' };
@@ -224,7 +234,7 @@ const toggleLog = (id) => (expandedLog.value = expandedLog.value === id ? null :
 // Rows are buttons when the parent listens for `select`; `active` marks the row that is the current filter.
 const BreakdownTable = defineComponent({
     // (`selectable` is explicit: a declared emit is stripped from attrs, so `onSelect` cannot be sniffed.)
-    props: { table: { type: Object, required: true }, active: { type: String, default: null }, selectable: { type: Boolean, default: false } },
+    props: { table: { type: Object, required: true }, isActive: { type: Function, default: () => false }, selectable: { type: Boolean, default: false } },
     emits: ['select'],
     setup(p, { emit }) {
         const clickable = p.selectable;
@@ -244,7 +254,7 @@ const BreakdownTable = defineComponent({
             h(TableColumns, null, () => p.table.columns.map((c) => h(TableColumn, { key: c.key, class: c.align === 'end' ? 'text-end' : '' }, () => c.label))),
             h(TableRows, null, () => p.table.rows.map((row, i) => h(TableRow, {
                 key: i,
-                class: [clickable ? 'cursor-pointer transition-colors hover:bg-gray-500/5' : '', p.active !== null && String(row[p.table.columns[0].key]) === p.active ? 'bg-blue-500/10' : ''],
+                class: [clickable ? 'cursor-pointer transition-colors hover:bg-gray-500/5' : '', p.isActive(row) ? 'bg-blue-500/10' : ''],
                 onClick: clickable ? () => emit('select', row) : undefined,
             }, () => p.table.columns.map((c) =>
                 h(TableCell, { key: c.key, class: [c.align === 'end' ? 'text-end tabular-nums' : '', c.kind === 'mono' ? 'font-mono text-xs' : ''] }, () => cell(c, row)),

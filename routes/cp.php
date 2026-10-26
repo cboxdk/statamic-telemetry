@@ -33,7 +33,8 @@ Route::get('telemetry/trace/{id}', TraceController::class)
     ->name('telemetry.trace');
 
 // The content audit lives on the Content page now; old links still land.
-Route::get('telemetry/audit', fn (Request $request) => redirect()->to(cp_route('telemetry.page', ['page' => 'content', ...$request->query()])))
+// (The route param is set last: an old paginated link carries its own `page=N`.)
+Route::get('telemetry/audit', fn (Request $request) => redirect()->to(cp_route('telemetry.page', [...$request->query(), 'page' => 'content'])))
     ->middleware('can:view content audit log')
     ->name('telemetry.audit');
 
