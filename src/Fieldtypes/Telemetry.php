@@ -19,6 +19,7 @@ use Statamic\Fields\Fieldtype;
  */
 class Telemetry extends Fieldtype
 {
+    /** @var string */
     protected $icon = 'chart-monitoring-indicator';
 
     /**
@@ -48,16 +49,28 @@ class Telemetry extends Fieldtype
         ];
     }
 
+    /**
+     * @param  mixed  $data
+     * @return null
+     */
     public function preProcess($data)
     {
         return null;
     }
 
+    /**
+     * @param  mixed  $data
+     * @return null
+     */
     public function process($data)
     {
         return null;
     }
 
+    /**
+     * @param  mixed  $value
+     * @return null
+     */
     public function augment($value)
     {
         return null;

@@ -161,7 +161,11 @@ final class TelemetryMetrics
         return $value > 0 ? round($value * 1000, 1) : null;
     }
 
-    /** Stacked request throughput over the window, for the Explore chart. */
+    /**
+     * Stacked request throughput over the window, for the Explore chart.
+     *
+     * @return array{t: list<int>, ok: list<float>, client: list<float>, server: list<float>}
+     */
     public function throughput(int $windowSeconds, ?int $endsAt = null): array
     {
         $this->at = $endsAt;

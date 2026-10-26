@@ -16,7 +16,10 @@ final class TracingFileCacher extends FileCacher
 {
     use RecordsStaticCacheTelemetry;
 
-    public function cachePage(Request $request, $content)
+    /**
+     * @param  string  $content
+     */
+    public function cachePage(Request $request, $content): void
     {
         parent::cachePage($request, $content);
 

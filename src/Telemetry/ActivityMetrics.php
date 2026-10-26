@@ -62,6 +62,9 @@ final class ActivityMetrics
         };
     }
 
+    /**
+     * @param  array<string, array<string, mixed>>  $activity
+     */
     public function hasData(array $activity): bool
     {
         return $activity['jobs']['processed'] > 0

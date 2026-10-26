@@ -54,6 +54,8 @@ class RecordContentChange extends GuardedListener
             return;
         }
 
+        $action ??= 'changed';
+
         Telemetry::counter('statamic.content.changes', 'Content changes by type and action')
             ->inc(1, ['type' => $type, 'action' => $action]);
 

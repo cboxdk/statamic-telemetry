@@ -16,7 +16,10 @@ use Statamic\Support\Blink;
  */
 class TracingBlink extends Blink
 {
-    public function store($name = 'default')
+    /**
+     * @param  string  $name
+     */
+    public function store($name = 'default'): TallyingBlinkStore
     {
         return $this->stores[$name] ??= new TallyingBlinkStore;
     }
