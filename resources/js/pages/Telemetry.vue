@@ -1,59 +1,59 @@
 <template>
-    <TelemetryPage title="Telemetry" :nav="nav" :window="window" :windows="windows" :from="from" :to="to">
+    <TelemetryPage :title="__('Telemetry')" :nav="nav" :window="window" :windows="windows" :from="from" :to="to">
         <!-- ───────────── Overview ───────────── -->
             <div v-if="deployments.length" class="flex flex-wrap items-center gap-2">
-                <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Releases</span>
+                <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">{{ __('Releases') }}</span>
                 <Badge v-for="d in deployments" :key="d.timestamp + d.id" :text="`${time(d.timestamp)} · ${d.notes || d.id}`" color="violet" size="sm" pill />
             </div>
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <!-- Requests -->
-                <Section heading="Requests">
-                    <template #actions>per step, by response class</template>
+                <Section :heading="__('Requests')">
+                    <template #actions>{{ __('per step, by response class') }}</template>
                     <div class="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
-                        <Tile label="Requests" :value="fmt(requestCount)" :delta="deltaFmt(delta.requests)" :tone="deltaTone(delta.requests)" />
-                        <Tile label="1/2/3XX" :value="fmt(okCount)" dim />
-                        <Tile label="4XX" :value="fmt(clientCount)" :tone="clientCount > 0 ? 'text-amber-600 dark:text-amber-400' : ''" :href="statusHref('4xx')" />
-                        <Tile label="5XX" :value="fmt(serverCount)" :tone="serverCount > 0 ? 'text-red-500' : ''" :href="statusHref('5xx')" />
-                        <Tile label="Error rate" :value="pct(metrics?.errorRate)" :delta="deltaPp(delta.errorRate)" :tone="deltaTone(delta.errorRate, true)" />
+                        <Tile :label="__('Requests')" :value="fmt(requestCount)" :delta="deltaFmt(delta.requests)" :tone="deltaTone(delta.requests)" />
+                        <Tile :label="__('1/2/3XX')" :value="fmt(okCount)" dim />
+                        <Tile :label="__('4XX')" :value="fmt(clientCount)" :tone="clientCount > 0 ? 'text-amber-600 dark:text-amber-400' : ''" :href="statusHref('4xx')" />
+                        <Tile :label="__('5XX')" :value="fmt(serverCount)" :tone="serverCount > 0 ? 'text-red-500' : ''" :href="statusHref('5xx')" />
+                        <Tile :label="__('Error rate')" :value="pct(metrics?.errorRate)" :delta="deltaPp(delta.errorRate)" :tone="deltaTone(delta.errorRate, true)" />
                     </div>
                     <div class="h-52">
                         <TimeChart v-if="hasReqSeries" :time="reqTime" :series="reqChartSeries" :markers="chartMarkers" unit="count" :smooth="false" :height="208" brush @zoom="onZoom" />
-                        <Empty v-else>No request series in this window.</Empty>
+                        <Empty v-else>{{ __('No request series in this window.') }}</Empty>
                     </div>
                 </Section>
 
                 <!-- Duration -->
-                <Section heading="Duration">
-                    <template #actions>server-side latency</template>
+                <Section :heading="__('Duration')">
+                    <template #actions>{{ __('server-side latency') }}</template>
                     <div class="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
-                        <Tile label="Avg" :value="ms(avgMs)" :delta="deltaFmt(delta.avg)" :tone="deltaTone(delta.avg, true)" />
+                        <Tile :label="__('Avg')" :value="ms(avgMs)" :delta="deltaFmt(delta.avg)" :tone="deltaTone(delta.avg, true)" />
                         <Tile label="p50" :value="ms(metrics?.p50 || overview?.p50)" dim />
                         <Tile label="p95" :value="ms(p95Ms)" :delta="deltaFmt(delta.p95)" :tone="deltaTone(delta.p95, true)" />
                         <Tile label="p99" :value="ms(metrics?.p99)" dim />
                     </div>
                     <div class="h-52">
                         <TimeChart v-if="hasDurSeries" :time="durTime" :series="durChartVisible" :markers="chartMarkers" unit="ms" :height="208" brush @zoom="onZoom" />
-                        <Empty v-else>No latency series in this window.</Empty>
+                        <Empty v-else>{{ __('No latency series in this window.') }}</Empty>
                     </div>
                 </Section>
 
                 <!-- Exceptions -->
-                <Section heading="Exceptions">
-                    <template #actions><Link :href="hrefTime(exploreUrl, { signal: 'errors' })" class="text-blue-600 no-underline hover:underline dark:text-blue-400">Open errors →</Link></template>
+                <Section :heading="__('Exceptions')">
+                    <template #actions><Link :href="hrefTime(exploreUrl, { signal: 'errors' })" class="text-blue-600 no-underline hover:underline dark:text-blue-400">{{ __('Open errors →') }}</Link></template>
                     <div class="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
-                        <Tile label="Error-level logs" :value="fmt(exceptionCount)" :tone="exceptionCount > 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'" />
-                        <Tile v-if="exceptions && exceptions.capped" label="Sample" value="capped" dim />
+                        <Tile :label="__('Error-level logs')" :value="fmt(exceptionCount)" :tone="exceptionCount > 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'" />
+                        <Tile v-if="exceptions && exceptions.capped" :label="__('Sample')" value="capped" dim />
                     </div>
                     <div class="h-24">
                         <TimeChart v-if="exceptions && exceptions.trend.length" :time="excTime" :series="excChartSeries" unit="count" :legend="false" :height="96" />
-                        <Empty v-else>No errors in this window.</Empty>
+                        <Empty v-else>{{ __('No errors in this window.') }}</Empty>
                     </div>
                 </Section>
 
                 <!-- Deploys -->
-                <Section heading="Deploys" class="space-y-3!">
-                    <template #actions>php artisan telemetry:deploy</template>
+                <Section :heading="__('Deploys')" class="space-y-3!">
+                    <template #actions>{{ __('php artisan telemetry:deploy') }}</template>
                     <ul v-if="deployments.length" class="divide-y divide-gray-200 text-sm dark:divide-gray-800">
                         <li v-for="d in deployments.slice(0, 6)" :key="'dep' + d.timestamp + d.id" class="flex items-center gap-3 py-2">
                             <span class="h-2 w-2 shrink-0 rounded-full bg-violet-500" />
@@ -62,14 +62,14 @@
                             <span class="font-mono text-xs text-gray-400">{{ String(d.id).slice(0, 8) }}</span>
                         </li>
                     </ul>
-                    <Empty v-else class="h-24">No deployments in this window — run <code class="font-mono">telemetry:deploy</code> from your pipeline to mark releases.</Empty>
+                    <Empty v-else class="h-24">{{ __('No deployments in this window — run :command from your pipeline to mark releases.', { command: 'telemetry:deploy' }) }}</Empty>
                 </Section>
 
                 <!-- Routes needing attention -->
-                <Section v-if="metrics?.routes?.length" heading="Routes needing attention" subheading="Most server errors, then slowest p95" inset class="lg:col-span-2">
+                <Section v-if="metrics?.routes?.length" :heading="__('Routes needing attention')" :subheading="__('Most server errors, then slowest p95')" inset class="lg:col-span-2">
                     <div class="px-4 sm:px-4.5"><Table>
                         <TableColumns>
-                            <TableColumn>Route</TableColumn><TableColumn>Requests</TableColumn><TableColumn>Errors</TableColumn><TableColumn>p95</TableColumn><TableColumn>Trend</TableColumn>
+                            <TableColumn>{{ __('Route') }}</TableColumn><TableColumn>{{ __('Requests') }}</TableColumn><TableColumn>{{ __('Errors') }}</TableColumn><TableColumn>p95</TableColumn><TableColumn>{{ __('Trend') }}</TableColumn>
                         </TableColumns>
                         <TableRows>
                             <TableRow v-for="r in metrics.routes" :key="r.route">
@@ -87,7 +87,7 @@
                 </Section>
 
                 <!-- Recent exceptions -->
-                <Section v-if="exceptions?.recent?.length" heading="Recent exceptions" class="lg:col-span-2">
+                <Section v-if="exceptions?.recent?.length" :heading="__('Recent exceptions')" class="lg:col-span-2">
                     <ul class="divide-y divide-gray-200 dark:divide-gray-800">
                         <li v-for="(e, i) in exceptions.recent" :key="i" class="flex items-start gap-3 py-2 text-xs">
                             <span class="w-16 shrink-0 tabular-nums text-gray-500">{{ time(e.timestamp) }}</span>
@@ -97,9 +97,9 @@
                 </Section>
 
                 <!-- Recent requests → trace drawer -->
-                <Section v-if="overview?.recent?.length" heading="Recent requests" subheading="Click a request to open its trace" inset class="lg:col-span-2">
+                <Section v-if="overview?.recent?.length" :heading="__('Recent requests')" :subheading="__('Click a request to open its trace')" inset class="lg:col-span-2">
                     <div class="px-4 sm:px-4.5"><Table>
-                        <TableColumns><TableColumn>When</TableColumn><TableColumn>Request</TableColumn><TableColumn>Duration</TableColumn></TableColumns>
+                        <TableColumns><TableColumn>{{ __('When') }}</TableColumn><TableColumn>{{ __('Request') }}</TableColumn><TableColumn>{{ __('Duration') }}</TableColumn></TableColumns>
                         <TableRows>
                             <TableRow v-for="t in overview.recent" :key="t.id" class="cursor-pointer" @click="openTrace(t.id)">
                                 <TableCell class="whitespace-nowrap text-gray-500">{{ time(t.timestampMs) }}</TableCell>
@@ -120,7 +120,7 @@
             </div>
 
             <Card v-if="isOverviewEmpty">
-                <p class="py-10 text-center text-sm text-gray-500">No requests in this window. Check the telemetry backend is reachable and receiving traces and metrics.</p>
+                <p class="py-10 text-center text-sm text-gray-500">{{ __('No requests in this window. Check the telemetry backend is reachable and receiving traces and metrics.') }}</p>
             </Card>
 
         <!-- ───────────── Activity ───────────── -->

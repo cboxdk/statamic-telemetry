@@ -101,7 +101,7 @@ final class TimeRange
     {
         return [
             'window' => $this->window,
-            'windows' => self::WINDOWS,
+            'windows' => array_map('__', self::WINDOWS),
             'from' => $this->isCustom() ? $this->from() : null,
             'to' => $this->endsAt,
         ];

@@ -3,15 +3,15 @@
     <div v-if="result.error" class="border-b border-gray-200 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:border-gray-800 dark:text-red-400">{{ result.error }}</div>
 
     <div v-if="!result.rows.length" class="p-12 text-center text-sm text-gray-500">
-        <template v-if="result.error">Could not load the audit log.</template>
-        <template v-else-if="filtered">No changes match these filters in this period.</template>
-        <template v-else>No content changes in this period.</template>
+        <template v-if="result.error">{{ __('Could not load the audit log.') }}</template>
+        <template v-else-if="filtered">{{ __('No changes match these filters in this period.') }}</template>
+        <template v-else>{{ __('No content changes in this period.') }}</template>
     </div>
 
     <div v-else class="px-4">
         <Table>
             <TableColumns>
-                <TableColumn>When</TableColumn><TableColumn>Action</TableColumn><TableColumn>Item</TableColumn><TableColumn>Changed</TableColumn><TableColumn>Who</TableColumn>
+                <TableColumn>{{ __('When') }}</TableColumn><TableColumn>{{ __('Action') }}</TableColumn><TableColumn>{{ __('Item') }}</TableColumn><TableColumn>{{ __('Changed') }}</TableColumn><TableColumn>{{ __('Who') }}</TableColumn>
             </TableColumns>
             <TableRows>
                 <TableRow v-for="(row, i) in result.rows" :key="i">
@@ -36,11 +36,11 @@
     </div>
 
     <div v-if="result.rows.length" class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-800">
-        <div>{{ fmt(result.total) }} {{ result.total === 1 ? 'change' : 'changes' }}</div>
+        <div>{{ __n(':count change|:count changes', result.total, { count: fmt(result.total) }) }}</div>
         <div v-if="totalPages > 1" class="flex items-center gap-2">
-            <Button size="sm" variant="ghost" text="Previous" :disabled="result.page <= 1" @click="$emit('page', result.page - 1)" />
-            <span>Page {{ result.page }} of {{ totalPages }}</span>
-            <Button size="sm" variant="ghost" text="Next" :disabled="result.page >= totalPages" @click="$emit('page', result.page + 1)" />
+            <Button size="sm" variant="ghost" :text="__('Previous')" :disabled="result.page <= 1" @click="$emit('page', result.page - 1)" />
+            <span>{{ __('Page :page of :total', { page: result.page, total: totalPages }) }}</span>
+            <Button size="sm" variant="ghost" :text="__('Next')" :disabled="result.page >= totalPages" @click="$emit('page', result.page + 1)" />
         </div>
     </div>
 </template>

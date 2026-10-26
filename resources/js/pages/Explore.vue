@@ -1,15 +1,15 @@
 <template>
-    <TelemetryPage title="Explore" :nav="nav" :window="window" :windows="windows" :from="from" :to="to" :carry="carryPage">
+    <TelemetryPage :title="__('Explore')" :nav="nav" :window="window" :windows="windows" :from="from" :to="to" :carry="carryPage">
         <!-- Stat line + distribution charts (requests / traces) -->
         <template v-if="isTrace">
             <StatHeader :items="statItems" />
             <div v-if="hasThroughput || hasHeatmap" class="grid gap-6" :class="{ 'xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]': hasThroughput && hasHeatmap }">
                 <Card v-if="hasThroughput" class="space-y-2">
-                    <div class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Throughput over time</div>
+                    <div class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">{{ __('Throughput over time') }}</div>
                     <TimeChart :time="throughputTime" :series="throughputChartSeries" :markers="chartMarkers" unit="count" :legend="false" :height="130" brush @zoom="onZoom" />
                 </Card>
                 <Card v-if="hasHeatmap" class="space-y-2">
-                    <div class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Latency × time</div>
+                    <div class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">{{ __('Latency × time') }}</div>
                     <HeatChart :cols="heatmap.cols" :bands="heatmap.bands" :cells="heatmap.cells" :max="heatmap.max" :height="130" />
                 </Card>
             </div>
@@ -22,8 +22,8 @@
                     <ToggleItem v-for="(label, key) in signals" :key="key" :value="key" :label="label" />
                 </ToggleGroup>
                 <div class="ms-auto flex items-center gap-2">
-                    <Input v-model="searchText" type="search" placeholder="Search…" class="w-56" @keyup.enter="applySearch" />
-                    <Button size="sm" text="Search" @click="applySearch" />
+                    <Input v-model="searchText" type="search" :placeholder="__('Search…')" class="w-56" @keyup.enter="applySearch" />
+                    <Button size="sm" :text="__('Search')" @click="applySearch" />
                     <Button v-if="signal !== 'traces'" size="sm" :variant="tailing ? 'primary' : 'default'" :text="tailing ? '● Live' : 'Live tail'" @click="toggleTail" />
                 </div>
             </div>
@@ -31,11 +31,11 @@
             <!-- Active filters -->
             <div v-if="hasFilters || groupBy" class="flex flex-wrap items-center gap-2 border-b border-gray-200 px-4 py-2 dark:border-gray-800">
                 <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Where</span>
-                <button v-for="(value, dim) in filters" :key="dim" type="button" class="cursor-pointer" :title="`Remove ${dimLabel(dim)} filter`" @click="toggleFacet(dim, value)">
+                <button v-for="(value, dim) in filters" :key="dim" type="button" class="cursor-pointer" :title="__('Remove :dim filter', { dim: dimLabel(dim) })" @click="toggleFacet(dim, value)">
                     <Badge :text="`${dimLabel(dim)} = ${value}`" append="✕" color="blue" size="sm" />
                 </button>
                 <Badge v-if="groupBy" :text="`grouped by ${dimLabel(groupBy)}`" color="violet" size="sm" />
-                <Button size="xs" variant="ghost" text="Clear" @click="clearFilters" />
+                <Button size="xs" variant="ghost" :text="__('Clear')" @click="clearFilters" />
             </div>
 
             <div class="grid" :class="{ 'md:grid-cols-[250px_minmax(0,1fr)]': isTrace && facets }">
@@ -44,7 +44,7 @@
                     <div v-for="dim in facetDims" :key="dim" v-show="facets[dim] && facets[dim].length">
                         <div class="mb-1 flex items-center justify-between">
                             <span class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">{{ dimLabel(dim) }}</span>
-                            <Button v-if="GROUPABLE.includes(dim)" size="2xs" :variant="groupBy === dim ? 'primary' : 'ghost'" text="group by" @click="toggleGroup(dim)" />
+                            <Button v-if="GROUPABLE.includes(dim)" size="2xs" :variant="groupBy === dim ? 'primary' : 'ghost'" :text="__('group by')" @click="toggleGroup(dim)" />
                         </div>
                         <div class="space-y-0.5">
                             <button
@@ -68,7 +68,7 @@
                     <!-- Group-by table -->
                     <div v-if="grouped" class="text-sm">
                         <div class="grid grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_5rem_5rem] gap-3 border-b border-gray-200 px-4 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800">
-                            <div>{{ dimLabel(groupBy) }}</div><div class="text-end">Requests</div><div class="text-end">Errors</div><div class="text-end">p50</div><div class="text-end">p95</div>
+                            <div>{{ dimLabel(groupBy) }}</div><div class="text-end">{{ __('Requests') }}</div><div class="text-end">{{ __('Errors') }}</div><div class="text-end">p50</div><div class="text-end">p95</div>
                         </div>
                         <button
                             v-for="g in groups"
@@ -90,7 +90,7 @@
 
                     <!-- Lists -->
                     <div v-else class="max-h-[70vh] overflow-y-auto" scroll-region>
-                        <div v-if="!items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
+                        <div v-if="!items.length" class="p-10 text-center text-sm text-gray-500">{{ __('Nothing in this window.') }}</div>
 
                         <!-- requests / traces → trace drawer -->
                         <template v-else-if="isTrace">
@@ -115,7 +115,7 @@
                                         <div class="break-words font-mono">{{ v }}</div>
                                     </template>
                                     <div v-if="l.traceId" class="col-span-2 pt-1">
-                                        <Button size="xs" text="Open trace" @click="openTrace(l.traceId)" />
+                                        <Button size="xs" :text="__('Open trace')" @click="openTrace(l.traceId)" />
                                     </div>
                                 </div>
                             </div>
@@ -168,7 +168,7 @@ watch(() => props.q, (q) => (searchText.value = q || ''));
 const facetDims = ['collection', 'taxonomy', 'type', 'cache', 'site', 'status', 'method', 'route'];
 const GROUPABLE = ['status', 'method', 'route']; // backed by metric labels
 const FILTER_KEYS = [...facetDims, 'path'];
-const dimLabel = (d) => ({ collection: 'Collection', taxonomy: 'Taxonomy', type: 'Content type', cache: 'Static cache', site: 'Site', status: 'Status', method: 'Method', route: 'Route', path: 'Path' })[d] || d;
+const dimLabel = (d) => __({ collection: 'Collection', taxonomy: 'Taxonomy', type: 'Content type', cache: 'Static cache', site: 'Site', status: 'Status', method: 'Method', route: 'Route', path: 'Path' }[d] || d);
 const noFilters = () => Object.fromEntries(FILTER_KEYS.map((k) => [k, null]));
 
 const isTrace = computed(() => props.signal === 'requests' || props.signal === 'traces');
@@ -241,11 +241,11 @@ const statItems = computed(() => {
     const s = props.summary;
     if (!s) return [];
     return [
-        { label: 'Requests', value: fmt(s.requests) },
-        { label: 'Error rate', value: pct(s.errorRate), tone: s.errorRate > 0.01 ? 'var(--color-red-500)' : undefined },
+        { label: __('Requests'), value: fmt(s.requests) },
+        { label: __('Error rate'), value: pct(s.errorRate), tone: s.errorRate > 0.01 ? 'var(--color-red-500)' : undefined },
         { label: 'P50', value: ms(s.p50) },
         { label: 'P95', value: ms(s.p95), tone: s.p95 >= 1000 ? 'var(--color-orange-500)' : undefined },
-        { label: 'Showing', value: fmt(props.items.length) },
+        { label: __('Showing'), value: fmt(props.items.length) },
     ];
 });
 const facetMax = (dim) => Math.max(1, ...(props.facets?.[dim] || []).map((f) => f.count));

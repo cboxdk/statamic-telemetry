@@ -74,7 +74,9 @@ final class TelemetryPages
      */
     public function meta(string $page): array
     {
-        return ['key' => $page, ...self::PAGES[$page]];
+        $page_ = self::PAGES[$page];
+
+        return ['key' => $page, ...$page_, 'title' => __($page_['title']), 'description' => __($page_['description'])];
     }
 
     /**
@@ -169,7 +171,7 @@ final class TelemetryPages
             ]),
             'stache' => $this->spanRows('{name=~"statamic.stache.(warm|clear)"}', $range, static fn (array $span): array => [
                 'op' => str_starts_with($span['name'], 'statamic.stache.clear') ? 'clear' : 'warm',
-                'label' => str_starts_with($span['name'], 'statamic.stache.clear') ? 'Stache cleared' : 'Stache warmed',
+                'label' => __(str_starts_with($span['name'], 'statamic.stache.clear') ? 'Stache cleared' : 'Stache warmed'),
             ]),
             'glide' => $this->spanRows('{name="statamic.glide.generate"}', $range, static fn (array $span): array => [
                 'preset' => $span['attributes']['statamic.glide.preset'] ?? '(none)',
@@ -193,7 +195,7 @@ final class TelemetryPages
             'kind' => $kind,
             'items' => $rows,
             'facets' => $facets,
-            'facetLabels' => self::FACETS[$page],
+            'facetLabels' => array_map('__', self::FACETS[$page]),
             'total' => $total,
             'capped' => $total >= self::LIMIT,
             'groups' => $groups,
@@ -212,23 +214,23 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Requests', 'value' => number_format($o->requestTotal), 'delta' => $this->deltaText($o->delta['requests'] ?? null)],
-                ['label' => 'Error rate', 'value' => $this->pct($o->errorRate), 'tone' => $o->errorRate > 0.01 ? 'text-red-500' : '', 'delta' => $this->deltaText($o->delta['errorRate'] ?? null, true)],
-                ['label' => 'Avg', 'value' => $this->ms($o->avg)],
-                ['label' => 'p50', 'value' => $this->ms($o->p50), 'dim' => true],
-                ['label' => 'p95', 'value' => $this->ms($o->p95), 'tone' => $o->p95 >= 1000 ? 'text-red-500' : ($o->p95 >= 300 ? 'text-orange-500' : ''), 'delta' => $this->deltaText($o->delta['p95'] ?? null, true)],
-                ['label' => 'p99', 'value' => $this->ms($o->p99), 'dim' => true],
+                ['label' => __('Requests'), 'value' => number_format($o->requestTotal), 'delta' => $this->deltaText($o->delta['requests'] ?? null)],
+                ['label' => __('Error rate'), 'value' => $this->pct($o->errorRate), 'tone' => $o->errorRate > 0.01 ? 'text-red-500' : '', 'delta' => $this->deltaText($o->delta['errorRate'] ?? null, true)],
+                ['label' => __('Avg'), 'value' => $this->ms($o->avg)],
+                ['label' => __('p50'), 'value' => $this->ms($o->p50), 'dim' => true],
+                ['label' => __('p95'), 'value' => $this->ms($o->p95), 'tone' => $o->p95 >= 1000 ? 'text-red-500' : ($o->p95 >= 300 ? 'text-orange-500' : ''), 'delta' => $this->deltaText($o->delta['p95'] ?? null, true)],
+                ['label' => __('p99'), 'value' => $this->ms($o->p99), 'dim' => true],
             ],
             'chart' => ['t' => $series['t'], 'unit' => 'count', 'stack' => true, 'series' => [
                 ['name' => '1/2/3XX', 'data' => $series['ok'], 'type' => 'bar', 'stack' => 'a', 'color' => 'var(--color-gray-400)'],
                 ['name' => '4XX', 'data' => $series['client'], 'type' => 'bar', 'stack' => 'a', 'color' => 'var(--color-amber-500)'],
                 ['name' => '5XX', 'data' => $series['server'], 'type' => 'bar', 'stack' => 'a', 'color' => 'var(--color-red-500)'],
             ]],
-            'breakdown' => $routes === [] ? null : $this->table('Routes needing attention', 'Most server errors, then slowest p95', [
-                ['key' => 'route', 'label' => 'Route', 'kind' => 'mono'],
-                ['key' => 'total', 'label' => 'Requests', 'align' => 'end'],
-                ['key' => 'errors', 'label' => 'Errors', 'align' => 'end', 'kind' => 'errors'],
-                ['key' => 'p95', 'label' => 'p95', 'align' => 'end', 'kind' => 'ms'],
+            'breakdown' => $routes === [] ? null : $this->table(__('Routes needing attention'), __('Most server errors, then slowest p95'), [
+                ['key' => 'route', 'label' => __('Route'), 'kind' => 'mono'],
+                ['key' => 'total', 'label' => __('Requests'), 'align' => 'end'],
+                ['key' => 'errors', 'label' => __('Errors'), 'align' => 'end', 'kind' => 'errors'],
+                ['key' => 'p95', 'label' => __('p95'), 'align' => 'end', 'kind' => 'ms'],
             ], $routes),
         ];
     }
@@ -240,17 +242,17 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Processed', 'value' => number_format($j['processed'])],
-                ['label' => 'Dispatched', 'value' => number_format($j['dispatched']), 'dim' => true],
-                ['label' => 'p95 duration', 'value' => $this->ms($j['durationP95']), 'tone' => $j['durationP95'] >= 1000 ? 'text-red-500' : ''],
-                ...($j['utilization'] !== null ? [['label' => 'Workers busy', 'value' => round($j['utilization']).'%', 'dim' => true]] : []),
+                ['label' => __('Processed'), 'value' => number_format($j['processed'])],
+                ['label' => __('Dispatched'), 'value' => number_format($j['dispatched']), 'dim' => true],
+                ['label' => __('p95 duration'), 'value' => $this->ms($j['durationP95']), 'tone' => $j['durationP95'] >= 1000 ? 'text-red-500' : ''],
+                ...($j['utilization'] !== null ? [['label' => __('Workers busy'), 'value' => round($j['utilization']).'%', 'dim' => true]] : []),
             ],
             'chart' => $this->single($j['series'], 'processed', 'var(--color-green-500)'),
-            'breakdown' => $j['byJob'] === [] ? null : $this->table('By job', 'Processed per job and queue', [
-                ['key' => 'job', 'label' => 'Job', 'kind' => 'mono'],
-                ['key' => 'queue', 'label' => 'Queue'],
-                ['key' => 'count', 'label' => 'Processed', 'align' => 'end'],
-                ['key' => 'p95', 'label' => 'p95', 'align' => 'end', 'kind' => 'ms'],
+            'breakdown' => $j['byJob'] === [] ? null : $this->table(__('By job'), __('Processed per job and queue'), [
+                ['key' => 'job', 'label' => __('Job'), 'kind' => 'mono'],
+                ['key' => 'queue', 'label' => __('Queue')],
+                ['key' => 'count', 'label' => __('Processed'), 'align' => 'end'],
+                ['key' => 'p95', 'label' => __('p95'), 'align' => 'end', 'kind' => 'ms'],
             ], $j['byJob']),
         ];
     }
@@ -263,15 +265,15 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Queries', 'value' => number_format($q['total'])],
-                ['label' => 'N+1 detected', 'value' => number_format($q['nPlusOne']), 'tone' => $q['nPlusOne'] > 0 ? 'text-red-500' : '', 'dim' => $q['nPlusOne'] == 0],
-                ['label' => 'Duplicated', 'value' => number_format($q['duplicated']), 'tone' => $q['duplicated'] > 0 ? 'text-amber-600 dark:text-amber-400' : '', 'dim' => $q['duplicated'] == 0],
+                ['label' => __('Queries'), 'value' => number_format($q['total'])],
+                ['label' => __('N+1 detected'), 'value' => number_format($q['nPlusOne']), 'tone' => $q['nPlusOne'] > 0 ? 'text-red-500' : '', 'dim' => $q['nPlusOne'] == 0],
+                ['label' => __('Duplicated'), 'value' => number_format($q['duplicated']), 'tone' => $q['duplicated'] > 0 ? 'text-amber-600 dark:text-amber-400' : '', 'dim' => $q['duplicated'] == 0],
             ],
             'chart' => $this->single($q['series'], 'queries', 'var(--color-blue-500)'),
-            'breakdown' => $q['byConnection'] === [] ? null : $this->table('By connection', null, [
-                ['key' => 'connection', 'label' => 'Connection', 'kind' => 'mono'],
-                ['key' => 'count', 'label' => 'Queries', 'align' => 'end'],
-                ['key' => 'share', 'label' => 'Share', 'kind' => 'share'],
+            'breakdown' => $q['byConnection'] === [] ? null : $this->table(__('By connection'), null, [
+                ['key' => 'connection', 'label' => __('Connection'), 'kind' => 'mono'],
+                ['key' => 'count', 'label' => __('Queries'), 'align' => 'end'],
+                ['key' => 'share', 'label' => __('Share'), 'kind' => 'share'],
             ], array_values(array_map(static fn (array $c): array => [...$c, 'share' => round($c['count'] / $total, 4)], $q['byConnection']))),
         ];
     }
@@ -288,15 +290,15 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Exceptions', 'value' => number_format(count($rows)).(count($rows) >= self::LIMIT ? '+' : ''), 'tone' => $rows !== [] ? 'text-red-500' : ''],
-                ['label' => 'Types', 'value' => number_format(count($byType)), 'dim' => true],
-                ['label' => 'Most frequent', 'value' => $byType === [] ? '—' : self::shortClass((string) array_key_first($byType)), 'sub' => $byType === [] ? '' : number_format(reset($byType)).' times'],
+                ['label' => __('Exceptions'), 'value' => number_format(count($rows)).(count($rows) >= self::LIMIT ? '+' : ''), 'tone' => $rows !== [] ? 'text-red-500' : ''],
+                ['label' => __('Types'), 'value' => number_format(count($byType)), 'dim' => true],
+                ['label' => __('Most frequent'), 'value' => $byType === [] ? '—' : self::shortClass((string) array_key_first($byType)), 'sub' => $byType === [] ? '' : __(':count times', ['count' => number_format(reset($byType))])],
             ],
             'chart' => $this->bucketed(array_column($rows, 'timestamp'), $range, 'exceptions', 'var(--color-red-500)'),
-            'breakdown' => $byType === [] ? null : $this->table('By exception type', null, [
-                ['key' => 'type', 'label' => 'Exception', 'kind' => 'mono'],
-                ['key' => 'count', 'label' => 'Occurrences', 'align' => 'end'],
-                ['key' => 'share', 'label' => 'Share', 'kind' => 'share'],
+            'breakdown' => $byType === [] ? null : $this->table(__('By exception type'), null, [
+                ['key' => 'type', 'label' => __('Exception'), 'kind' => 'mono'],
+                ['key' => 'count', 'label' => __('Occurrences'), 'align' => 'end'],
+                ['key' => 'share', 'label' => __('Share'), 'kind' => 'share'],
             ], $this->shares(array_map('floatval', $byType), 'type')),
         ];
     }
@@ -308,17 +310,17 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Requests', 'value' => number_format($h['total'])],
-                ['label' => 'Error rate', 'value' => $this->pct($h['errorRate']), 'tone' => $h['errorRate'] > 0.01 ? 'text-red-500' : ''],
-                ['label' => 'p95', 'value' => $this->ms($h['p95']), 'tone' => $h['p95'] >= 1000 ? 'text-red-500' : ''],
-                ['label' => 'Hosts', 'value' => number_format(count($h['byHost'])), 'dim' => true],
+                ['label' => __('Requests'), 'value' => number_format($h['total'])],
+                ['label' => __('Error rate'), 'value' => $this->pct($h['errorRate']), 'tone' => $h['errorRate'] > 0.01 ? 'text-red-500' : ''],
+                ['label' => __('p95'), 'value' => $this->ms($h['p95']), 'tone' => $h['p95'] >= 1000 ? 'text-red-500' : ''],
+                ['label' => __('Hosts'), 'value' => number_format(count($h['byHost'])), 'dim' => true],
             ],
             'chart' => $this->single($h['series'], 'requests', 'var(--color-cyan-500)'),
-            'breakdown' => $h['byHost'] === [] ? null : $this->table('By host', null, [
-                ['key' => 'host', 'label' => 'Host', 'kind' => 'mono'],
-                ['key' => 'count', 'label' => 'Requests', 'align' => 'end'],
-                ['key' => 'errors', 'label' => 'Errors', 'align' => 'end', 'kind' => 'errors'],
-                ['key' => 'p95', 'label' => 'p95', 'align' => 'end', 'kind' => 'ms'],
+            'breakdown' => $h['byHost'] === [] ? null : $this->table(__('By host'), null, [
+                ['key' => 'host', 'label' => __('Host'), 'kind' => 'mono'],
+                ['key' => 'count', 'label' => __('Requests'), 'align' => 'end'],
+                ['key' => 'errors', 'label' => __('Errors'), 'align' => 'end', 'kind' => 'errors'],
+                ['key' => 'p95', 'label' => __('p95'), 'align' => 'end', 'kind' => 'ms'],
             ], $h['byHost']),
         ];
     }
@@ -334,13 +336,13 @@ final class TelemetryPages
         $served = $hits + $misses;
 
         $stats = [
-            ['label' => 'Hit ratio', 'value' => $served > 0 ? round($hits / $served * 100).'%' : '—', 'tone' => $served > 0 && $hits / $served < 0.5 ? 'text-amber-600 dark:text-amber-400' : '', 'sub' => $served > 0 ? number_format($served).' served' : 'nothing served from cache'],
-            ['label' => 'Hits', 'value' => number_format($hits)],
-            ['label' => 'Misses', 'value' => number_format($misses)],
+            ['label' => __('Hit ratio'), 'value' => $served > 0 ? round($hits / $served * 100).'%' : '—', 'tone' => $served > 0 && $hits / $served < 0.5 ? 'text-amber-600 dark:text-amber-400' : '', 'sub' => $served > 0 ? __(':count served', ['count' => number_format($served)]) : __('nothing served from cache')],
+            ['label' => __('Hits'), 'value' => number_format($hits)],
+            ['label' => __('Misses'), 'value' => number_format($misses)],
         ];
         foreach ($ops as $op => $count) {
             if (! in_array($op, ['hit', 'miss'], true)) {
-                $stats[] = ['label' => ucfirst($op).'s', 'value' => number_format($count), 'dim' => true];
+                $stats[] = ['label' => __(ucfirst($op).'s'), 'value' => number_format($count), 'dim' => true];
             }
         }
 
@@ -365,9 +367,9 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Warms', 'value' => number_format($warms), 'sub' => 'index rebuilds'],
-                ['label' => 'Clears', 'value' => number_format($clears), 'dim' => $clears === 0.0],
-                ['label' => 'Warm p95', 'value' => $p95 !== null ? $this->ms($p95) : '—', 'tone' => $p95 !== null && $p95 >= 1000 ? 'text-red-500' : ''],
+                ['label' => __('Warms'), 'value' => number_format($warms), 'sub' => __('index rebuilds')],
+                ['label' => __('Clears'), 'value' => number_format($clears), 'dim' => $clears === 0.0],
+                ['label' => __('Warm p95'), 'value' => $p95 !== null ? $this->ms($p95) : '—', 'tone' => $p95 !== null && $p95 >= 1000 ? 'text-red-500' : ''],
             ],
             'chart' => $this->mergeCharts(['warms' => $warmSeries, 'clears' => $clearSeries], ['warms' => 'var(--color-blue-500)', 'clears' => 'var(--color-amber-500)']),
             'breakdown' => null,
@@ -383,12 +385,12 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Generations', 'value' => number_format($total), 'sub' => 'images rendered'],
-                ['label' => 'Presets', 'value' => number_format(count($byPreset)), 'dim' => true],
-                ['label' => 'Cache clears', 'value' => number_format($clears), 'dim' => $clears === 0.0],
+                ['label' => __('Generations'), 'value' => number_format($total), 'sub' => __('images rendered')],
+                ['label' => __('Presets'), 'value' => number_format(count($byPreset)), 'dim' => true],
+                ['label' => __('Cache clears'), 'value' => number_format($clears), 'dim' => $clears === 0.0],
             ],
             'chart' => $this->chart($this->metrics->increaseSeries('statamic_glide_generations_total', 'preset', $s, $at), [], 'bar', 'generations'),
-            'breakdown' => $this->table('By preset', null, [['key' => 'preset', 'label' => 'Preset', 'kind' => 'mono'], ['key' => 'count', 'label' => 'Generations', 'align' => 'end'], ['key' => 'share', 'label' => 'Share', 'kind' => 'share']], $this->shares($byPreset, 'preset')),
+            'breakdown' => $this->table(__('By preset'), null, [['key' => 'preset', 'label' => __('Preset'), 'kind' => 'mono'], ['key' => 'count', 'label' => __('Generations'), 'align' => 'end'], ['key' => 'share', 'label' => __('Share'), 'kind' => 'share']], $this->shares($byPreset, 'preset')),
         ];
     }
 
@@ -399,11 +401,11 @@ final class TelemetryPages
 
         return [
             'stats' => [
-                ['label' => 'Submissions', 'value' => number_format(array_sum($byForm))],
-                ['label' => 'Forms', 'value' => number_format(count($byForm)), 'dim' => true],
+                ['label' => __('Submissions'), 'value' => number_format(array_sum($byForm))],
+                ['label' => __('Forms'), 'value' => number_format(count($byForm)), 'dim' => true],
             ],
             'chart' => $this->chart($this->metrics->increaseSeries('statamic_forms_submissions_total', 'form', $s, $at), [], 'bar', 'submissions'),
-            'breakdown' => $this->table('By form', null, [['key' => 'form', 'label' => 'Form', 'kind' => 'mono'], ['key' => 'count', 'label' => 'Submissions', 'align' => 'end'], ['key' => 'share', 'label' => 'Share', 'kind' => 'share']], $this->shares($byForm, 'form')),
+            'breakdown' => $this->table(__('By form'), null, [['key' => 'form', 'label' => __('Form'), 'kind' => 'mono'], ['key' => 'count', 'label' => __('Submissions'), 'align' => 'end'], ['key' => 'share', 'label' => __('Share'), 'kind' => 'share']], $this->shares($byForm, 'form')),
         ];
     }
 
@@ -413,9 +415,9 @@ final class TelemetryPages
         $byAction = $this->metrics->countsBy('statamic_content_changes_total', 'action', $s, $at);
         $byType = $this->metrics->countsBy('statamic_content_changes_total', 'type', $s, $at);
 
-        $stats = [['label' => 'Changes', 'value' => number_format(array_sum($byAction))]];
+        $stats = [['label' => __('Changes'), 'value' => number_format(array_sum($byAction))]];
         foreach (array_slice($byAction, 0, 4, true) as $action => $count) {
-            $stats[] = ['label' => ucfirst($action), 'value' => number_format($count), 'tone' => $action === 'deleted' ? 'text-red-500' : ''];
+            $stats[] = ['label' => __(ucfirst($action)), 'value' => number_format($count), 'tone' => $action === 'deleted' ? 'text-red-500' : ''];
         }
 
         $colors = ['created' => 'var(--color-green-500)', 'updated' => 'var(--color-blue-500)', 'saved' => 'var(--color-blue-500)', 'deleted' => 'var(--color-red-500)', 'published' => 'var(--color-green-500)', 'unpublished' => 'var(--color-amber-500)'];
@@ -423,7 +425,7 @@ final class TelemetryPages
         return [
             'stats' => $stats,
             'chart' => $this->chart($this->metrics->increaseSeries('statamic_content_changes_total', 'action', $s, $at), $colors, 'bar', 'changes'),
-            'breakdown' => $this->table('By content type', null, [['key' => 'type', 'label' => 'Type', 'kind' => 'mono'], ['key' => 'count', 'label' => 'Changes', 'align' => 'end'], ['key' => 'share', 'label' => 'Share', 'kind' => 'share']], $this->shares($byType, 'type')),
+            'breakdown' => $this->table(__('By content type'), null, [['key' => 'type', 'label' => __('Type'), 'kind' => 'mono'], ['key' => 'count', 'label' => __('Changes'), 'align' => 'end'], ['key' => 'share', 'label' => __('Share'), 'kind' => 'share']], $this->shares($byType, 'type')),
         ];
     }
 
@@ -514,11 +516,11 @@ final class TelemetryPages
     private function auditRows(TimeRange $range, Request $request): array
     {
         if (! $this->audit->enabled()) {
-            return ['kind' => 'audit', 'available' => false, 'reason' => 'The audit log needs a logs backend (statamic-telemetry.cp.audit.url).'];
+            return ['kind' => 'audit', 'available' => false, 'reason' => __('The audit log needs a logs backend (statamic-telemetry.cp.audit.url).')];
         }
 
         if (! Gate::allows('view content audit log')) {
-            return ['kind' => 'audit', 'available' => false, 'reason' => 'You do not have permission to view the content audit log.'];
+            return ['kind' => 'audit', 'available' => false, 'reason' => __('You do not have permission to view the content audit log.')];
         }
 
         $base = AuditQuery::fromRequest($request);
@@ -533,7 +535,7 @@ final class TelemetryPages
             'query' => $query,
             'result' => $result,
             'facets' => ['type' => $facet($result->types), 'action' => $facet($result->actions), 'site' => count($result->sites) > 1 ? $facet($result->sites) : []],
-            'facetLabels' => self::FACETS['content'],
+            'facetLabels' => array_map('__', self::FACETS['content']),
             'total' => $result->total,
             'capped' => $result->capped,
         ];
@@ -627,13 +629,13 @@ final class TelemetryPages
             return $g;
         }, $groups);
 
-        return $this->table('By collection', 'From the requests listed below', [
-            ['key' => 'collection', 'label' => 'Collection / route', 'kind' => 'mono'],
-            ['key' => 'total', 'label' => 'Requests', 'align' => 'end'],
-            ['key' => 'hit', 'label' => 'Hits', 'align' => 'end'],
-            ['key' => 'miss', 'label' => 'Misses', 'align' => 'end'],
-            ['key' => 'write', 'label' => 'Writes', 'align' => 'end'],
-            ['key' => 'ratio', 'label' => 'Hit ratio', 'align' => 'end'],
+        return $this->table(__('By collection'), __('From the requests listed below'), [
+            ['key' => 'collection', 'label' => __('Collection / route'), 'kind' => 'mono'],
+            ['key' => 'total', 'label' => __('Requests'), 'align' => 'end'],
+            ['key' => 'hit', 'label' => __('Hits'), 'align' => 'end'],
+            ['key' => 'miss', 'label' => __('Misses'), 'align' => 'end'],
+            ['key' => 'write', 'label' => __('Writes'), 'align' => 'end'],
+            ['key' => 'ratio', 'label' => __('Hit ratio'), 'align' => 'end'],
         ], $groups);
     }
 
@@ -756,7 +758,7 @@ final class TelemetryPages
             return '';
         }
 
-        return ($change > 0 ? '+' : '−').round(abs($change) * 100).'% vs previous';
+        return __(':change vs previous', ['change' => ($change > 0 ? '+' : '−').round(abs($change) * 100).'%']);
     }
 
     private function pct(float $ratio): string

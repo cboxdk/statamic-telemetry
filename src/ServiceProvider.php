@@ -202,15 +202,15 @@ class ServiceProvider extends AddonServiceProvider
         Permission::extend(function () {
             Permission::group('statamic_telemetry', 'Telemetry', function () {
                 Permission::register('view telemetry', function ($permission) {
-                    $permission->label('View the telemetry dashboard');
+                    $permission->label(__('View the telemetry dashboard'));
                 });
 
                 Permission::register('view content audit log', function ($permission) {
-                    $permission->label('View content audit log');
+                    $permission->label(__('View content audit log'));
                 });
 
                 Permission::register('view telemetry diagnostics', function ($permission) {
-                    $permission->label('View telemetry doctor');
+                    $permission->label(__('View telemetry doctor'));
                 });
             });
         });
@@ -246,25 +246,25 @@ class ServiceProvider extends AddonServiceProvider
             // parent's URL: its auto pattern `telemetry(/(.*)?|$)` then keeps
             // the section expanded on every /cp/telemetry/* page.
             $children = [
-                Nav::item('Overview')
+                Nav::item(__('Overview'))
                     ->route('telemetry.dashboard')
                     ->icon('chart-monitoring-indicator')
                     ->can('view telemetry'),
-                Nav::item('Explore')
+                Nav::item(__('Explore'))
                     ->route('telemetry.explore')
                     ->icon('magnifying-glass')
                     ->can('view telemetry'),
             ];
 
             // Content changes + the audit trail — the page most editors want.
-            $children[] = Nav::item('Content')
+            $children[] = Nav::item(__('Content'))
                 ->route('telemetry.page', ['page' => 'content'])
                 ->icon('content-book-open')
                 ->can('view telemetry');
 
             // The doctor is always available — a diagnostics page is most
             // useful precisely when the backend is down.
-            $children[] = Nav::item('Telemetry doctor')
+            $children[] = Nav::item(__('Telemetry doctor'))
                 ->route('telemetry.doctor')
                 ->icon('pulse')
                 ->can('view telemetry diagnostics');

@@ -26,11 +26,11 @@ final class TelemetryNav
         $items = [];
 
         if (Gate::allows('view telemetry')) {
-            $items[] = $this->item('overview', 'Overview', cp_route('telemetry.dashboard'), 'main', $active);
-            $items[] = $this->item('explore', 'Explore', cp_route('telemetry.explore'), 'main', $active);
+            $items[] = $this->item('overview', __('Overview'), cp_route('telemetry.dashboard'), 'main', $active);
+            $items[] = $this->item('explore', __('Explore'), cp_route('telemetry.explore'), 'main', $active);
 
             foreach (TelemetryPages::PAGES as $key => $page) {
-                $items[] = $this->item($key, $page['short'] ?? $page['title'], cp_route('telemetry.page', ['page' => $key]), $page['group'], $active);
+                $items[] = $this->item($key, __($page['short'] ?? $page['title']), cp_route('telemetry.page', ['page' => $key]), $page['group'], $active);
             }
         }
 

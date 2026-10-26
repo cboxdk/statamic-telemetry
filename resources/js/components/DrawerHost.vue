@@ -12,7 +12,7 @@
         @update:open="(open) => !open && popDrawer()"
     >
         <TraceDrawer v-if="entry.kind === 'trace'" :id="entry.id" />
-        <div v-else class="p-6 text-sm text-gray-500">Unknown drawer type.</div>
+        <div v-else class="p-6 text-sm text-gray-500">{{ __('Unknown drawer type.') }}</div>
     </Stack>
 </template>
 
@@ -24,5 +24,5 @@ import { useTelemetryUrl } from '../lib/useTelemetryUrl.js';
 const { drawers, popDrawer } = useTelemetryUrl();
 
 const keyOf = (e) => (e.kind === 'entity' ? `entity:${e.type}:${e.value}` : `${e.kind}:${e.id}`);
-const titleOf = (e) => (e.kind === 'trace' ? `Trace ${String(e.id).slice(0, 12)}` : e.kind);
+const titleOf = (e) => (e.kind === 'trace' ? __('Trace :id', { id: String(e.id).slice(0, 12) }) : e.kind);
 </script>

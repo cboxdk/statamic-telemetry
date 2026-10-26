@@ -13,20 +13,20 @@
                     <span class="ms-auto font-mono text-sm tabular-nums" :class="toneClass(trace.root.durationMs)">{{ ms(trace.root.durationMs) }}</span>
                 </div>
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                    <span class="font-mono">trace {{ id.slice(0, 16) }}</span>
-                    <button type="button" class="hover:underline" @click="copy(id)">Copy ID</button>
+                    <span class="font-mono">{{ __('trace :id', { id: id.slice(0, 16) }) }}</span>
+                    <button type="button" class="hover:underline" @click="copy(id)">{{ __('Copy ID') }}</button>
                     <span v-if="trace.services.length">· {{ trace.services.join(' › ') }}</span>
-                    <span v-if="trace.spans.length">· {{ trace.spans.length }} spans</span>
+                    <span v-if="trace.spans.length">· {{ __n(':count span|:count spans', trace.spans.length, { count: trace.spans.length }) }}</span>
                 </div>
                 <!-- Where to go from here: the page it served, every request like it, the entry behind it. -->
                 <div class="flex flex-wrap items-center gap-2 pt-1">
-                    <Button v-if="rootAttrs['http.route']" size="xs" :href="pageHref('requests', { route: rootAttrs['http.route'] })" :text="`Requests for ${rootAttrs['http.route']}`" />
-                    <Button v-if="rootAttrs['url.path']" size="xs" :href="pageHref('explore', { signal: 'requests', path: rootAttrs['url.path'] })" :text="`Explore ${rootAttrs['url.path']}`" />
-                    <Button v-if="rootAttrs['statamic.content.edit_url']" size="xs" :href="rootAttrs['statamic.content.edit_url']" text="Edit entry" />
-                    <Button v-if="rootAttrs['statamic.content.url']" size="xs" variant="ghost" :href="rootAttrs['statamic.content.url']" target="_blank" text="View page" />
+                    <Button v-if="rootAttrs['http.route']" size="xs" :href="pageHref('requests', { route: rootAttrs['http.route'] })" :text="__('Requests for :route', { route: rootAttrs['http.route'] })" />
+                    <Button v-if="rootAttrs['url.path']" size="xs" :href="pageHref('explore', { signal: 'requests', path: rootAttrs['url.path'] })" :text="__('Explore :path', { path: rootAttrs['url.path'] })" />
+                    <Button v-if="rootAttrs['statamic.content.edit_url']" size="xs" :href="rootAttrs['statamic.content.edit_url']" :text="__('Edit entry')" />
+                    <Button v-if="rootAttrs['statamic.content.url']" size="xs" variant="ghost" :href="rootAttrs['statamic.content.url']" target="_blank" :text="__('View page')" />
                 </div>
             </template>
-            <div v-else class="text-sm text-gray-500">Trace {{ id.slice(0, 16) }}</div>
+            <div v-else class="text-sm text-gray-500">{{ __('Trace :id', { id: id.slice(0, 16) }) }}</div>
         </div>
 
         <!-- Body -->
@@ -41,14 +41,14 @@
             <div v-else-if="trace && trace.spans.length">
                 <Tabs v-model="tab">
                     <TabList class="px-5">
-                        <TabTrigger name="waterfall" :text="`Waterfall · ${trace.spans.length}`" />
-                        <TabTrigger name="logs" :text="`Logs · ${trace.logs.length}`" />
+                        <TabTrigger name="waterfall" :text="__('Waterfall · :count', { count: trace.spans.length })" />
+                        <TabTrigger name="logs" :text="__('Logs · :count', { count: trace.logs.length })" />
                     </TabList>
                     <TabContent name="waterfall">
                         <Waterfall :spans="trace.spans" />
                     </TabContent>
                     <TabContent name="logs">
-                        <div v-if="!trace.logs.length" class="p-8 text-center text-sm text-gray-500">No log lines carry this trace id.</div>
+                        <div v-if="!trace.logs.length" class="p-8 text-center text-sm text-gray-500">{{ __('No log lines carry this trace id.') }}</div>
                         <div v-else class="divide-y divide-gray-200 dark:divide-gray-800">
                             <div v-for="(l, i) in trace.logs" :key="i" class="flex items-start gap-3 px-5 py-2 text-xs">
                                 <span class="w-16 shrink-0 tabular-nums text-gray-500">{{ clock(l.timestamp) }}</span>
@@ -61,10 +61,10 @@
             </div>
 
             <div v-else class="space-y-3 p-8 text-center text-sm text-gray-500">
-                <p v-if="retrying">The trace hasn't sealed yet — retrying…</p>
+                <p v-if="retrying">{{ __(`The trace hasn't sealed yet — retrying…`) }}</p>
                 <template v-else>
-                    <p>No spans for this trace. Very recent traces seal after about a minute; older ones may be outside the backend's retention.</p>
-                    <Button size="sm" text="Retry" @click="load(true)" />
+                    <p>{{ __(`No spans for this trace. Very recent traces seal after about a minute; older ones may be outside the backend's retention.`) }}</p>
+                    <Button size="sm" :text="__('Retry')" @click="load(true)" />
                 </template>
             </div>
         </div>
