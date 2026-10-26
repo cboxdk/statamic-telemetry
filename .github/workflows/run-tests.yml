@@ -50,13 +50,6 @@ jobs:
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
 
-      # The CP nav integration test builds the nav with the real
-      # laravel-telemetry-ui installed. That package needs PHP 8.4+, so it
-      # is added where it installs; on 8.3 the test skips.
-      - name: Install laravel-telemetry-ui for the integration tests
-        if: matrix.php != '8.3'
-        run: composer require --dev --no-interaction --prefer-dist "cboxdk/laravel-telemetry-ui:^3.3"
-
       - name: List installed dependencies
         run: composer show -D
 

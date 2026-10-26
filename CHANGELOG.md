@@ -7,6 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-10-26
+
+### Added
+
+- **A native telemetry UI in the Control Panel.** Vue/Inertia pages on
+  `@statamic/cms/ui` (assets compiled and committed — no Node on install)
+  that read back from the telemetry backend you already send to —
+  telemetryd or an LGTM stack, over its Loki / Tempo / Prometheus query
+  APIs. One rule throughout: a number is never the end of the road. Every
+  tile, chart and breakdown sits above the rows it counts, and every row
+  opens its trace. The **Telemetry** item now opens these pages; set
+  `STATAMIC_TELEMETRY_UI_URL` to keep the old link-out.
+  - **Overview** — requests by status class and latency with
+    period-over-period deltas, exceptions, deploy markers (from
+    `telemetry:deploy`), routes needing attention, recent requests.
+  - **Explore** — requests / traces / logs / errors with facets (status,
+    method, route, collection, taxonomy, content type, static cache, site),
+    group-by, search, a latency × time heatmap, brush-to-zoom and live tail.
+  - **Requests, Jobs, Queries, Exceptions, Outgoing HTTP** — each an
+    aggregate over its rows: every job run with queue and attempt, every
+    `db.query` with its SQL and repeat count, every exception with message
+    and `file:line`, every outgoing call with host and status.
+  - **Static cache, Stache, Glide, Forms, Content** — hit ratio and
+    outcomes per collection, warms and clears, generations per preset,
+    submissions per form, changes by action and type with the **content
+    audit trail** as the rows (`telemetry/audit` redirects there).
+  - **The trace drawer** — Statamic's own `Stack`, URL-bound
+    (`?drawer=trace:<id>`, nests, `Esc` pops, `j`/`k` step): waterfall with
+    category-coloured spans and a ruler, span attributes in a nested stack
+    with a menu per value (copy, filter Explore, open), the trace's log
+    lines when the backend linked any, and the next steps from the request
+    — requests for its route, Explore its path, edit the entry, view the
+    page.
+  - **An entry's own Telemetry tab.** Every entry blueprint gets a
+    full-width tab (`EntryBlueprintFound`, for users who may view
+    telemetry; the field is `computed`, nothing is saved) with that page's
+    traffic, latency against the site's p95, static-cache treatment,
+    exceptions on its path, change history and recent requests, each
+    opening its trace in the editor. Served by `telemetry/entry/{id}`.
+    `STATAMIC_TELEMETRY_ENTRY_TAB=false` turns it off.
+  - **Time** — period presets, a custom range (`from`/`to`), auto-refresh,
+    and a time-zone switch (browser or UTC) that every timestamp honours.
+  - **Telemetry doctor** — the pipeline's health, now native too.
+  - Permissions: **View the telemetry dashboard**, **View content audit
+    log**, **View telemetry doctor**.
+- **Static-cache hits are named by their content.** A hit answers before the
+  controller resolves anything, so nothing was captured to name it by; the
+  addon now looks the URL up (one Stache uri-index hit, once per request)
+  and a cached page is `GET entry:pages.page` like an uncached one, with
+  `statamic.static_cache: hit` to tell them apart. Request spans also carry
+  `statamic.content.title`, `statamic.content.url` and
+  `statamic.content.edit_url`. Glide requests become `glide:{container}`
+  with `statamic.glide.preset`.
+- `Traces::spans()` (the spans a TraceQL query matched, with their trace),
+  `Logs::withLabel()` / `Logs::forTrace()`, `TelemetryMetrics::increase()`
+  / `countsBy()` / `increaseSeries()` / `p95Ms()`, `TimeRange` (window or
+  `from`/`to`, now up to `30d`) and `TelemetryPages` — the readers the
+  pages are built from.
+
+### Changed
+
+- The addon's own Control Panel requests (`cp/telemetry*`) and their calls
+  to the backend are kept out of the app's traces and metrics
+  (`Telemetry::ignorePaths`); they were the busiest route and host in the
+  very pages that display them. `STATAMIC_TELEMETRY_CP_IGNORE_OWN_ROUTES=false`
+  restores the old behaviour.
+- The `telemetry` fieldtype renders the full entry story (fetched from the
+  new endpoint) instead of a two-tile snapshot; its `preload()` now carries
+  the entry and the endpoint, not the data.
+- The addon ships its own Tailwind build (`resources/css/cp.css`,
+  `@tailwindcss/vite`) so every utility its templates use exists in the CP;
+  the earlier hand-written `.tel-*` stylesheet is gone.
+- `MetricsOverview` no longer carries the Statamic signals (static cache,
+  Stache, Glide, forms, content changes) — each has its own page, and the
+  dashboard no longer runs their eight PromQL queries on every load.
+
+### Fixed
+
+- Trace rows in the lists carried no attributes: the search API returns the
+  *matched* span's attributes, and without a selector that was the first
+  span by start time (`laravel.bootstrap`). Lists now match the server span
+  explicitly.
+- The CP's `utilities` layer out-ranks the addon's `addon-utilities`, so a
+  core base class paired with an addon-only variant lost (a light selected
+  row in dark mode, a stacked facet rail). Templates no longer pair them.
+- A p95 series the backend could not compute (telemetryd caps the histogram
+  scan beyond a few hours) is left out rather than drawn as a flat zero.
+
 ## [3.1.0] - 2026-10-21
 
 ### Added

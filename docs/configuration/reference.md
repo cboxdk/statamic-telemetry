@@ -51,7 +51,9 @@ single value. The addon renames the root span from the resolved content:
 | Entry | `GET entry:{collection}.{blueprint}` |
 | Term | `GET term:{taxonomy}` |
 | Taxonomy index/listing | `GET taxonomy:{taxonomy}` |
-| Anything else (or no content) | base package default |
+| Frontend URL that resolves to nothing (404) | `GET not_found` |
+| Glide image (`/img/asset/{container}/…`) | `GET glide:{container}` (`glide:path` / `glide:url` for the other two routes) |
+| Anything else (a real Laravel route, the CP) | base package default |
 
 These are exactly the data types Statamic serves as frontend pages
 (everything that reaches `ResponseCreated` via a `DataResponse`: entries,
@@ -62,10 +64,14 @@ own pages — so they never get a span name. Their edits are still counted
 by `statamic.content.changes`.
 
 Names are **bounded** — collection/blueprint/taxonomy handles, never ids
-or slugs. `http.route` keeps the raw catch-all pattern regardless, so
-route-based filtering still works. A static cache **hit** never reaches
-the controller, so hit traces keep the generic route-pattern name (with
-`statamic.static_cache: hit`).
+or slugs; the specifics ride along as attributes (`statamic.entry.id`,
+`statamic.content.title`, `statamic.content.url`,
+`statamic.content.edit_url`). A static cache **hit** answers before the
+controller resolves anything, so nothing is captured for it — the addon then
+looks the URL up itself (one Stache uri-index hit, once per request) and a
+hit is named and attributed exactly like a miss, plus
+`statamic.static_cache: hit`. The same logical route is written to
+`http.route` (below).
 
 ### `http.route` is the logical content route
 
@@ -96,11 +102,11 @@ traffic can be seen and sized separately rather than diluting the catch-all.
 The `not_found` fallback is scoped to Statamic's `FrontendController` — a
 404 on a real Laravel route keeps its own `http.route`.
 
-**Cache hits keep `/{segments?}`.** A statically-cached page is served
-before the controller resolves any content, so there is nothing to name it
-by; it stays on the raw template and carries `statamic.static_cache: hit`.
-These are the fast requests, so the catch-all bucket is effectively
-"cache hits" — the slow, content-resolving requests are already named.
+**Cache hits are named too.** Because the addon resolves the URL when the
+cache answered first, a statically-cached page carries the same `http.route`
+as an uncached one — a route table shows one row per collection, not a
+"cache hits" bucket on the catch-all — with `statamic.static_cache: hit` to
+tell them apart.
 
 ## Metrics
 
@@ -242,8 +248,10 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `gauges.enabled` | false | Inventory gauges (query on every scrape) |
 | `audit.actor_name` | true | The editor's `user.name` beside `user.id` on audit records |
 | `audit.changed_fields` | true | The changed field handles (names only) on `updated` records |
-| `cp.url` | — | Turns the "Telemetry" nav item back into a link-out (Grafana / a remote `laravel-telemetry-ui`), an opt-out from the native dashboard. Unset → the native Telemetry page |
-| `cp.audit.url` | — | Logs backend URL for the native Content audit page (telemetryd / Loki). Falls back to `TELEMETRY_UI_LOGS_URL`. No URL → no page |
+| `cp.url` | — | Turns the "Telemetry" nav item back into a link-out (Grafana / a remote `laravel-telemetry-ui`), an opt-out from the native pages. Unset → the native Telemetry pages |
+| `cp.ignore_own_routes` | true | Keep the telemetry pages' own requests (and their calls to the backend) out of the app's traces and metrics |
+| `cp.entry_tab` | true | Add the full-width **Telemetry** tab to every entry blueprint |
+| `cp.audit.url` | — | The backend's query URL for every Control Panel page — Loki, Tempo and Prometheus APIs under one base (telemetryd / an LGTM gateway). Falls back to `TELEMETRY_UI_LOGS_URL`. No URL → empty states, no audit rows |
 | `cp.audit.token` | — | Bearer token for the logs backend. Falls back to `TELEMETRY_UI_TOKEN` |
 | `cp.audit.tenant` | — | `X-Scope-OrgID` tenant for a multi-tenant backend. Falls back to `TELEMETRY_UI_LOGS_TENANT` |
 | `cp.audit.service` | app's | `service.name` to match; defaults to `telemetry.service.name` |
@@ -254,68 +262,21 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `cp.audit.timeout` | 5 | Request timeout to the logs backend, in seconds |
 | `cp.audit.enabled` | auto | Force the page off; otherwise on when a URL resolves |
 
-### Telemetry dashboard page
+### Control Panel pages
 
-A native **Telemetry** page (nav: *Tools → Telemetry*, with **Content audit**
-and **Telemetry doctor** as sub-items) replaces the link-out to
-`laravel-telemetry-ui`. It reads the backend (telemetryd or an LGTM stack, over
-its Tempo and Prometheus APIs on `cp.audit.url`):
+The native pages — Overview, Explore, the Activity pages (Requests, Jobs,
+Queries, Exceptions, Outgoing HTTP), the Statamic pages (Static cache,
+Stache, Glide, Forms, Content with the audit trail), the Telemetry doctor,
+the trace drawer and the entry's **Telemetry** tab — are documented in
+[Control Panel](../production/control-panel.md): what each shows, which
+backend API it reads, the permissions, and what degrades when the backend
+lacks a feature. They read the backend on `cp.audit.url`; metrics-backed
+tiles need the app to run with a shared metric store (`TELEMETRY_STORE=sqlite`
+/ `redis` / `apcu`) and `php artisan telemetry:flush` shipping it. Traces and
+log-backed pages need no such wiring.
 
-- **Traces** — request volume/rate, p50/p95/max latency with inline-SVG charts,
-  the slowest endpoints and recent requests; each opens a single-trace
-  waterfall.
-- **Metrics** — requests grouped by the addon's bounded content route
-  (`entry:{collection}.{blueprint}`, not the catch-all `/{segments?}`), the
-  static-cache hit ratio and operations, and content changes by type/action.
-
-Guarded throughout (empty state when the backend has nothing / is unreachable)
-and gated by **View the telemetry dashboard**. Set `cp.url` to opt back out to
-Grafana / a remote UI.
-
-The metric section needs metrics in the backend: run the app with a shared
-store (`TELEMETRY_STORE=sqlite` / `redis` / `apcu`, not the default per-process
-`array`) and `php artisan telemetry:flush` (or `--daemon`) shipping them over
-OTLP. Traces and the audit log need no such wiring.
-
-### Explore page
-
-A two-pane **Explore** page (nav: *Tools → Telemetry → Explore*) over the
-backend's signals: **Requests** / **Traces** (Tempo) and **Logs** / **Errors**
-(Loki). The left pane is a filtered, live-tailable list; selecting a request
-opens its trace **waterfall** in the right pane, and selecting a log shows its
-full labels. Filter by a free-text search and the time window; **Live tail**
-polls the list. Gated by **View the telemetry dashboard**.
-
-### `telemetry` fieldtype (per-entry)
-
-A read-only **Telemetry** fieldtype for entry blueprints shows that entry's own
-telemetry inline in the publish form: how often it was requested and its p95
-latency (from traces keyed by the `statamic.entry.id` the addon stamps on each
-content request) and its change history (from the audit log). It stores
-nothing — the snapshot is gathered server-side in the fieldtype's `preload()`.
-Add it to a blueprint like any other field (`type: telemetry`).
-
-### Content audit page
-
-A Control-Panel-native **Content audit** page (nav: *Tools → Content audit*)
-reads the `statamic.content.change` records back from the telemetry backend —
-**telemetryd** or an **LGTM** stack, both over the Loki query API — and lists
-them in the CP itself, with no dependency on `laravel-telemetry-ui`. One LogQL
-range query over the window; facets, search and pagination run in PHP. A
-backend that is missing, slow or down never throws into the CP — the page
-renders an error state. Shown only to users with the **View content audit log**
-permission, and only when `cp.audit.url` resolves.
-
-### Telemetry doctor page
-
-A read-only **Telemetry doctor** page (nav: *Tools → Telemetry doctor*) shows
-the pipeline's health: `telemetry.enabled`, the metric store driver, the OTLP
-endpoint and exporters, the OTLP **spool** depth (`Spool::size()` — entries
-waiting to ship), and a live probe of the audit log's backend (reachable /
-HTTP status). It never throws, and is always in the nav — a diagnostics page
-is most useful when something is down. Gated by the **View telemetry
-diagnostics** permission. For the full end-to-end check run
-`php artisan telemetry:doctor`.
+The `telemetry` fieldtype behind the entry tab can also be placed by hand in
+any entry blueprint (`type: telemetry`); it stores nothing.
 
 ## Antlers tags
 
