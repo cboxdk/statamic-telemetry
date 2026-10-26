@@ -44,7 +44,7 @@ class Telemetry extends Fieldtype
             ],
             'endpoint' => cp_route('telemetry.entry', ['id' => $parent->id()]),
             'requestsUrl' => cp_route('telemetry.page', ['page' => 'requests']),
-            'windows' => ['24h' => 'Last 24 hours', '7d' => 'Last 7 days', '30d' => 'Last 30 days'],
+            'windows' => ['24h' => __('Last 24 hours'), '7d' => __('Last 7 days'), '30d' => __('Last 30 days')],
             'default' => '7d',
         ];
     }

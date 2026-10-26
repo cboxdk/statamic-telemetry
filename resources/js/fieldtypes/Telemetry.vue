@@ -4,7 +4,7 @@
          openable as its trace, right here in the editor. -->
     <div class="space-y-6 py-2">
         <div v-if="!meta.available" class="rounded-xl border border-dashed border-gray-300 p-6 text-sm text-gray-500 dark:border-gray-700">
-            Telemetry for this entry appears once it has been saved and requested.
+            {{ __('Telemetry for this entry appears once it has been saved and requested.') }}
         </div>
 
         <template v-else>
@@ -15,8 +15,8 @@
                 </ToggleGroup>
                 <span v-if="story" class="text-xs text-gray-500">{{ rangeText }}</span>
                 <div class="ms-auto flex items-center gap-2">
-                    <Button size="sm" :href="requestsHref" text="Open in Telemetry" />
-                    <Button v-if="meta.entry.url" size="sm" variant="ghost" :href="meta.entry.url" target="_blank" text="View page" />
+                    <Button size="sm" :href="requestsHref" :text="__('Open in Telemetry')" />
+                    <Button v-if="meta.entry.url" size="sm" variant="ghost" :href="meta.entry.url" target="_blank" :text="__('View page')" />
                 </div>
             </div>
 
@@ -29,53 +29,53 @@
             <template v-else>
                 <!-- Traffic + latency -->
                 <div class="grid gap-6 2xl:grid-cols-2">
-                    <Section heading="Traffic">
-                        <template #actions>requests to this page</template>
+                    <Section :heading="__('Traffic')">
+                        <template #actions>{{ __('requests to this page') }}</template>
                         <div class="grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-3">
-                            <Tile label="Requests" :value="fmt(req.count)" :delta="deltaText(req.count, req.previous)" :tone="deltaTone(req.count, req.previous)" />
-                            <Tile label="2XX" :value="fmt(req.statusMix['2xx'])" dim />
-                            <Tile label="3XX" :value="fmt(req.statusMix['3xx'])" dim />
-                            <Tile label="4XX" :value="fmt(req.statusMix['4xx'])" :tone="req.statusMix['4xx'] > 0 ? 'text-amber-600 dark:text-amber-400' : ''" />
-                            <Tile label="5XX" :value="fmt(req.statusMix['5xx'])" :tone="req.statusMix['5xx'] > 0 ? 'text-red-500' : ''" />
-                            <Tile label="Error rate" :value="pct(req.errorRate)" :tone="req.errorRate > 0.01 ? 'text-red-500' : ''" />
+                            <Tile :label="__('Requests')" :value="fmt(req.count)" :delta="deltaText(req.count, req.previous)" :tone="deltaTone(req.count, req.previous)" />
+                            <Tile :label="__('2XX')" :value="fmt(req.statusMix['2xx'])" dim />
+                            <Tile :label="__('3XX')" :value="fmt(req.statusMix['3xx'])" dim />
+                            <Tile :label="__('4XX')" :value="fmt(req.statusMix['4xx'])" :tone="req.statusMix['4xx'] > 0 ? 'text-amber-600 dark:text-amber-400' : ''" />
+                            <Tile :label="__('5XX')" :value="fmt(req.statusMix['5xx'])" :tone="req.statusMix['5xx'] > 0 ? 'text-red-500' : ''" />
+                            <Tile :label="__('Error rate')" :value="pct(req.errorRate)" :tone="req.errorRate > 0.01 ? 'text-red-500' : ''" />
                         </div>
                         <div class="h-44">
                             <TimeChart v-if="req.count" :time="seriesTime" :series="trafficSeries" unit="count" :smooth="false" :height="176" :legend="true" />
-                            <Empty v-else>No requests to this page in the {{ meta.windows[window].toLowerCase() }}.</Empty>
+                            <Empty v-else>{{ __('No requests to this page in the :window.', { window: meta.windows[window].toLowerCase() }) }}</Empty>
                         </div>
                     </Section>
 
-                    <Section heading="Latency">
-                        <template #actions>server-side, this page vs the site</template>
+                    <Section :heading="__('Latency')">
+                        <template #actions>{{ __('server-side, this page vs the site') }}</template>
                         <div class="grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-3">
-                            <Tile label="Avg" :value="ms(req.avg)" />
+                            <Tile :label="__('Avg')" :value="ms(req.avg)" />
                             <Tile label="p50" :value="ms(req.p50)" dim />
                             <Tile label="p95" :value="ms(req.p95)" :delta="deltaText(req.p95, req.previousP95, true)" :tone="deltaTone(req.p95, req.previousP95, true)" />
-                            <Tile label="Site p95" :value="req.siteP95 ? ms(req.siteP95) : '—'" :sub="vsSite" :tone="vsSiteTone" />
+                            <Tile :label="__('Site p95')" :value="req.siteP95 ? ms(req.siteP95) : '—'" :sub="vsSite" :tone="vsSiteTone" />
                         </div>
                         <div class="h-44">
                             <TimeChart v-if="req.count" :time="seriesTime" :series="latencySeries" unit="ms" :height="176" :legend="false" />
-                            <Empty v-else>No latency to show.</Empty>
+                            <Empty v-else>{{ __('No latency to show.') }}</Empty>
                         </div>
                     </Section>
                 </div>
 
                 <!-- Cache + exceptions -->
                 <div class="grid gap-6 2xl:grid-cols-2">
-                    <Section heading="Static cache">
-                        <template #actions>how this page was served</template>
+                    <Section :heading="__('Static cache')">
+                        <template #actions>{{ __('how this page was served') }}</template>
                         <div class="grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-3">
-                            <Tile label="Hit ratio" :value="story.cache.ratio == null ? '—' : Math.round(story.cache.ratio * 100) + '%'" :tone="story.cache.ratio != null && story.cache.ratio < 0.5 ? 'text-amber-600 dark:text-amber-400' : ''" :sub="story.cache.ratio == null ? 'not served from cache' : ''" />
-                            <Tile label="Hits" :value="fmt(story.cache.hit)" :tone="story.cache.hit ? 'text-green-600 dark:text-green-400' : ''" />
-                            <Tile label="Misses" :value="fmt(story.cache.miss)" />
-                            <Tile label="Writes" :value="fmt(story.cache.write)" :sub="story.cache.lastWrite ? 'last ' + dateClock(story.cache.lastWrite) : ''" dim />
+                            <Tile :label="__('Hit ratio')" :value="story.cache.ratio == null ? '—' : Math.round(story.cache.ratio * 100) + '%'" :tone="story.cache.ratio != null && story.cache.ratio < 0.5 ? 'text-amber-600 dark:text-amber-400' : ''" :sub="story.cache.ratio == null ? __('not served from cache') : ''" />
+                            <Tile :label="__('Hits')" :value="fmt(story.cache.hit)" :tone="story.cache.hit ? 'text-green-600 dark:text-green-400' : ''" />
+                            <Tile :label="__('Misses')" :value="fmt(story.cache.miss)" />
+                            <Tile :label="__('Writes')" :value="fmt(story.cache.write)" :sub="story.cache.lastWrite ? __('last :when', { when: dateClock(story.cache.lastWrite) }) : ''" dim />
                         </div>
-                        <p class="text-xs text-gray-500">A write follows a save or an invalidation; a run of misses means the cache is not holding this page.</p>
+                        <p class="text-xs text-gray-500">{{ __('A write follows a save or an invalidation; a run of misses means the cache is not holding this page.') }}</p>
                     </Section>
 
-                    <Section heading="Exceptions on this page" inset>
-                        <template #actions>{{ story.exceptions.count ? fmt(story.exceptions.count) + ' in the window' : 'none in the window' }}</template>
-                        <div v-if="!story.exceptions.recent.length" class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">No exceptions were logged against {{ meta.entry.uri }}.</div>
+                    <Section :heading="__('Exceptions on this page')" inset>
+                        <template #actions>{{ story.exceptions.count ? __(':count in the window', { count: fmt(story.exceptions.count) }) : __('none in the window') }}</template>
+                        <div v-if="!story.exceptions.recent.length" class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">{{ __('No exceptions were logged against :path.', { path: meta.entry.uri }) }}</div>
                         <div v-else class="max-h-64 overflow-y-auto">
                             <div v-for="(e, i) in story.exceptions.recent" :key="i" class="grid grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-3 border-t border-gray-100 px-4 py-2 text-sm first:border-0 dark:border-gray-800 sm:px-4.5">
                                 <span class="pt-0.5 tabular-nums text-xs text-gray-500">{{ clock(e.timestamp) }}</span>
@@ -93,20 +93,20 @@
 
                 <!-- Rows -->
                 <div class="grid gap-6 2xl:grid-cols-2">
-                    <Section heading="Recent requests" inset>
-                        <template #actions>click a row to open its trace</template>
-                        <div v-if="!req.recent.length" class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">Nothing yet.</div>
+                    <Section :heading="__('Recent requests')" inset>
+                        <template #actions>{{ __('click a row to open its trace') }}</template>
+                        <div v-if="!req.recent.length" class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">{{ __('Nothing yet.') }}</div>
                         <div v-else class="max-h-96 overflow-y-auto">
                             <!-- No "Edit" here: these rows are this entry, and we are already editing it. -->
                             <RequestRow v-for="t in req.recent" :key="t.id" :row="{ ...t, editUrl: null }" :active="openTraceId === t.id" @open="openTrace" />
                         </div>
-                        <div v-if="req.capped" class="border-t border-gray-200 bg-gray-500/5 px-4 py-2 text-xs text-gray-500 dark:border-gray-800">Newest {{ fmt(req.recent.length) }} of many — narrow the window to see further back.</div>
+                        <div v-if="req.capped" class="border-t border-gray-200 bg-gray-500/5 px-4 py-2 text-xs text-gray-500 dark:border-gray-800">{{ __('Newest :count of many — narrow the window to see further back.', { count: fmt(req.recent.length) }) }}</div>
                     </Section>
 
-                    <Section heading="Change history" inset>
-                        <template #actions>{{ story.changes.count ? fmt(story.changes.count) + ' changes' : 'no changes in the window' }}</template>
+                    <Section :heading="__('Change history')" inset>
+                        <template #actions>{{ story.changes.count ? __n(':count change|:count changes', story.changes.count, { count: fmt(story.changes.count) }) : __('no changes in the window') }}</template>
                         <AuditRows v-if="story.changes.rows.length" :result="auditResult" />
-                        <div v-else class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">No changes to this entry in the window.</div>
+                        <div v-else class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">{{ __('No changes to this entry in the window.') }}</div>
                     </Section>
                 </div>
             </template>
@@ -151,11 +151,11 @@ async function load() {
     try {
         const res = await fetch(`${meta.value.endpoint}?window=${encodeURIComponent(window.value)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         if (n !== inflight) return;
-        if (res.status === 403) { error.value = 'You do not have permission to view telemetry.'; return; }
-        if (!res.ok) { error.value = `Could not load telemetry (HTTP ${res.status}).`; return; }
+        if (res.status === 403) { error.value = __('You do not have permission to view telemetry.'); return; }
+        if (!res.ok) { error.value = __('Could not load telemetry (HTTP :status).', { status: res.status }); return; }
         story.value = await res.json();
     } catch (e) {
-        if (n === inflight) error.value = 'Could not reach the telemetry backend.';
+        if (n === inflight) error.value = __('Could not reach the telemetry backend.');
     }
 }
 function setWindow(w) {
@@ -194,7 +194,7 @@ const change = (now, before) => (before > 0 ? (now - before) / before : null);
 const deltaText = (now, before, lowerIsBetter = false) => {
     const c = change(now, before);
     if (c === null || Math.abs(c) < 0.01) return '';
-    return `${c > 0 ? '+' : '−'}${Math.round(Math.abs(c) * 100)}% vs previous`;
+    return __(':change vs previous', { change: `${c > 0 ? '+' : '−'}${Math.round(Math.abs(c) * 100)}%` });
 };
 const deltaTone = (now, before, lowerIsBetter = false) => {
     const c = change(now, before);
@@ -206,7 +206,7 @@ const vsSite = computed(() => {
     const r = req.value;
     if (!r.siteP95 || !r.p95) return '';
     const ratio = r.p95 / r.siteP95;
-    return ratio >= 1.15 ? `this page is ${ratio.toFixed(1)}× slower` : ratio <= 0.85 ? `this page is ${(1 / ratio).toFixed(1)}× faster` : 'about the site average';
+    return ratio >= 1.15 ? __('this page is :factor× slower', { factor: ratio.toFixed(1) }) : ratio <= 0.85 ? __('this page is :factor× faster', { factor: (1 / ratio).toFixed(1) }) : __('about the site average');
 });
 const vsSiteTone = computed(() => (req.value.siteP95 && req.value.p95 / req.value.siteP95 >= 1.15 ? 'text-red-500' : ''));
 

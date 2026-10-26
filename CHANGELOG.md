@@ -66,6 +66,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (a deterministic CycloneDX 1.5 `sbom.json` from the committed lock files,
   checked for drift in CI) and `composer qa` running the whole gate.
   `composer.lock` and `package-lock.json` are now committed for that.
+- **Every Control Panel string is translatable.** Vue templates and the
+  PHP that feeds them pass through `__()` / `__n()` with the English as the
+  key, so an app's `lang/<locale>.json` translates the pages, the drawer and
+  the entry tab like core.
+- **A Vitest suite** for the CP JavaScript (formatting, URL state and the
+  drawer stack, the CP url helper, RequestRow and Tile), run in CI beside
+  Pest; phpstan runs at level 8.
 - `Traces::spans()` (the spans a TraceQL query matched, with their trace),
   `Logs::withLabel()` / `Logs::forTrace()`, `TelemetryMetrics::increase()`
   / `countsBy()` / `increaseSeries()` / `p95Ms()`, `TimeRange` (window or

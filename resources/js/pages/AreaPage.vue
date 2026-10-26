@@ -26,7 +26,7 @@
                     <p class="text-xs text-gray-500">{{ rowsSub }}</p>
                 </div>
                 <div class="w-72 shrink-0"><Input v-model="searchText" type="search" :placeholder="searchPlaceholder" @keyup.enter="applySearch" /></div>
-                <Button text="Search" @click="applySearch" />
+                <Button :text="__('Search')" @click="applySearch" />
             </div>
 
             <!-- Facets as chips -->
@@ -42,7 +42,7 @@
                         @click="toggleFacet(dim, f.value)"
                     >{{ f.value }}<span v-if="f.count != null" class="ms-1 text-gray-400">{{ fmt(f.count) }}</span></button>
                 </div>
-                <Button v-if="hasFilters" size="2xs" variant="ghost" text="Clear" @click="clearFilters" />
+                <Button v-if="hasFilters" size="2xs" variant="ghost" :text="__('Clear')" @click="clearFilters" />
             </div>
 
             <!-- Audit trail -->
@@ -53,26 +53,26 @@
 
             <!-- Requests -->
             <div v-else-if="rows.kind === 'requests'" class="max-h-[70vh] overflow-y-auto" scroll-region>
-                <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
+                <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">{{ __('Nothing in this window.') }}</div>
                 <RequestRow v-for="t in rows.items" :key="t.id" :row="t" :active="openTraceId === t.id" :filters="filters" @open="openTrace" @facet="toggleIfFacet" />
             </div>
 
             <!-- Log records (exceptions): type · message · origin, expandable to every label -->
             <div v-else-if="rows.kind === 'logs'" class="max-h-[70vh] overflow-y-auto" scroll-region>
-                <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
+                <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">{{ __('Nothing in this window.') }}</div>
                 <div v-for="r in rows.items" :key="r.id" class="border-b border-gray-100 dark:border-gray-800">
                     <button type="button" class="grid w-full grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-3 px-4 py-2 text-left text-sm transition-colors hover:bg-gray-500/10" @click="toggleLog(r.id)">
                         <span class="pt-0.5 tabular-nums text-xs text-gray-500">{{ clock(r.timestamp) }}</span>
                         <span class="min-w-0">
                             <span class="flex items-center gap-2">
-                                <button type="button" class="shrink-0 rounded bg-red-500/15 px-1 font-mono text-[10.5px] font-semibold text-red-600 hover:bg-red-500/25 dark:text-red-400" :title="`${r.fullType} — click to filter`" @click.stop="toggleFacet('type', r.type)">{{ r.type }}</button>
+                                <button type="button" class="shrink-0 rounded bg-red-500/15 px-1 font-mono text-[10.5px] font-semibold text-red-600 hover:bg-red-500/25 dark:text-red-400" :title="__(':type — click to filter', { type: r.fullType })" @click.stop="toggleFacet('type', r.type)">{{ r.type }}</button>
                                 <span class="min-w-0 font-mono text-[13px]" :class="expandedLog === r.id ? 'whitespace-pre-wrap break-words' : 'truncate'">{{ r.message || r.fullType }}</span>
                             </span>
                             <span class="flex min-w-0 items-center gap-2 text-[11px] text-gray-500">
                                 <span v-if="r.origin" class="truncate font-mono">{{ r.origin }}</span>
                                 <span v-if="r.path" class="truncate font-mono">{{ r.path }}</span>
                                 <span v-else-if="r.route" class="truncate font-mono">{{ r.route }}</span>
-                                <button v-if="r.group" type="button" class="shrink-0 hover:underline" @click.stop="toggleFacet('group', r.group)">group {{ r.group }}</button>
+                                <button v-if="r.group" type="button" class="shrink-0 hover:underline" @click.stop="toggleFacet('group', r.group)">{{ __('group :group', { group: r.group }) }}</button>
                             </span>
                         </span>
                     </button>
@@ -81,14 +81,14 @@
                             <div class="truncate text-gray-500">{{ k }}</div>
                             <div class="break-words font-mono">{{ v }}</div>
                         </template>
-                        <div v-if="r.traceId" class="col-span-2 pt-1"><Button size="xs" text="Open trace" @click="openTrace(r.traceId)" /></div>
+                        <div v-if="r.traceId" class="col-span-2 pt-1"><Button size="xs" :text="__('Open trace')" @click="openTrace(r.traceId)" /></div>
                     </div>
                 </div>
             </div>
 
             <!-- Spans -->
             <div v-else class="max-h-[70vh] overflow-y-auto" scroll-region>
-                <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">Nothing in this window.</div>
+                <div v-if="!rows.items.length" class="p-10 text-center text-sm text-gray-500">{{ __('Nothing in this window.') }}</div>
                 <button
                     v-for="r in rows.items"
                     :key="r.id"
@@ -109,17 +109,17 @@
                                 :type="chip.dim ? 'button' : null"
                                 class="shrink-0 rounded px-1 font-mono text-[10.5px]"
                                 :class="[chipClass(chip.tone), chip.dim ? 'hover:ring-1 hover:ring-gray-400' : '']"
-                                :title="chip.dim ? 'Click to filter' : null"
+                                :title="chip.dim ? __('Click to filter') : null"
                                 @click.stop="chip.dim && toggleFacet(chip.dim, chip.value)"
                             >{{ chip.text }}</component>
                         </span>
-                        <span class="block truncate text-[11px] text-gray-500"><template v-if="r.request">in <span class="font-mono">{{ r.request }}</span></template><span v-else class="font-mono">{{ r.span }}</span></span>
+                        <span class="block truncate text-[11px] text-gray-500"><template v-if="r.request">{{ __('in') }} <span class="font-mono">{{ r.request }}</span></template><span v-else class="font-mono">{{ r.span }}</span></span>
                     </span>
                     <span class="tabular-nums text-gray-500">{{ r.durationMs > 0 ? ms(r.durationMs) : '' }}</span>
                 </button>
             </div>
 
-            <div v-if="rows.capped" class="border-t border-gray-200 bg-gray-500/5 px-4 py-2.5 text-xs text-gray-500 dark:border-gray-800">Showing the newest {{ fmt(rows.total) }} in this window — narrow the window to see further back.</div>
+            <div v-if="rows.capped" class="border-t border-gray-200 bg-gray-500/5 px-4 py-2.5 text-xs text-gray-500 dark:border-gray-800">{{ __('Showing the newest :count in this window — narrow the window to see further back.', { count: fmt(rows.total) }) }}</div>
         </Card>
     </TelemetryPage>
 </template>
@@ -183,7 +183,7 @@ const dimOf = (table, row = null) => {
     const dim = row?.facet || table.columns[0]?.key;
     return hasFacet(dim) ? dim : null;
 };
-const hint = (table) => [table.subheading, dimOf(table) ? 'click a row to filter the list below' : ''].filter(Boolean).join(' · ');
+const hint = (table) => [table.subheading, dimOf(table) ? __('click a row to filter the list below') : ''].filter(Boolean).join(' · ');
 const isActiveRow = (table, row) => {
     const dim = dimOf(table, row);
     return !!dim && String(props.filters[dim] ?? '') === String(row[table.columns[0].key]);
@@ -195,30 +195,31 @@ const filterFrom = (table, row) => {
 
 // ── Rows ───────────────────────────────────────────────────────────────────────
 const HEADINGS = { requests: 'Requests', 'static-cache': 'Requests', jobs: 'Job runs', queries: 'Queries', exceptions: 'Exceptions', outgoing: 'Outgoing requests', stache: 'Warms and clears', glide: 'Generations', forms: 'Submissions', content: 'Changes' };
-const rowsHeading = computed(() => HEADINGS[props.page.key] || 'Rows');
+const rowsHeading = computed(() => __(HEADINGS[props.page.key] || 'Rows'));
 const rowsSub = computed(() => {
-    if (props.rows.kind === 'audit') return 'Who changed what — click an item to edit it';
-    if (props.rows.kind === 'logs') return `${fmt(props.rows.items?.length ?? 0)} of ${fmt(props.rows.total ?? 0)} in this window — click a record for its details`;
+    if (props.rows.kind === 'audit') return __('Who changed what — click an item to edit it');
     const n = props.rows.items?.length ?? 0;
-    return `${fmt(n)} of ${fmt(props.rows.total ?? n)} in this window — click a row to open its trace`;
+    const vars = { shown: fmt(n), total: fmt(props.rows.total ?? n) };
+    if (props.rows.kind === 'logs') return __(':shown of :total in this window — click a record for its details', vars);
+    return __(':shown of :total in this window — click a row to open its trace', vars);
 });
-const searchPlaceholder = computed(() => ({
+const searchPlaceholder = computed(() => __(({
     requests: 'Path, title, route, collection…', 'static-cache': 'Path, title, collection…', jobs: 'Job class, queue…', queries: 'SQL, table, connection…',
     exceptions: 'Exception, message, file…', outgoing: 'Host, URL, status…', stache: 'Request…', glide: 'Image path, preset, request…', forms: 'Form, request…', content: 'Title, id, editor, field…',
-})[props.page.key] || 'Search…');
+})[props.page.key] || 'Search…'));
 // The small facts after a span row's label; a failure is always the first, in red.
 // Each carries the facet it can filter on (when the page has that facet).
 const chips = (r) => {
     const out = [];
     const add = (text, dim = null, value = text, tone = 'default') => text != null && text !== '' && out.push({ text: String(text), dim: dim && hasFacet(dim) ? dim : null, value: String(value), tone });
-    if (r.outcome === 'failed') add('failed', 'outcome', 'failed', 'red');
+    if (r.outcome === 'failed') add(__('failed'), 'outcome', 'failed', 'red');
     else if (r.error && r.error !== 'ok') add(String(r.error).slice(0, 40), null, null, 'red');
     add(r.op, 'op');
     add(r.preset, 'preset');
     add(r.container, 'container');
     add(r.form, 'form');
     add(r.queue, 'queue');
-    add(r.attempts ? `attempt ${r.attempts}` : null);
+    add(r.attempts ? __('attempt :n', { n: r.attempts }) : null);
     add(r.connection, 'connection');
     add(r.repeats > 1 ? `×${r.repeats}` : null, 'repeat', 'repeated');
     add(r.host, 'host');

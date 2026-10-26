@@ -6,8 +6,8 @@
                 <span v-if="span.kind">{{ span.kind }}</span>
                 <span v-if="span.service">{{ span.service }}</span>
                 <span class="tabular-nums" :class="toneClass(span.durationMs)">{{ ms(span.durationMs) }}</span>
-                <span v-if="span.offsetMs >= 1" class="tabular-nums">starts +{{ ms(span.offsetMs) }}</span>
-                <Badge v-if="span.error" text="error" color="red" size="sm" />
+                <span v-if="span.offsetMs >= 1" class="tabular-nums">{{ __('starts +:offset', { offset: ms(span.offsetMs) }) }}</span>
+                <Badge v-if="span.error" :text="__('error')" color="red" size="sm" />
             </div>
         </div>
 
@@ -25,15 +25,15 @@
                             <Button size="2xs" variant="ghost" icon-only text="⋯" :aria-label="`Actions for ${key}`" />
                         </template>
                         <DropdownMenu>
-                            <DropdownItem text="Copy value" @click="copy(value)" />
-                            <DropdownItem v-if="facetFor(key)" :text="`Requests with this ${facetFor(key)}`" :href="exploreHref(key, value)" />
-                            <DropdownItem v-if="isUrl(value)" :text="key.endsWith('edit_url') ? 'Edit in the CP' : 'Open'" :href="String(value)" />
+                            <DropdownItem :text="__('Copy value')" @click="copy(value)" />
+                            <DropdownItem v-if="facetFor(key)" :text="__('Requests with this :facet', { facet: facetFor(key) })" :href="exploreHref(key, value)" />
+                            <DropdownItem v-if="isUrl(value)" :text="__(key.endsWith('edit_url') ? 'Edit in the CP' : 'Open')" :href="String(value)" />
                         </DropdownMenu>
                     </Dropdown>
                 </dd>
             </div>
         </dl>
-        <p v-else class="px-5 py-6 text-sm text-gray-500">No attributes recorded on this span.</p>
+        <p v-else class="px-5 py-6 text-sm text-gray-500">{{ __('No attributes recorded on this span.') }}</p>
     </div>
 </template>
 

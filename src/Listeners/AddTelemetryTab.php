@@ -29,7 +29,7 @@ final class AddTelemetryTab
 
         $event->blueprint->ensureFieldInTab(self::HANDLE, [
             'type' => 'telemetry',
-            'display' => 'Telemetry',
+            'display' => __('Telemetry'),
             'width' => 100,
             'visibility' => 'computed',
             'listable' => false,

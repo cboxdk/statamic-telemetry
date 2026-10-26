@@ -8,27 +8,27 @@
         <!-- Custom range -->
         <Popover align="end" v-model:open="rangeOpen">
             <template #trigger>
-                <Button size="sm" :variant="to ? 'primary' : 'default'" :text="to ? rangeLabel : 'Custom'" />
+                <Button size="sm" :variant="to ? 'primary' : 'default'" :text="to ? rangeLabel : __('Custom')" />
             </template>
             <div class="w-80 space-y-3 p-1">
                 <label class="block space-y-1">
-                    <span class="text-xs font-medium text-gray-500">From</span>
+                    <span class="text-xs font-medium text-gray-500">{{ __('From') }}</span>
                     <Input type="datetime-local" v-model="fromInput" />
                 </label>
                 <label class="block space-y-1">
-                    <span class="text-xs font-medium text-gray-500">To</span>
+                    <span class="text-xs font-medium text-gray-500">{{ __('To') }}</span>
                     <Input type="datetime-local" v-model="toInput" />
                 </label>
                 <div class="flex items-center justify-between gap-2 pt-1">
-                    <Button size="sm" variant="ghost" text="Clear" :disabled="!to" @click="clearRange" />
-                    <Button size="sm" variant="primary" text="Apply" :disabled="!validRange" @click="applyRange" />
+                    <Button size="sm" variant="ghost" :text="__('Clear')" :disabled="!to" @click="clearRange" />
+                    <Button size="sm" variant="primary" :text="__('Apply')" :disabled="!validRange" @click="applyRange" />
                 </div>
-                <p class="text-[11px] text-gray-500">Entered in your browser's time ({{ localLabel }}).</p>
+                <p class="text-[11px] text-gray-500">{{ __(`Entered in your browser's time (:zone).`, { zone: localLabel }) }}</p>
             </div>
         </Popover>
 
         <!-- Auto-refresh (Select is block/w-full by default — box it) -->
-        <div class="w-24 shrink-0" v-tooltip="to ? 'A custom range is fixed in time' : null">
+        <div class="w-24 shrink-0" v-tooltip="to ? __('A custom range is fixed in time') : null">
             <Select
                 size="sm"
                 :options="refreshOptions"
@@ -37,10 +37,10 @@
                 @update:model-value="setRefresh"
             />
         </div>
-        <Button size="sm" text="Refresh" :loading="refreshing" @click="refreshNow" />
+        <Button size="sm" :text="__('Refresh')" :loading="refreshing" @click="refreshNow" />
 
         <!-- Time zone every timestamp on these pages is shown in -->
-        <div class="w-28 shrink-0" v-tooltip="'Time zone for every time shown — your browser\'s or UTC'">
+        <div class="w-28 shrink-0" v-tooltip="__(`Time zone for every time shown — your browser's or UTC`)">
             <Select size="sm" :options="zoneOptions" :model-value="zone" @update:model-value="setZone" />
         </div>
     </div>
@@ -126,7 +126,7 @@ function clearRange() {
 // ── Auto-refresh ─────────────────────────────────────────────────────────────
 const KEY = 'statamic-telemetry.refresh';
 const refreshOptions = [
-    { label: 'Off', value: 'off' },
+    { label: __('Off'), value: 'off' },
     { label: '10s', value: '10' },
     { label: '30s', value: '30' },
     { label: '60s', value: '60' },

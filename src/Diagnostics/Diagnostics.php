@@ -71,13 +71,13 @@ final class Diagnostics
     private function probeBackend(): array
     {
         if (! $this->backend->configured()) {
-            return [null, 'No logs URL configured — the Content audit page is off.'];
+            return [null, __('No logs URL configured — the Content audit page is off.')];
         }
 
         try {
             $response = $this->backend->request()->get($this->backend->endpoint('loki/api/v1/labels'));
         } catch (Throwable $exception) {
-            return [false, 'Unreachable: '.$exception->getMessage()];
+            return [false, __('Unreachable:').$exception->getMessage()];
         }
 
         if (! $response->successful()) {
@@ -87,10 +87,10 @@ final class Diagnostics
         $json = $response->json();
 
         if (! is_array($json) || ($json['status'] ?? null) !== 'success') {
-            return [false, 'The URL answered, but not with a Loki log API.'];
+            return [false, __('The URL answered, but not with a Loki log API.')];
         }
 
-        return [true, 'Reachable — the Loki query API answered.'];
+        return [true, __('Reachable — the Loki query API answered.')];
     }
 
     /**

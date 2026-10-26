@@ -2,7 +2,7 @@
     <div class="relative text-xs">
         <!-- Ruler -->
         <div class="sticky top-0 z-10 grid h-6 grid-cols-[minmax(0,46%)_minmax(0,1fr)] items-center border-b border-gray-200 bg-white text-[10px] text-gray-400 dark:border-gray-800 dark:bg-gray-900">
-            <div class="px-3 uppercase tracking-wider">Span</div>
+            <div class="px-3 uppercase tracking-wider">{{ __('Span') }}</div>
             <div class="relative h-full border-s border-gray-200 dark:border-gray-800">
                 <span v-for="t in ticks" :key="t" class="absolute top-1 font-mono whitespace-nowrap" :class="t === 0 ? 'translate-x-1' : t === 100 ? '-translate-x-full' : '-translate-x-1/2'" :style="{ left: t + '%' }">{{ tickLabel(t) }}</span>
             </div>

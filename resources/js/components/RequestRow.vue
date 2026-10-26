@@ -13,19 +13,19 @@
         <span class="min-w-0">
             <span class="flex items-center gap-2">
                 <span class="truncate font-mono text-[13px]">{{ label }}</span>
-                <button v-if="row.status" type="button" class="shrink-0 rounded px-1 font-mono text-[10.5px] font-semibold hover:ring-1 hover:ring-gray-400" :class="[statusClass(row.status), isActive('status', row.status) ? 'ring-1 ring-blue-500' : '']" title="Click to filter by status" @click.stop="$emit('facet', 'status', row.status)">{{ row.status }}</button>
+                <button v-if="row.status" type="button" class="shrink-0 rounded px-1 font-mono text-[10.5px] font-semibold hover:ring-1 hover:ring-gray-400" :class="[statusClass(row.status), isActive('status', row.status) ? 'ring-1 ring-blue-500' : '']" :title="__('Click to filter by status')" @click.stop="$emit('facet', 'status', row.status)">{{ row.status }}</button>
             </span>
             <span class="flex min-w-0 items-center gap-2 text-[11px] text-gray-500">
-                <a v-if="row.title && row.editUrl" :href="row.editUrl" class="truncate no-underline hover:underline" title="Edit this entry" @click.stop>{{ row.title }}</a>
+                <a v-if="row.title && row.editUrl" :href="row.editUrl" class="truncate no-underline hover:underline" :title="__('Edit this entry')" @click.stop>{{ row.title }}</a>
                 <span v-else-if="row.title" class="truncate">{{ row.title }}</span>
-                <button v-if="content" type="button" class="shrink-0 font-mono hover:underline" :class="{ 'text-blue-600 dark:text-blue-400': isActive('collection', row.collection) }" title="Click to filter by collection" @click.stop="$emit('facet', 'collection', row.collection)">{{ content }}</button>
+                <button v-if="content" type="button" class="shrink-0 font-mono hover:underline" :class="{ 'text-blue-600 dark:text-blue-400': isActive('collection', row.collection) }" :title="__('Click to filter by collection')" @click.stop="$emit('facet', 'collection', row.collection)">{{ content }}</button>
                 <span v-else-if="row.route && row.route !== row.path" class="truncate font-mono">{{ row.route }}</span>
-                <button v-if="row.cache" type="button" class="shrink-0 hover:underline" :class="row.cache === 'hit' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'" title="Click to filter by cache outcome" @click.stop="$emit('facet', 'cache', row.cache)">cache {{ row.cache }}</button>
+                <button v-if="row.cache" type="button" class="shrink-0 hover:underline" :class="row.cache === 'hit' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'" :title="__('Click to filter by cache outcome')" @click.stop="$emit('facet', 'cache', row.cache)">{{ __('cache :outcome', { outcome: row.cache }) }}</button>
                 <span v-if="row.site && row.site !== 'default'" class="shrink-0">{{ row.site }}</span>
             </span>
         </span>
         <span class="flex items-center gap-3">
-            <a v-if="row.editUrl" :href="row.editUrl" class="text-xs text-gray-400 no-underline hover:text-gray-700 hover:underline dark:hover:text-gray-200" title="Edit this entry in the CP" @click.stop>Edit</a>
+            <a v-if="row.editUrl" :href="row.editUrl" class="text-xs text-gray-400 no-underline hover:text-gray-700 hover:underline dark:hover:text-gray-200" :title="__('Edit this entry in the CP')" @click.stop>{{ __('Edit') }}</a>
             <span class="tabular-nums" :class="toneClass(row.durationMs)">{{ ms(row.durationMs) }}</span>
         </span>
     </div>

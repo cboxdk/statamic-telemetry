@@ -91,7 +91,7 @@ class ExploreController extends CpController
 
         return Inertia::render('statamic-telemetry::Explore', [
             'signal' => $signal,
-            'signals' => self::SIGNALS,
+            'signals' => array_map('__', self::SIGNALS),
             'nav' => $nav->items('explore'),
             ...$range->toProps(),
             'dashboardUrl' => cp_route('telemetry.dashboard'),

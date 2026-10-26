@@ -282,14 +282,17 @@ The pages' own requests are kept out of the app's telemetry
 (`STATAMIC_TELEMETRY_CP_IGNORE_OWN_ROUTES`), and
 `STATAMIC_TELEMETRY_UI_URL` turns the Telemetry item back into a link-out.
 Permissions: **View the telemetry dashboard**, **View content audit log**,
-**View telemetry doctor**. The full guide, including what the backend must
+**View telemetry doctor**. Every string in the pages passes through `__()`
+with the English as its key — translate them from your app's
+`lang/<locale>.json`, as with core. The full guide, including what the backend must
 answer, is in [docs/production/control-panel.md](docs/production/control-panel.md).
 
 ## Testing
 
 ```bash
-composer install
-composer check   # pint + phpstan + pest
+composer install && npm ci
+composer check   # pint + phpstan (level 8) + pest
+npm test         # vitest — the CP JavaScript
 composer qa      # check + dependency license gate + composer audit
 composer sbom    # regenerate sbom.json (CycloneDX 1.5) after a dependency change
 ```
