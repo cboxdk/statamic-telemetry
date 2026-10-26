@@ -43,13 +43,25 @@ final class ContentAudit
 
     private const MAX_FIELDS = 25;
 
-    /** Objects a `*Created` event announced: their next save is the creation. @var WeakMap<object, bool> */
+    /**
+     * Objects a `*Created` event announced: their next save is the creation.
+     *
+     * @var WeakMap<object, bool>
+     */
     private WeakMap $created;
 
-    /** Objects already recorded as created, so a trailing `AssetUploaded` is not a second row. @var WeakMap<object, bool> */
+    /**
+     * Objects already recorded as created, so a trailing `AssetUploaded` is not a second row.
+     *
+     * @var WeakMap<object, bool>
+     */
     private WeakMap $recordedCreated;
 
-    /** What a site save changed, for the record that follows. @var WeakMap<object, list<string>> */
+    /**
+     * What a site save changed, for the record that follows.
+     *
+     * @var WeakMap<object, list<string>>
+     */
     private WeakMap $siteChanges;
 
     /**

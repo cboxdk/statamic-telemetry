@@ -41,7 +41,7 @@ class BrowserTracingReplacer implements Replacer
      * @param  Response  $response  the copy about to be cached
      * @param  Response  $initial  the first visitor's response (left intact)
      */
-    public function prepareResponseToCache(Response $response, Response $initial)
+    public function prepareResponseToCache(Response $response, Response $initial): void
     {
         $content = $response->getContent();
 
@@ -57,7 +57,7 @@ class BrowserTracingReplacer implements Replacer
      * caching and are deliberately not re-injected — a cached hit has no
      * server span for the browser to parent onto.
      */
-    public function replaceInCachedResponse(Response $response)
+    public function replaceInCachedResponse(Response $response): void
     {
         //
     }

@@ -18,6 +18,10 @@ final class TracingEngine implements Engine
 {
     public function __construct(private readonly Engine $inner) {}
 
+    /**
+     * @param  string  $path
+     * @param  array<string, mixed>  $data
+     */
     public function get($path, array $data = [])
     {
         // Outside a trace (a render in a console command or queued job)

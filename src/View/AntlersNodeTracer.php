@@ -67,7 +67,7 @@ final class AntlersNodeTracer implements RuntimeTracerContract
         }
     }
 
-    public function onRenderComplete()
+    public function onRenderComplete(): void
     {
         // Anything still open is an unbalanced enter (the runtime bailed on
         // a node) — close instead of leaking into the next render.

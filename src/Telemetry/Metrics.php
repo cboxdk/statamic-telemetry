@@ -101,7 +101,11 @@ final class Metrics
         return $series;
     }
 
-    /** Just the y-values of the first series, for a sparkline. @return list<float> */
+    /**
+     * Just the y-values of the first series, for a sparkline.
+     *
+     * @return list<float>
+     */
     public function series(string $query, int $windowSeconds, int $step = 60): array
     {
         $range = $this->range($query, $windowSeconds, $step);

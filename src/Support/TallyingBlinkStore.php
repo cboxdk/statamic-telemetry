@@ -14,6 +14,9 @@ use Spatie\Blink\Blink as SpatieBlink;
  */
 class TallyingBlinkStore extends SpatieBlink
 {
+    /**
+     * @param  mixed  $key
+     */
     public function once($key, callable $callable)
     {
         // Only tally inside an active trace — Blink is also used in console

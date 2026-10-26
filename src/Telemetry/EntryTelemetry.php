@@ -152,7 +152,7 @@ final class EntryTelemetry
             $p95[] = $this->percentile($bucket, 0.95);
         }
 
-        return ['t' => $t, 'ok' => $ok, 'client' => $client, 'server' => $server, 'p95' => $p95];
+        return ['t' => $t, 'ok' => array_values($ok), 'client' => array_values($client), 'server' => array_values($server), 'p95' => $p95];
     }
 
     private static function classOf(?string $status): ?string

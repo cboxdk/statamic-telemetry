@@ -99,7 +99,7 @@ final class TelemetryPages
     /**
      * The aggregate: stat tiles, a time chart and a breakdown table.
      *
-     * @return array{stats: list<array<string, mixed>>, chart: array{t: list<int>, series: list<array<string, mixed>>, unit: string}, breakdown: ?array{heading: string, subheading: ?string, columns: list<array{key: string, label: string, align?: string, kind?: string}>, rows: list<array<string, mixed>>}}
+     * @return array<string, mixed> {stats, chart, breakdown} — see the page builders
      */
     public function aggregate(string $page, TimeRange $range): array
     {
@@ -272,7 +272,7 @@ final class TelemetryPages
                 ['key' => 'connection', 'label' => 'Connection', 'kind' => 'mono'],
                 ['key' => 'count', 'label' => 'Queries', 'align' => 'end'],
                 ['key' => 'share', 'label' => 'Share', 'kind' => 'share'],
-            ], array_map(static fn (array $c): array => [...$c, 'share' => round($c['count'] / $total, 4)], $q['byConnection'])),
+            ], array_values(array_map(static fn (array $c): array => [...$c, 'share' => round($c['count'] / $total, 4)], $q['byConnection']))),
         ];
     }
 
@@ -559,7 +559,7 @@ final class TelemetryPages
             }
             arsort($counts);
             $facets[$key] = array_map(
-                static fn (string $value, int $count): array => ['value' => $value, 'count' => $count],
+                static fn (int|string $value, int $count): array => ['value' => (string) $value, 'count' => $count],
                 array_keys(array_slice($counts, 0, 15, true)),
                 array_values(array_slice($counts, 0, 15, true)),
             );

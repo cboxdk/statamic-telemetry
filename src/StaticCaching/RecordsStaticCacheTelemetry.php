@@ -38,6 +38,10 @@ trait RecordsStaticCacheTelemetry
         return $has;
     }
 
+    /**
+     * @param  string  $url
+     * @param  string|null  $domain
+     */
     public function invalidateUrl($url, $domain = null)
     {
         parent::invalidateUrl($url, $domain);

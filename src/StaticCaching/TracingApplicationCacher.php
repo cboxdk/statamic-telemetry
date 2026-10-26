@@ -11,7 +11,10 @@ final class TracingApplicationCacher extends ApplicationCacher
 {
     use RecordsStaticCacheTelemetry;
 
-    public function cachePage(Request $request, $content)
+    /**
+     * @param  string  $content
+     */
+    public function cachePage(Request $request, $content): void
     {
         // Before parent — its ResponsePrepared listener snapshots response
         // headers into the cache, and the trace id header must be gone by

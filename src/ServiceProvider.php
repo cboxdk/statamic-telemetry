@@ -176,7 +176,7 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->singleton(Blink::class, TracingBlink::class);
     }
 
-    public function bootAddon()
+    public function bootAddon(): void
     {
         if (! config('statamic-telemetry.enabled', true)) {
             return;
