@@ -38,11 +38,11 @@ export function percent(ratio) {
 
 /** 'local' or 'UTC' — what the person chose, local by default. */
 export function timeZoneChoice() {
-    try { return localStorage.getItem(ZONE_KEY) === 'UTC' ? 'UTC' : 'local'; } catch { return 'local'; }
+    try { return window.localStorage.getItem(ZONE_KEY) === 'UTC' ? 'UTC' : 'local'; } catch { return 'local'; }
 }
 
 export function setTimeZoneChoice(choice) {
-    try { localStorage.setItem(ZONE_KEY, choice === 'UTC' ? 'UTC' : 'local'); } catch {}
+    try { window.localStorage.setItem(ZONE_KEY, choice === 'UTC' ? 'UTC' : 'local'); } catch {}
 }
 
 /** The IANA zone passed to Intl — undefined means the browser's own. */
