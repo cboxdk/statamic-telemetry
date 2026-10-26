@@ -79,6 +79,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `from`/`to`, now up to `30d`) and `TelemetryPages` — the readers the
   pages are built from.
 
+### Security
+
+- The entry telemetry endpoint (`cp/telemetry/entry/{id}`) authorises
+  against the entry's own `view` policy, and the change history in the
+  entry's story is returned only to users with `view content audit log`
+  — the same two gates the entry editor and the Content page already apply.
+- ECharts 6.1 (GHSA-fgmj-fm8m-jvvx, an XSS in the chart tooltip) and
+  Vitest 5. `npm audit` is part of the CI quality gate, next to
+  `composer audit`.
+- Every GitHub Action in the workflows is pinned to a commit SHA, and the
+  CI npm install runs with `--ignore-scripts`.
+
 ### Changed
 
 - The addon's own Control Panel requests (`cp/telemetry*`) and their calls

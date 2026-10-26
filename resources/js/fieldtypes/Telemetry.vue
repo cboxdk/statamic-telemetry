@@ -106,6 +106,7 @@
                     <Section :heading="__('Change history')" inset>
                         <template #actions>{{ story.changes.count ? __n(':count change|:count changes', story.changes.count, { count: fmt(story.changes.count) }) : __('no changes in the window') }}</template>
                         <AuditRows v-if="story.changes.rows.length" :result="auditResult" />
+                        <div v-else-if="story.changes.available === false" class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">{{ __('You do not have permission to view the content audit log.') }}</div>
                         <div v-else class="px-4 pb-6 text-sm text-gray-500 sm:px-4.5">{{ __('No changes to this entry in the window.') }}</div>
                     </Section>
                 </div>

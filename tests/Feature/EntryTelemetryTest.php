@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
+use Statamic\Facades\Role;
 use Statamic\Facades\User;
 
 /** Make request() look like a Control Panel request — the tab is only added there. */
@@ -65,6 +66,7 @@ it('filters the audit log to one entry by content id', function () {
 
 it('tells the entry\'s story: requests, status mix, cache, exceptions on its path and its change history', function () {
     entryBackend();
+    $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
 
     $t = app(EntryTelemetry::class)->story('e123', '/about', TimeRange::window('24h'));
 
@@ -146,4 +148,26 @@ it('does not add the tab outside the Control Panel, for a user without telemetry
     $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
     $other = tap(Entry::make()->collection('pages')->slug('other'))->save();
     expect($other->blueprint()->field('telemetry'))->toBeNull();
+});
+
+it('keeps the audit trail behind its own permission and the endpoint behind the entry\'s view policy', function () {
+    entryBackend();
+    config()->set('statamic.editions.pro', true); // two non-super users
+    Collection::make('pages')->routes('{slug}')->save();
+    $entry = tap(Entry::make()->collection('pages')->slug('about')->data(['title' => 'About']))->save();
+
+    // Telemetry, but not the audit log: the story has no changes, and says why.
+    $viewer = tap(User::make()->email('viewer@example.com'))->save();
+    $viewer->assignRole(tap(Role::make('viewer')->permissions(['access cp', 'view telemetry', 'view pages entries']))->save());
+    $this->actingAs($viewer);
+
+    $t = app(EntryTelemetry::class)->story('e123', '/about', TimeRange::window('24h'));
+    expect($t['changes'])->toMatchArray(['available' => false, 'count' => 0, 'rows' => []]);
+
+    // Telemetry, but no access to this collection: the endpoint refuses.
+    $outsider = tap(User::make()->email('outsider@example.com'))->save();
+    $outsider->assignRole(tap(Role::make('outsider')->permissions(['access cp', 'view telemetry']))->save());
+    $this->actingAs($outsider);
+
+    $this->getJson(cp_route('telemetry.entry', ['id' => $entry->id()]))->assertForbidden();
 });

@@ -21,10 +21,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           coverage: none
@@ -49,10 +49,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -60,7 +60,7 @@ jobs:
       # The @statamic/cms shim is a `file:` link into vendor/, so Composer's
       # install has to come first for npm ci to resolve the lock file.
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           coverage: none
@@ -69,7 +69,10 @@ jobs:
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Install npm dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts # dev-only toolchain; esbuild and fsevents ship prebuilt binaries
 
       - name: Unit tests
         run: npm test
+
+      - name: npm audit
+        run: npm audit --audit-level=moderate

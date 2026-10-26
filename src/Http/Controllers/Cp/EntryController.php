@@ -26,6 +26,9 @@ class EntryController extends CpController
 
         abort_unless($entry instanceof EntryModel, 404);
 
+        // Telemetry about an entry is as private as the entry: the same `view` the editor needs.
+        $this->authorize('view', $entry);
+
         $range = $request->has('window') || $request->has('from') ? TimeRange::fromRequest($request) : TimeRange::window('7d');
 
         return response()->json([

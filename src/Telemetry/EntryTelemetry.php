@@ -6,6 +6,7 @@ namespace Cbox\StatamicTelemetry\Telemetry;
 
 use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Audit\AuditRow;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * One entry's telemetry story — the Telemetry tab in the entry editor: how
@@ -69,7 +70,9 @@ final class EntryTelemetry
         $siteP95 = $count > 0 ? $this->metrics->summary($s, $at)['p95'] : 0.0;
 
         $exceptions = $path !== null && $path !== '' ? $this->logs->withLabel('url_path', $path, 'error', $s, 50, $at) : [];
-        $changes = $this->audit->forEntry($entryId, $s);
+        // The audit trail has its own permission, on the entry tab as on the Content page.
+        $auditable = Gate::allows('view content audit log');
+        $changes = $auditable ? $this->audit->forEntry($entryId, $s) : [];
 
         return [
             'requests' => [
@@ -102,6 +105,7 @@ final class EntryTelemetry
                 ], array_slice($exceptions, 0, 10)),
             ],
             'changes' => [
+                'available' => $auditable,
                 'count' => count($changes),
                 'rows' => array_map(static fn (AuditRow $row): AuditRow => $row, array_slice($changes, 0, 25)),
             ],
