@@ -293,6 +293,7 @@ answer, is in [docs/production/control-panel.md](docs/production/control-panel.m
 composer install && npm ci
 composer check   # pint + phpstan (level 8) + pest
 npm test         # vitest — the CP JavaScript
+npm audit        # the npm half of the dependency audit (CI runs both)
 composer qa      # check + dependency license gate + composer audit
 composer sbom    # regenerate sbom.json (CycloneDX 1.5) after a dependency change
 ```

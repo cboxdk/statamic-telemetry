@@ -1,7 +1,7 @@
 {
     "bomFormat": "CycloneDX",
     "specVersion": "1.5",
-    "serialNumber": "urn:uuid:ed0767a0-2aae-57de-27f4-4b0e89bbc4fc",
+    "serialNumber": "urn:uuid:2e3d3d5e-7be2-8411-4c0b-8498715b6db1",
     "version": 1,
     "metadata": {
         "component": {
@@ -1895,10 +1895,10 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:npm/echarts@5.5.1",
+            "bom-ref": "pkg:npm/echarts@6.1.0",
             "name": "echarts",
-            "version": "5.5.1",
-            "purl": "pkg:npm/echarts@5.5.1",
+            "version": "6.1.0",
+            "purl": "pkg:npm/echarts@6.1.0",
             "licenses": [
                 {
                     "license": {
@@ -1923,10 +1923,10 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:npm/zrender@5.6.0",
+            "bom-ref": "pkg:npm/zrender@6.1.0",
             "name": "zrender",
-            "version": "5.6.0",
-            "purl": "pkg:npm/zrender@5.6.0",
+            "version": "6.1.0",
+            "purl": "pkg:npm/zrender@6.1.0",
             "licenses": [
                 {
                     "license": {
