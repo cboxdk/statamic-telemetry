@@ -6,10 +6,17 @@ use Cbox\StatamicTelemetry\Audit\AuditLog;
 use Cbox\StatamicTelemetry\Telemetry\EntryTelemetry;
 use Cbox\StatamicTelemetry\Telemetry\TimeRange;
 use Cbox\StatamicTelemetry\Telemetry\Traces;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
 use Statamic\Facades\User;
+
+/** Make request() look like a Control Panel request — the tab is only added there. */
+function inCpRequest(): void
+{
+    app()->instance('request', Request::create('/cp/collections/pages/entries/about'));
+}
 
 function entryBackend(): void
 {
@@ -108,6 +115,7 @@ it('adds a full-width Telemetry tab to entry blueprints for users who may view t
     // The blueprint is resolved (and Blink-cached) with the current user's
     // permissions, as in a CP request: sign in first, then load the entry.
     $this->actingAs(tap(User::make()->email('admin@example.com')->makeSuper())->save());
+    inCpRequest();
     Collection::make('pages')->save();
     $entry = tap(Entry::make()->collection('pages')->slug('about'))->save();
 
@@ -120,8 +128,15 @@ it('adds a full-width Telemetry tab to entry blueprints for users who may view t
         ->and($entry->blueprint()->tabs()->keys()->all())->toContain('telemetry');
 });
 
-it('does not add the tab for a user without telemetry access, or when disabled', function () {
+it('does not add the tab outside the Control Panel, for a user without telemetry access, or when disabled', function () {
     Collection::make('pages')->save();
+
+    // A signed-in editor on the frontend / API sees the blueprint as everyone else does.
+    $this->actingAs(tap(User::make()->email('editor@example.com')->makeSuper())->save());
+    $frontend = tap(Entry::make()->collection('pages')->slug('frontend'))->save();
+    expect($frontend->blueprint()->field('telemetry'))->toBeNull();
+
+    inCpRequest();
 
     $this->actingAs(tap(User::make()->email('nobody@example.com'))->save());
     $entry = tap(Entry::make()->collection('pages')->slug('about'))->save();

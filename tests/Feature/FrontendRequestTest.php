@@ -176,3 +176,16 @@ test('a Glide image request is routed by its asset container', function () {
             'statamic.glide.preset' => 'small',
         ]);
 });
+
+test('a frontend 404 stays not_found even when the URL lookup knows the entry (a draft, say)', function () {
+    Collection::make('pages')->routes('{slug}')->save();
+    tap(Entry::make()->collection('pages')->slug('launch')->published(false)->data(['title' => 'Launch']))->save();
+
+    $request = Request::create('/launch');
+    $request->setRouteResolver(fn () => new Route(
+        ['GET'], '/{segments?}', ['controller' => FrontendController::class.'@index'],
+    ));
+
+    expect(Content::route($request, new Response('', 404)))->toBe('not_found')
+        ->and(Content::route($request, new Response('', 200)))->toBe('entry:pages.page');
+});

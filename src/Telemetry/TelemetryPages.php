@@ -42,7 +42,7 @@ final class TelemetryPages
         'queries' => ['connection' => 'Connection', 'repeat' => 'Repeats'],
         'exceptions' => ['type' => 'Exception', 'group' => 'Group'],
         'outgoing' => ['host' => 'Host', 'method' => 'Method', 'status' => 'Status'],
-        'static-cache' => ['cache' => 'Outcome', 'collection' => 'Collection', 'type' => 'Content type', 'site' => 'Site'],
+        'static-cache' => ['cache' => 'Outcome', 'collection' => 'Collection', 'route' => 'Route', 'type' => 'Content type', 'site' => 'Site'],
         'stache' => ['op' => 'Operation'],
         'glide' => ['preset' => 'Preset', 'container' => 'Container'],
         'forms' => ['form' => 'Form'],
@@ -52,6 +52,9 @@ final class TelemetryPages
     private const LIMIT = 300;
 
     private const BUCKETS = 32;
+
+    /** @var array<string, list<array<string, mixed>>> */
+    private array $exceptionRowsCache = [];
 
     public function __construct(
         private readonly TelemetryMetrics $metrics,
@@ -471,6 +474,12 @@ final class TelemetryPages
      */
     private function exceptionRows(TimeRange $range): array
     {
+        // The aggregate and the rows are two lazy props on one request; one Loki query serves both.
+        $key = $range->seconds.'@'.($range->endsAt ?? 'now');
+        if (isset($this->exceptionRowsCache[$key])) {
+            return $this->exceptionRowsCache[$key];
+        }
+
         $rows = [];
 
         foreach ($this->logs->query($range->seconds, 'error', '', self::LIMIT, $range->endsAt) as $i => $log) {
@@ -494,7 +503,7 @@ final class TelemetryPages
             ];
         }
 
-        return $rows;
+        return $this->exceptionRowsCache[$key] = $rows;
     }
 
     /**
@@ -598,8 +607,11 @@ final class TelemetryPages
         $groups = [];
 
         foreach ($rows as $row) {
-            $key = $row['collection'] ?? ($row['route'] ?? '(other)');
-            $groups[$key] ??= ['collection' => $key, 'hit' => 0, 'miss' => 0, 'write' => 0, 'other' => 0, 'total' => 0];
+            // A group is a collection when the request served one, else its route
+            // (`not_found`, `glide:assets`) — `facet` says which, so a click filters the right one.
+            $facet = isset($row['collection']) ? 'collection' : 'route';
+            $key = $row[$facet] ?? '(other)';
+            $groups[$key] ??= ['collection' => $key, 'facet' => $facet, 'hit' => 0, 'miss' => 0, 'write' => 0, 'other' => 0, 'total' => 0];
             $outcome = $row['cache'] ?? 'other';
             $groups[$key][isset($groups[$key][$outcome]) ? $outcome : 'other']++;
             $groups[$key]['total']++;

@@ -23,8 +23,8 @@ use Statamic\Http\Controllers\CP\CpController;
  * the page carries a stat header, a facet panel (status / method / route, with
  * counts, from metrics) that filters the list through a TraceQL selector or
  * aggregates it with a group-by, a throughput chart and a latency heatmap.
- * The list and detail are Inertia props the client reloads to filter and
- * live-tail. Thin — {@see Traces}/{@see Logs}/{@see TelemetryMetrics} do the
+ * The list is an Inertia prop the client reloads to filter and live-tail;
+ * a row opens its trace in the drawer, which fetches it itself. Thin — {@see Traces}/{@see Logs}/{@see TelemetryMetrics} do the
  * reads, and {@see TimeRange} owns the window / custom range.
  */
 class ExploreController extends CpController
@@ -78,7 +78,6 @@ class ExploreController extends CpController
         $seconds = $range->seconds;
         $endsAt = $range->endsAt;
         $q = trim((string) $request->query('q', ''));
-        $id = is_string($request->query('id')) ? (string) $request->query('id') : null;
         $filters = $this->filters($request);
         $isTrace = $signal === 'requests' || $signal === 'traces';
         $groupBy = $request->query('groupBy');
@@ -101,13 +100,11 @@ class ExploreController extends CpController
             'filters' => $filters,
             'groupBy' => $groupBy,
             'groups' => $isTrace && $groupBy !== null ? fn () => $metrics->groupBy(self::GROUP_LABELS[$groupBy], $seconds, $endsAt) : [],
-            'selectedId' => $id,
             'items' => fn () => $this->items($signal, $seconds, $q, $search(), $logs, $endsAt),
-            'detail' => fn () => $id !== null ? $this->detail($signal, $id, $traces) : null,
             'summary' => $isTrace ? fn () => $metrics->summary($seconds, $endsAt) : null,
             'facets' => $isTrace ? fn () => [...$metrics->facets($seconds, $endsAt), ...$this->traceFacets($search())] : null,
             'throughput' => $isTrace ? fn () => $metrics->throughput($seconds, $endsAt) : null,
-            'heatmap' => $isTrace ? fn () => $heatmap->build($seconds, $this->traceql($filters), $endsAt) : null,
+            'heatmap' => $isTrace ? fn () => $heatmap->build($seconds, $this->traceql($filters, $signal === 'requests'), $endsAt) : null,
             'deployments' => $isTrace ? fn () => $deployments->window($seconds, 50, $endsAt) : [],
         ]);
     }
@@ -165,21 +162,6 @@ class ExploreController extends CpController
         }
 
         return $facets;
-    }
-
-    /**
-     * The detail for the selected item, tagged with its id so the client can
-     * tell a fresh waterfall from the previous selection's.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function detail(string $signal, string $id, Traces $traces): ?array
-    {
-        if ($signal === 'requests' || $signal === 'traces') {
-            return ['id' => $id, 'spans' => $traces->trace($id)];
-        }
-
-        return null;
     }
 
     /**

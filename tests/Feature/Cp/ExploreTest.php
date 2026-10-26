@@ -109,17 +109,6 @@ it('lists error logs on the errors signal', function () {
             ->where('items.0.line', 'boom something failed'));
 });
 
-it('loads a trace waterfall as the detail for a selected request', function () {
-    exploreBackend();
-    $this->actingAs(tap(User::make()->email('a@b.test')->makeSuper())->save());
-
-    $this->get(cp_route('telemetry.explore').'?signal=requests&id=tr1')
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('selectedId', 'tr1')
-            ->where('detail.spans.0.name', 'GET /'));
-});
-
 it('filters the request list by a facet through a TraceQL selector', function () {
     exploreBackend();
     $this->actingAs(tap(User::make()->email('a@b.test')->makeSuper())->save());

@@ -74,6 +74,12 @@ final class Content
      */
     public static function route(Request $request, Response $response): ?string
     {
+        // A frontend 404 is `not_found` whatever the URL lookup finds — the uri
+        // index also knows drafts and unpublished entries Statamic refused to serve.
+        if ($response->getStatusCode() === 404 && self::isFrontendRequest($request)) {
+            return 'not_found';
+        }
+
         $label = self::routeLabel($request);
 
         if ($label !== null) {
@@ -82,10 +88,6 @@ final class Content
 
         if (self::isGlideRequest($request)) {
             return 'glide:'.self::glideSource($request);
-        }
-
-        if ($response->getStatusCode() === 404 && self::isFrontendRequest($request)) {
-            return 'not_found';
         }
 
         return null;

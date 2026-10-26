@@ -110,8 +110,13 @@ async function load(manual = false) {
 onMounted(load);
 watch(() => props.id, () => { trace.value = null; retrying.value = false; load(); });
 
-// The request span's attributes — what the trace was about.
-const rootAttrs = computed(() => (trace.value?.spans || []).find((s) => s.depth === 0)?.attributes || {});
+// The request span's attributes — what the trace was about. The root is the span
+// the controller named as such (shallowest, longest), not just the first at depth 0.
+const rootAttrs = computed(() => {
+    const spans = trace.value?.spans || [];
+    const root = spans.find((s) => s.depth === 0 && s.name === trace.value?.root?.name) || spans.find((s) => s.depth === 0);
+    return root?.attributes || {};
+});
 // Links to the telemetry pages carry the current time state along.
 const pageHref = (page, params) => telemetryUrl(page, { ...currentTime(), ...params });
 
