@@ -1,6 +1,4 @@
 <template>
-    <!-- One request as a person recognises it: "GET /about · 200", then title · entry:pages · cache hit.
-         The row opens the trace; the facts on it filter (status, collection, cache) or lead on (edit the entry). -->
     <div
         role="button"
         tabindex="0"
@@ -9,6 +7,8 @@
         @click="$emit('open', row.id)"
         @keydown.enter.prevent="$emit('open', row.id)"
     >
+        <!-- One request as a person recognises it: "GET /about · 200", then title · entry:pages · cache hit.
+             The row opens the trace; the facts on it filter (status, collection, cache) or lead on (edit the entry). -->
         <span class="tabular-nums text-xs text-gray-500">{{ clock(row.timestamp) }}</span>
         <span class="min-w-0">
             <span class="flex items-center gap-2">

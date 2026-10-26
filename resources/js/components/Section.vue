@@ -1,8 +1,8 @@
 <template>
-    <!-- The one card every telemetry section uses: a Card with its heading inside it —
-         no separate header strip, same radius, same padding, whether it holds tiles,
-         a chart, a table (`inset`, so rows can run edge to edge) or a list. -->
     <Card :inset="inset" :class="inset ? '' : 'space-y-4'">
+        <!-- The one card every telemetry section uses: a Card with its heading inside it —
+             no separate header strip, same radius, same padding, whether it holds tiles,
+             a chart, a table (`inset`, so rows can run edge to edge) or a list. -->
         <div v-if="heading || $slots.actions" class="flex items-start justify-between gap-3" :class="inset ? 'px-4 pt-4 pb-3 sm:px-4.5' : ''">
             <div class="min-w-0">
                 <h3 class="text-sm font-semibold leading-tight">{{ heading }}</h3>
