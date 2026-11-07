@@ -32,6 +32,8 @@ more. This addon teaches those traces Statamic's vocabulary:
   duration.
 - **Glide, forms, content changes** — counters per preset, per form, and per
   content type/action.
+- **MCP v4 lifecycle** (opt-in) — execution spans, bounded call metrics and grant
+  observations; no tool arguments, results or credentials.
 - **Antlers render spans** (opt-in) — a detail span per rendered view.
 - **Observable gauges** (opt-in) — entries per collection, assets per
   container, user count, evaluated at scrape time.
@@ -42,8 +44,8 @@ more. This addon teaches those traces Statamic's vocabulary:
 composer require cboxdk/statamic-telemetry
 ```
 
-Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry ^3.0. Everything is
-on by default except Antlers view/tag spans and the gauges. Publish the
+Requires PHP 8.3+, Statamic 6 and cboxdk/laravel-telemetry ^3.0. Most instrumentation is
+on by default; MCP, Antlers view/tag spans and the gauges are opt-in. Publish the
 config to change toggles:
 
 ```bash
@@ -310,3 +312,44 @@ The test suite uses Statamic's `AddonTestCase` and `Telemetry::fake()`. Note
 for addon/package authors: after swapping in the fake, re-register the hooks
 (`Hooks::register($fake)`) — the boot-time registrations landed on the
 manager the fake replaces. See `tests/TestCase.php::fakeTelemetry()`.
+
+## Optional Statamic MCP v4 integration
+
+Install `cboxdk/statamic-mcp` v4 separately and use laravel-telemetry 3.9.3 or newer.
+Enable the adapter explicitly:
+
+```dotenv
+STATAMIC_TELEMETRY_MCP_ENABLED=true
+```
+
+The adapter observes MCP's typed lifecycle contract. It registers no tools or
+read permissions and cannot grant access or approve a write. Installing this
+package does not enable MCP instrumentation. An older/missing MCP package leaves
+the adapter inactive; an older telemetry SDK produces a configuration warning.
+
+`statamic.mcp.execute` spans cover actual handler execution, so native Statamic
+content spans can be children of the action. Denials and result replays have
+separate spans. A replay is counted as a call with `effects=none`, not as another
+content write. HTTP keeps its request parent; each outer stdio attempt starts
+a fresh trace and clears its context afterwards.
+
+The adapter projects action ID/version, transport, outcome and effect status from MCP events.
+Metric labels exclude operation, execution, grant, user and OAuth-client IDs.
+Arguments, results, content values, credentials and exception messages are never
+projected from MCP events. Existing Statamic content-audit and ambient telemetry
+hooks retain their own settings; this adapter does not change those policies.
+
+Metrics are `statamic.mcp.calls`, `statamic.mcp.duration` (seconds) and
+`statamic.mcp.grants`. Observer state and duplicate-event tracking are bounded.
+Export failures cannot turn a persisted CMS write into a failed write response.
+Redaction remains in the real telemetry export pipeline and fails closed.
+
+For stdio, `mcp.flush_stdio` defaults to true: buffers flush after each attempt.
+Use a spool exporter to keep network latency outside the MCP process, and keep
+application/exporter logging off stdout. The adapter writes nothing to stdout.
+Disable `mcp.flush_stdio` only when another bounded flush lifecycle is available.
+
+The MCP development dependency permits the v4 release branch until a stable v4
+exists; it is not a runtime dependency. The integration tests use real MCP events,
+a native Statamic write and the published telemetry SDK. MCP's legacy routers must
+be migrated to its action executor before they emit execution events.

@@ -19,13 +19,13 @@ context — and ships Statamic-specific metrics. See the
 composer require cboxdk/statamic-telemetry
 ```
 
-Everything is on by default **except** the Antlers view/tag spans and the
-inventory gauges (both add per-request or per-scrape cost).
+MCP, Antlers view/tag spans and inventory gauges are opt-in. Most other
+instrumentation is enabled by default.
 
 ## 2. Publish the config (optional)
 
 Only needed if you want to change the `instrument.*` toggles or opt into the
-gauges/Antlers spans:
+gauges, Antlers spans or MCP integration:
 
 ```bash
 php artisan vendor:publish --tag=statamic-telemetry-config

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional Statamic MCP v4 observer integration, disabled by default. Adds execution spans, call duration/counts and grant lifecycle counts through a metadata allowlist.
+- Per-attempt stdio trace isolation and correlation of native Statamic content spans with actual action execution. Denial, replay and failed/unknown outcomes remain distinct.
+- Integration coverage for native writes under exporter failure, redactor failure, disabled/absent MCP, and the published laravel-telemetry 3.9.3 floor. No MCP runtime dependency or telemetry-read tools are added.
+
+### Fixed
+
+- Use patched `glob` and `minimatch` in the development-only Vue test formatter
+  chain ([glob advisory](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4),
+  [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249)). Scoped
+  overrides remain until the parent packages accept the patched major versions.
+
 ## [3.2.0] - 2026-10-26
 
 ### Added

@@ -27,10 +27,13 @@ use Cbox\StatamicTelemetry\Support\TracingBlink;
 use Cbox\StatamicTelemetry\View\AntlersNodeTracer;
 use Cbox\StatamicTelemetry\View\TracingEngine;
 use Cbox\Telemetry\Facades\Telemetry;
+use Cboxdk\StatamicMcp\Actions\ObserverRegistry;
+use Composer\InstalledVersions;
 use Illuminate\Cache\Repository;
 use Illuminate\Routing\Events\ResponsePrepared;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Statamic\Events;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
@@ -176,6 +179,14 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->singleton(Blink::class, TracingBlink::class);
     }
 
+    public function boot(): void
+    {
+        parent::boot();
+        if (config('statamic-telemetry.enabled', true)) {
+            $this->bootMcp();
+        }
+    }
+
     public function bootAddon(): void
     {
         if (! config('statamic-telemetry.enabled', true)) {
@@ -190,6 +201,43 @@ class ServiceProvider extends AddonServiceProvider
         $this->bootBrowserTracing();
         $this->bootPermissions();
         $this->bootCpNav();
+    }
+
+    private function bootMcp(): void
+    {
+        if (! config('statamic-telemetry.instrument.mcp', false)
+            || ! class_exists(ObserverRegistry::class)
+            || ! $this->app->bound(ObserverRegistry::class)) {
+            return;
+        }
+        $version = InstalledVersions::getVersion('cboxdk/laravel-telemetry');
+        if ($version === null || version_compare($version, '3.9.3', '<')) {
+            try {
+                Log::warning('MCP telemetry requires laravel-telemetry 3.9.3 or newer.');
+            } catch (\Throwable) {
+                // Optional instrumentation must not turn a logging failure into a boot failure.
+            }
+
+            return;
+        }
+        try {
+            $this->app->singleton(Integrations\Mcp\LifecycleObserver::class);
+            $this->app->make(ObserverRegistry::class)
+                ->register(Integrations\Mcp\LifecycleObserver::class);
+        } catch (\Throwable) {
+            try {
+                Log::warning('MCP telemetry could not register its lifecycle observer.');
+            } catch (\Throwable) {
+                // A diagnostic must not change application availability.
+            }
+
+            return;
+        }
+        // mcp:start owns many independent units, not one native profile lasting hours.
+        $excluded = config('telemetry.native.exclude_commands', []);
+        if (is_array($excluded)) {
+            config()->set('telemetry.native.exclude_commands', array_values(array_unique([...array_filter($excluded, 'is_string'), 'mcp:start'])));
+        }
     }
 
     /**

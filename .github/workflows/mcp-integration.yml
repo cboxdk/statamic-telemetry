@@ -1,0 +1,55 @@
+name: MCP v4 integration
+
+on:
+  pull_request:
+  push:
+    branches: [main, sd/statamic-mcp-v4-integration]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-integration-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.5']
+        telemetry: ['3.9.3', '^3.9.3']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, mbstring, zip, pcntl, pdo_sqlite, bcmath, intl, exif, gd
+          coverage: none
+      - name: Install published telemetry SDK and MCP v4
+        env:
+          TELEMETRY_VERSION: ${{ matrix.telemetry }}
+        run: |
+          composer require "cboxdk/laravel-telemetry:$TELEMETRY_VERSION" --no-update --no-interaction
+          composer update --with-all-dependencies --no-interaction --prefer-dist
+      - name: Analyze the adapter at level 9
+        run: vendor/bin/phpstan analyse src/Integrations/Mcp --level=9 --memory-limit=1G
+      - name: Exercise real events and native writes
+        run: vendor/bin/pest tests/Integration/Mcp --ci
+
+  without-mcp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, mbstring, zip, pcntl, pdo_sqlite, bcmath, intl, exif, gd
+          coverage: none
+      - name: Install without the optional MCP package
+        run: composer remove --dev cboxdk/statamic-mcp --no-interaction --with-all-dependencies
+      - name: Verify ordinary telemetry still works
+        run: vendor/bin/pest --ci

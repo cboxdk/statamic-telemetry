@@ -245,6 +245,8 @@ via `STATAMIC_TELEMETRY_*` env vars (see the published config).
 | `instrument.blink` | true | Blink memoization tallies |
 | `instrument.views` | false | A `view.render` detail span per rendered view |
 | `instrument.antlers` | false | A detail span per Antlers tag (forces `statamic.antlers.tracing` on) |
+| `instrument.mcp` | false | Optional MCP v4 lifecycle adapter (requires telemetry SDK 3.9.3+) |
+| `mcp.flush_stdio` | true | Flush telemetry after each outer stdio attempt when MCP instrumentation is enabled |
 | `gauges.enabled` | false | Inventory gauges (query on every scrape) |
 | `audit.actor_name` | true | The editor's `user.name` beside `user.id` on audit records |
 | `audit.changed_fields` | true | The changed field handles (names only) on `updated` records |
@@ -304,3 +306,9 @@ automatically) so they never leak across visitors.
   cancels the submission), `*Saving`/`*Deleting`, `*BlueprintFound` are
   payload-manipulation hooks, not outcomes.
 - **`UrlInvalidated`** — already counted at the cacher as `invalidate`.
+
+## MCP v4 (opt-in)
+
+`instrument.mcp` defaults to `false` (`STATAMIC_TELEMETRY_MCP_ENABLED`).
+`mcp.flush_stdio` defaults to `true`. See [MCP integration](../production/mcp.md)
+for the signal catalog, optional version requirements and privacy boundaries.

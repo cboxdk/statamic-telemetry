@@ -46,8 +46,8 @@ package is configured with (OTLP, Prometheus).
 composer require cboxdk/statamic-telemetry
 ```
 
-Requires PHP 8.3+, Statamic 6 and `cboxdk/laravel-telemetry`. Everything is
-on by default except the Antlers view/tag spans and the inventory gauges.
+Requires PHP 8.3+, Statamic 6 and `cboxdk/laravel-telemetry`. Most instrumentation is
+on by default; MCP, Antlers view/tag spans and inventory gauges are opt-in.
 Publish the config to change toggles:
 
 ```bash
@@ -78,3 +78,5 @@ php artisan statamic-telemetry:dashboards --export=./provisioning
 | Blink memoization tallies | tracing Blink subclass | on |
 | Inventory gauges | `TelemetryProvider` (opt-in) | off |
 | Antlers view + tag spans | view engine wrap + runtime tracer (opt-in) | off |
+
+- **[Optional MCP integration](production/mcp.md)** — opt-in v4 lifecycle signals, privacy and stdio operation.
