@@ -51,6 +51,16 @@ and exporters off stdout: stdout carries MCP protocol frames. The adapter itself
 writes no protocol output. Arbitrary host exporters and loggers remain the
 operator's responsibility.
 
+## Audit admission
+
+MCP's registered writes require durable audit admission before their handlers run.
+This is independent of telemetry and its enable flag. A failed audit admission
+produces a denied attempt with no handler effects. If terminal audit fails after a
+write, MCP's retained operation remains authoritative; telemetry must not encourage
+a fresh write to compensate for a missing observation. Current output filtering
+can fail after persistence, so inspect both `outcome` and `effects`: a failed attempt
+may still report committed effects.
+
 ## Development status
 
 The MCP v4 branch currently emits execution events from its registered-action

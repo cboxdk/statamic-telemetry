@@ -9629,12 +9629,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/cboxdk/statamic-mcp.git",
-                "reference": "8abcef10a71960346c7a28ed755926ec6b96dc0a"
+                "reference": "3e007b73beffb403aae5098343e2b99f5d6ee7e9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cboxdk/statamic-mcp/zipball/8abcef10a71960346c7a28ed755926ec6b96dc0a",
-                "reference": "8abcef10a71960346c7a28ed755926ec6b96dc0a",
+                "url": "https://api.github.com/repos/cboxdk/statamic-mcp/zipball/3e007b73beffb403aae5098343e2b99f5d6ee7e9",
+                "reference": "3e007b73beffb403aae5098343e2b99f5d6ee7e9",
                 "shasum": ""
             },
             "require": {
@@ -9730,7 +9730,7 @@
                 "source": "https://github.com/cboxdk/statamic-mcp/tree/sd/release/v4",
                 "issues": "https://github.com/cboxdk/statamic-mcp/issues"
             },
-            "time": "2026-11-07T09:42:45+00:00"
+            "time": "2026-11-07T11:10:52+00:00"
         },
         {
             "name": "composer/pcre",
