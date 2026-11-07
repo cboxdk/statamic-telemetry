@@ -21,5 +21,13 @@
     "dependencies": {
         "@statamic/cms": "file:vendor/statamic/cms/resources/dist-package",
         "echarts": "^6.1.0"
+    },
+    "overrides": {
+        "js-beautify": {
+            "glob": "^14.0.4"
+        },
+        "editorconfig": {
+            "minimatch": "^11.0.5"
+        }
     }
 }
