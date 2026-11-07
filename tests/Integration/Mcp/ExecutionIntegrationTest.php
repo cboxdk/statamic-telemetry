@@ -19,8 +19,8 @@ use Cbox\Telemetry\TelemetryManager;
 use Cbox\Telemetry\Tracing\Tracer;
 use Cboxdk\StatamicMcp\Actions\ActionExecutor;
 use Cboxdk\StatamicMcp\Actions\CapabilityRegistry;
-use Cboxdk\StatamicMcp\Actions\ExecutionContext;
 use Cboxdk\StatamicMcp\Actions\ObserverRegistry;
+use Cboxdk\StatamicMcp\Actions\Transport\ContextFactory;
 use Cboxdk\StatamicMcp\Auth\TokenService;
 use Cboxdk\StatamicMcp\ServiceProvider;
 use Illuminate\Support\Facades\Event;
@@ -76,7 +76,8 @@ final class ExecutionIntegrationTest extends TestCase
         $user = User::make()->email('mcp@example.test')->makeSuper();
         $user->save();
         $grant = app(CapabilityRegistry::class)->forScopes(['fixture:edit']);
-        $token = app(TokenService::class)->createToken($user->id(), 'Integration', ['fixture:edit'], capabilities: $grant)['model'];
+        $issued = app(TokenService::class)->createToken($user->id(), 'Integration', ['fixture:edit'], capabilities: $grant);
+        config(['statamic.mcp.stdio.token' => $issued['token']]);
         $manager = new TelemetryManager(true, new Registry(new ArrayMetricStore, [0.001, 0.01, 0.1, 1.0, 10.0]), new Tracer);
         $exporter = new class implements Exporter
         {
@@ -101,7 +102,7 @@ final class ExecutionIntegrationTest extends TestCase
         $manager->addExporter($exporter);
         Telemetry::swap($manager);
         FailSafe::handleExceptionsUsing(static fn () => null);
-        $context = new ExecutionContext($user->id(), $grant->grantId, 'default', 'operator', 'stdio', 'prepare', hrtime(true) + 60_000_000_000, $token->id);
+        $context = app(ContextFactory::class)->create('default');
         $input = ['id' => $entry->id(), 'title' => 'After'];
         $executor = app(ActionExecutor::class);
         $operation = $executor->prepare('fixture/telemetry/edit', $input, $context);
