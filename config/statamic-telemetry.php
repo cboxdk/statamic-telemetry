@@ -63,7 +63,14 @@ return [
     |
     */
 
+    'mcp' => [
+        // Flush each completed stdio unit; use a spool exporter for low latency.
+        'flush_stdio' => true,
+    ],
+
     'instrument' => [
+        // Optional statamic-mcp v4 lifecycle integration; no content or credentials.
+        'mcp' => env('STATAMIC_TELEMETRY_MCP_ENABLED', false),
         'user' => env('STATAMIC_TELEMETRY_USER', true),
         'site_context' => env('STATAMIC_TELEMETRY_SITE', true),
         'content' => env('STATAMIC_TELEMETRY_CONTENT', true),
