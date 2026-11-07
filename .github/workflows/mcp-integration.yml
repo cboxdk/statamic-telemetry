@@ -31,7 +31,9 @@ jobs:
       - name: Install published telemetry SDK and MCP v4
         env:
           TELEMETRY_VERSION: ${{ matrix.telemetry }}
-        run: composer require "cboxdk/laravel-telemetry:$TELEMETRY_VERSION" --with-all-dependencies --no-interaction --prefer-dist
+        run: |
+          composer require "cboxdk/laravel-telemetry:$TELEMETRY_VERSION" --no-update --no-interaction
+          composer update --with-all-dependencies --no-interaction --prefer-dist
       - name: Analyze the adapter at level 9
         run: vendor/bin/phpstan analyse src/Integrations/Mcp --level=9 --memory-limit=1G
       - name: Exercise real events and native writes
